@@ -7,10 +7,10 @@ Instead of manually listing the module blueprints in multiple files, you can use
 ```yml
 # Parent/container blueprints
 sections:
-	modules:
-		type: pages
-		parent: page.find("modules")
-		extends: modulehelper/create
+  modules:
+    type: pages
+    parent: page.find("modules")
+    extends: modulehelper/create
 ```
 
 ```yml
