@@ -13,18 +13,16 @@ Kirby::plugin('medienbaecker/modulehelper', [
 		'modulehelper/changeTemplate' => [
 			'changeTemplate' => $blueprints
 		]
-	], 'pageMethods' => [
-		'isModule'          => function () {
+	],
+	'pageMethods' => [
+		'isModule' => function () {
 			return Str::startsWith($this->intendedTemplate(), 'module.')
 		},
-		'moduleName'        => function () {
+		'moduleName' => function () {
 			return str_replace('.', '__', $this->intendedTemplate());
 		},
 		'moduleDisplayName' => function () {
-			if ($this->isModule())
-				return ucwords(str_replace('-', ' ', substr($this->intendedTemplate(), 7)));
-			else
-				return ucwords($this->intendedTemplate());
+			return $this->blueprint()->title();
 		}
 	]
 ]);
