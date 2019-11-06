@@ -23,7 +23,7 @@ Every blueprint starting with `module.` will be available to create/change to.
 
 ```yml
 type: pages
-info: "{{ page.moduleDisplayName}}"
+info: "{{ page.moduleDisplayName }}"
 ```
 
 Show module name in pages sections.
