@@ -6,8 +6,8 @@ foreach (kirby()->blueprints() as $blueprint) {
 }
 
 Kirby::plugin('medienbaecker/modulehelper', [
-    'blueprints' => [
-        'modulehelper/create' => [
+	'blueprints' => [
+		'modulehelper/create' => [
 			'create' => $blueprints
 		],
 		'modulehelper/changeTemplate' => [
