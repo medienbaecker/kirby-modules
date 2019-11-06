@@ -20,3 +20,12 @@ options:
 ```
 
 Every blueprint starting with `module.` will be available to create/change to.
+
+```yml
+headline: Veröffentlicht
+type: pages
+status: listed
+info: " {{ page.moduleDisplayName}}"
+```
+
+Show module display name at pages list info.
