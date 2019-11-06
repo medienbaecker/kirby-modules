@@ -16,7 +16,7 @@ Kirby::plugin('medienbaecker/modulehelper', [
 	],
 	'pageMethods' => [
 		'isModule' => function () {
-			return Str::startsWith($this->intendedTemplate(), 'module.')
+			return Str::startsWith($this->intendedTemplate(), 'module.');
 		},
 		'moduleName' => function () {
 			return str_replace('.', '__', $this->intendedTemplate());
