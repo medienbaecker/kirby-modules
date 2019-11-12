@@ -4,7 +4,8 @@ Easily build modular Kirby websites.
 
 ## What is a module?
 
-A module is a regular page, differentiated from other pages by being inside a modules container. This approach makes it possible to use pages as modules without sacrificing regular subpages:
+A module is a regular page, differentiated from other pages by being inside a modules container.
+This approach makes it possible to use pages as modules without sacrificing regular subpages:
 
 ```
 📄 Page
@@ -24,6 +25,8 @@ The modules section adds some features to the core pages section:
 3. The parent is set to the modules container.
 4. The link to the modules container in the headline is disabled.
 
+Using the modules section on a page will automatically trigger a built-in hook that creates the `modules` container page.
+
 ```yml
 sections:
   modules:
@@ -35,7 +38,6 @@ sections:
 By adding `extends: modulehelper/changeTemplate` to the options of your module blueprints, every blueprint starting with `module.` is available to change to.
 
 ```yml
-# Module blueprints
 options:
   extends: modulehelper/changeTemplate
 ```
