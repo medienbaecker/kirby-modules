@@ -24,6 +24,7 @@ The modules section adds some features to the core pages section:
 2. The module blueprint title is displayed in the info.
 3. The parent is set to the modules container.
 4. The link to the modules container in the headline is disabled.
+5. Small style adjustments.
 
 Using the modules section on a page will automatically trigger a built-in hook that creates the `modules` container page.
 
@@ -35,9 +36,21 @@ sections:
 
 ## Module blueprint
 
-By adding `extends: modulehelper/changeTemplate` to the options of your module blueprints, every blueprint starting with `module.` is available to change to.
+By adding `extends: module/changeTemplate` to the options of your module blueprints, every blueprint starting with `module.` is available to change to.
 
 ```yml
 options:
-  extends: modulehelper/changeTemplate
+  extends: module/changeTemplate
+```
+
+## Option
+
+By default, the `module.text` blueprint will be the default. You can set another blueprint in your `site/config/config.php`:
+
+```php
+return [
+  'medienbaecker.modules' => [
+      'default' => 'module.text'
+  ]
+];
 ```
