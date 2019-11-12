@@ -30,7 +30,7 @@ Kirby::plugin('medienbaecker/modules', [
 			if($modules) {
 				try {
 					$modulesPage = $page->createChild([
-						'content'  => ['title' => 'modules'],
+						'content'  => ['title' => 'Modules'],
 						'slug'     => 'modules',
 						'template' => 'modules'
 					]);
@@ -45,20 +45,7 @@ Kirby::plugin('medienbaecker/modules', [
 		}
 	],
 	'blueprints' => [
-		'pages/modules' => [
-			'title' => 'Modules',
-			'options' => [
-				'changeSlug' => false,
-				'changeStatus' => false,
-				'duplicate' => false
-			],
-			'sections' => [
-				'modules' => [
-					'parent' => 'page'
-				]
-			]
-		],
-		'modules/changeTemplate' => [
+		'module/changeTemplate' => [
 			'changeTemplate' => $blueprints
 		]
 	],

@@ -9,3 +9,15 @@ section.k-section-name-modules .k-list-item:not(.k-draggable-item) {
 section.k-section-name-modules .k-list-item:not(.k-draggable-item) .k-list-item-text em {
     color: rgba(0, 0, 0, 0.7);
 }
+
+section.k-section-name-modules .k-headline {
+    cursor: auto;
+}
+
+section.k-section-name-modules .k-headline a {
+    pointer-events: none;
+}
+
+.k-topbar-crumbs a[href$="+modules"] {
+    display: none;
+}
