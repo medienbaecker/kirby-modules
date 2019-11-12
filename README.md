@@ -1,39 +1,41 @@
-# Kirby Modulehelper
+# Kirby Modules
 
-This simple plugin helps keeping the blueprints of modular Kirby websites clean.
+Easily build modular Kirby websites.
 
-## Automatic blueprint lists
+## What is a module?
 
-Instead of manually listing the module blueprints in multiple files, you can use the following code:
+A module is a regular page, differentiated from other pages by being inside a modules container. This approach makes it possible to use pages as modules without sacrificing regular subpages:
+
+```
+📄 Page
+  📄 Subpage A
+  📄 Subpage B
+  🗂 Modules
+    📄 Module A
+    📄 Module B
+```
+
+## Modules section
+
+The modules section adds some features to the core pages section: 
+
+1. Every blueprint starting with `module.` is available to create.
+2. The module blueprint title is displayed in the info.
+3. The parent is set to the modules container.
+4. The link to the modules container in the headline is disabled.
 
 ```yml
-# Parent/container blueprints
 sections:
   modules:
-    type: pages
-    parent: page.find("modules")
-    extends: modulehelper/create
+    type: modules
 ```
+
+## Module blueprint
+
+By adding `extends: modulehelper/changeTemplate` to the options of your module blueprints, every blueprint starting with `module.` is available to change to.
 
 ```yml
 # Module blueprints
 options:
   extends: modulehelper/changeTemplate
-```
-
-Every blueprint starting with `module.` will be available to create/change to.
-
-## Useful page methods
-
-The `moduleDisplayName()` page method can be used to display the module name in the info area of pages sections:
-
-```yml
-type: pages
-info: "{{ page.moduleDisplayName }}"
-```
-
-The `moduleName()` page method can be used to return the module name as a class:
-
-```html+php
-<div class="module <?= $page->moduleName() ?>"></div>
 ```
