@@ -2,9 +2,17 @@
 
 use Kirby\Cms\Section;
 
+// Get all blueprints that start with "module.":
 $blueprints = [];
 foreach (kirby()->blueprints() as $blueprint) {
 	if(Str::startsWith($blueprint, 'module.')) $blueprints[] = $blueprint;
+}
+
+// Move text module to first position if it exists:
+if($default = array_search("module.text", $blueprints)) {
+	$module_text = $blueprints[$default];
+	unset($blueprints[$default]);
+	array_unshift($blueprints, $module_text);
 }
 
 Kirby::plugin('medienbaecker/modules', [
