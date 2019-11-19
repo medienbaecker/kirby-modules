@@ -1,0 +1,1 @@
+<?php go($page->parents()->filterBy("intendedTemplate", "!=", "modules")->first()->url() . '#' . $page->slug()) ?>

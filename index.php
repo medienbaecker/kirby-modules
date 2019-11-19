@@ -15,7 +15,7 @@ if($default = array_search(option('medienbaecker.modules.default', 'module.text'
 	array_unshift($blueprints, $module_text);
 }
 
-// Create a model for each of the blueprints
+// Create a model for each of the module blueprints
 class ModulePage extends Page {
 	public function url($options = null): string {
 		return $this->parents()->filterBy("intendedTemplate", "!=", "modules")->first()->url() . '#' . $this->slug();
@@ -26,6 +26,13 @@ foreach ($blueprints as $blueprint) {
 	$models[$blueprint] = 'ModulePage';
 }
 $models['modules'] = 'ModulePage';
+
+// Create a template for each of the blueprints
+$templates = [];
+foreach ($blueprints as $blueprint) {
+	$templates[$blueprint] = __DIR__ . '/module.php';
+}
+$templates["modules"] = __DIR__ . '/module.php';
 
 Kirby::plugin('medienbaecker/modules', [
 	'options' => [
@@ -72,6 +79,7 @@ Kirby::plugin('medienbaecker/modules', [
 			}
 		}
 	],
+	'templates' => $templates,
 	'pageModels' => $models,
 	'blueprints' => [
 		'module/changeTemplate' => [
