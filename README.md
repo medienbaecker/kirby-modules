@@ -22,14 +22,14 @@ This approach makes it possible to use pages as modules without sacrificing regu
 
 ### Comparison to other approaches
 
-You can also set up modular Kirby websites with structure fields or the [builder plugin](https://github.com/TimOetting/kirby-builder).
+You can also set up modular Kirby websites with a [structure field](https://getkirby.com/docs/reference/panel/fields/structure) or the [builder plugin](https://github.com/TimOetting/kirby-builder).
 
 In comparison this approach offers some advantages:
 
-- Different file pool for every module
-- Better performance since nesting is better for file-based CMS
+- Separate file pools
+- Better performance because of nesting
 - Anchor links out of the box
-- No nesting issues with certain fields/plugins
+- No issues with certain fields/plugins
 
 ### How do I set up the templates/blueprints?
 
@@ -57,11 +57,11 @@ I put a simple example installation in a separate branch. Maybe this helps you g
 
 The modules section adds some features to the core pages section: 
 
-1. Every blueprint starting with `module.` is available to create.
-2. The module blueprint title is displayed in the info.
-3. The parent is set to the modules container.
-4. The link to the modules container in the headline is disabled.
-5. Small style adjustments to differentiate it from pages.
+- Every blueprint starting with `module.` is available to create
+- The module blueprint title is displayed in the info
+- The parent is set to the modules container
+- The link to the modules container in the headline is disabled
+- Small style adjustments to differentiate it from pages
 
 Using the modules section on a page will automatically trigger a built-in hook that creates the `modules` container page.
 
