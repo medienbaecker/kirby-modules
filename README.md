@@ -2,7 +2,7 @@
 
 Easily build modular Kirby websites.
 
-![module](https://user-images.githubusercontent.com/7975568/68720738-8a3f2b00-05b0-11ea-829f-ec6842312d2b.gif)
+![module](https://user-images.githubusercontent.com/7975568/69164144-ba765480-0aef-11ea-8b4e-b586066c3cbf.gif)
 
 ## Introduction to modules
 
