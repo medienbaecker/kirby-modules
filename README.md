@@ -8,7 +8,7 @@ Easily build modular Kirby websites.
 
 ### What is a module?
 
-A module is a regular page, differentiated from other pages by being inside a modules container.
+A module is a regular page, differentiated from other pages by being inside a modules container and having a blueprint starting with `module.`.
 This approach makes it possible to use pages as modules without sacrificing regular subpages:
 
 ```
