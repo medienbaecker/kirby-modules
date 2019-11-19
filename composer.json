@@ -1,5 +1,5 @@
 {
-  "name": "medienbaecker/kirby-modulehelper",
+  "name": "medienbaecker/kirby-modules",
   "description": "This simple plugin helps keeping the blueprints of modular Kirby websites clean.",
   "license": "MIT",
   "authors": [
@@ -19,6 +19,6 @@
     "getkirby/composer-installer": "^1.1"
   },
   "extra": {
-    "installer-name": "modulehelper"
+    "installer-name": "modules"
   }
 }
