@@ -36,6 +36,10 @@ On the modular (mother) pages you iterate over the modules inside the modules co
 
 As you can see, the modules don't have templates and simply live in for example `site/snippets/modules/module.text.php` or `site/snippets/modules/module.images.php`.
 
+### Example installation
+
+I put an simple example installation in a separate branch. Maybe this helps you getting started.
+
 ## Features of this plugin
 
 ### Modules section
