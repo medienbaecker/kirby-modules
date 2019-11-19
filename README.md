@@ -2,6 +2,9 @@
 
 Easily build modular Kirby websites.
 
+![module](https://user-images.githubusercontent.com/7975568/68720738-8a3f2b00-05b0-11ea-829f-ec6842312d2b.gif)
+
+
 ## What is a module?
 
 A module is a regular page, differentiated from other pages by being inside a modules container.
