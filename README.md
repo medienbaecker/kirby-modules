@@ -38,7 +38,7 @@ As you can see, the modules don't have templates and simply live in for example 
 
 ### Example installation
 
-I put an simple example installation in a separate branch. Maybe this helps you getting started.
+I put a simple example installation in a separate branch. Maybe this helps you getting started.
 
 ## Features of this plugin
 
