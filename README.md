@@ -1,7 +1,5 @@
 # Kirby Modules
 
-Easily build modular Kirby websites.
-
 ![module](https://user-images.githubusercontent.com/7975568/69164144-ba765480-0aef-11ea-8b4e-b586066c3cbf.gif)
 
 ## Introduction to modules
@@ -71,12 +69,12 @@ sections:
     type: modules
 ```
 
-### Module Models (sorry, that's what it's called)
+### Module models (sorry, that's what it's called)
 
 To overwrite the module URL you'd have to add a page model for every single module.
 This plugin overwrites the URL of every module page from `example.com/subpage-a/modules/text` to `example.com/subpage-a#text`.
 
-### Module Templates
+### Module templates
 
 This plugin adds templates with a redirection to the modules container and all the single modules. This way nobody can access the pages directly, not even by guessing the URLs.
 
