@@ -70,9 +70,9 @@ options:
   extends: module/changeTemplate
 ```
 
-## Option
+## Options
 
-By default, the `module.text` blueprint will be the default. You can set another blueprint in your `site/config/config.php`:
+By default, the `module.text` blueprint will be the first option when adding a module. You can set it to another blueprint in your `site/config/config.php`:
 
 ```php
 return [
