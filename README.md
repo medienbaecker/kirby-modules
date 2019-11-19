@@ -8,7 +8,7 @@ Easily build modular Kirby websites.
 
 ### What is a module?
 
-A module is a regular page, differentiated from other pages by being inside a modules container and having a blueprint starting with `module.`.
+A module is a regular page, differentiated from other pages by being inside a modules container.
 This approach makes it possible to use pages as modules without sacrificing regular subpages:
 
 ```
@@ -19,6 +19,17 @@ This approach makes it possible to use pages as modules without sacrificing regu
     📄 Module A
     📄 Module B
 ```
+
+### Comparison to other approaches
+
+You can also set up modular Kirby websites with structure fields or the [builder plugin](https://github.com/TimOetting/kirby-builder).
+
+In comparison this approach offers some advantages:
+
+- Different file pool for every module
+- Better performance since nesting is better for file-based CMS
+- Anchor links out of the box
+- No nesting issues with certain fields/plugins
 
 ### How do I set up the templates/blueprints?
 
@@ -60,10 +71,14 @@ sections:
     type: modules
 ```
 
-### Module Model (sorry, that's what it's called)
+### Module Models (sorry, that's what it's called)
 
 To overwrite the module URL you'd have to add a page model for every single module.
 This plugin overwrites the URL of every module page from `example.com/subpage-a/modules/text` to `example.com/subpage-a#text`.
+
+### Module Templates
+
+This plugin adds templates with a redirection to the modules container and all the single modules. This way nobody can access the pages directly, not even by guessing the URLs.
 
 ### Module blueprint
 
