@@ -31,7 +31,7 @@ In comparison this approach offers some advantages:
 
 ### How do I set up the templates/blueprints?
 
-This plugin assumes you're going to use a `module.` prefix for your module blueprints. For example `site/pages/module.text.yml`. In there you can do anything you want—it's just a regular page.
+This plugin assumes you're going to use a `module.` prefix for your module blueprints. For example `site/blueprints/pages/module.text.yml`. In there you can do anything you want—it's just a regular page.
 
 On the modular (mother) pages you iterate over the modules inside the modules container like this:
 
