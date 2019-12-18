@@ -34,6 +34,31 @@ foreach ($blueprints as $blueprint) {
 }
 $templates["modules"] = __DIR__ . '/module.php';
 
+// Create the modules container if it doesn't exist
+function createModulesContainer($page) {
+	if(!$page->find('modules') AND $page->intendedTemplate() != 'modules') {
+		$modules = false;
+		foreach($page->blueprint()->sections() as $section) {
+			if($section->type() == 'modules') $modules = true;
+		}
+		if($modules) {
+			try {
+				$modulesPage = $page->createChild([
+					'content'  => ['title' => 'Modules'],
+					'slug'     => 'modules',
+					'template' => 'modules'
+				]);
+			}
+			catch (Exception $error) {
+				throw new Exception($error);
+			}
+			if($modulesPage) {
+				$modulesPage->publish();
+			}
+		}
+	}
+}
+
 Kirby::plugin('medienbaecker/modules', [
 	'options' => [
 		'default' => 'module.text'
@@ -58,25 +83,10 @@ Kirby::plugin('medienbaecker/modules', [
 	],
 	'hooks' => [
 		'page.create:after' => function ($page) {
-			$modules = false;
-			foreach($page->blueprint()->sections() as $section) {
-				if($section->type() == "modules") $modules = true;
-			}
-			if($modules) {
-				try {
-					$modulesPage = $page->createChild([
-						'content'  => ['title' => 'Modules'],
-						'slug'     => 'modules',
-						'template' => 'modules'
-					]);
-				}
-				catch (Exception $error) {
-					throw new Exception($error);
-				}
-				if($modulesPage) {
-					$modulesPage->publish();
-				}
-			}
+			createModulesContainer($page);
+		},
+		'page.update:before' => function ($page) {
+			createModulesContainer($page);
 		}
 	],
 	'templates' => $templates,
