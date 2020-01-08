@@ -92,6 +92,15 @@ Kirby::plugin('medienbaecker/modules', [
 	'blueprints' => [
 		'module/changeTemplate' => [
 			'changeTemplate' => $blueprints
+		],
+		'pages/modules' => [
+			'title' => 'Modules',
+			'fields' => [
+				'info' => [
+					'label' => 'Info',
+					'text' => 'Modules Container'
+				]
+			]
 		]
 	],
 	'pageMethods' => [
