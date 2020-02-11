@@ -59,10 +59,10 @@ Kirby::plugin('medienbaecker/modules', [
 	'fields' => [
 		'modules_redirect' => [
 			'computed' => [
-                'redirect' => function () {
-                    return $this->model()->parent()->panelUrl();
-                }
-            ]
+				'redirect' => function () {
+					return $this->model()->parent()->panelUrl();
+				}
+			]
 		]
 	],
 	'hooks' => [
