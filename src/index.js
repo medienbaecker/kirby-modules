@@ -1,8 +1,8 @@
 panel.plugin('medienbaecker/modules', {
 	components: {
-	  'k-modules-section': {
-		extends: 'k-pages-section'
-	  }
+		'k-modules-section': {
+			extends: 'k-pages-section'
+		}
 	},
 	fields: {
 		modules_redirect: {
