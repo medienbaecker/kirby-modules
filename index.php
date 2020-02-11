@@ -97,8 +97,8 @@ Kirby::plugin('medienbaecker/modules', [
 			'title' => 'Modules',
 			'fields' => [
 				'info' => [
-					'label' => 'Info',
-					'text' => 'Modules Container'
+					'label' => 'Modules Container',
+					'text' => '{{ page.parent.panelUrl }}'
 				]
 			]
 		]
