@@ -56,6 +56,15 @@ Kirby::plugin('medienbaecker/modules', [
 			]
 		])
 	],
+	'fields' => [
+		'modules_redirect' => [
+			'computed' => [
+                'redirect' => function () {
+                    return $this->model()->parent()->panelUrl();
+                }
+            ]
+		]
+	],
 	'hooks' => [
 		'route:after' => function ($route, $path, $method) {
 			$uid = explode('/', $path);
@@ -96,10 +105,7 @@ Kirby::plugin('medienbaecker/modules', [
 		'pages/modules' => [
 			'title' => 'Modules',
 			'fields' => [
-				'info' => [
-					'label' => 'Modules Container',
-					'text' => '{{ page.parent.panelUrl }}'
-				]
+				'modules_redirect' => true
 			]
 		]
 	],
