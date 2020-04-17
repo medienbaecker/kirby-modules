@@ -73,11 +73,7 @@ Kirby::plugin('medienbaecker/modules', [
 			$page = kirby()->page($uid);
 			if ($page) {
 				if(!$page->find('modules') AND $page->intendedTemplate() != 'modules') {
-					$modules = false;
-					foreach($page->blueprint()->sections() as $section) {
-						if($section->type() == 'modules') $modules = true;
-					}
-					if($modules) {
+					if($page->blueprint()->section('modules')) {
 						try {
 							$modulesPage = $page->createChild([
 								'content'  => ['title' => 'Modules'],
