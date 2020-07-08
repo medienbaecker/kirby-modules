@@ -45,13 +45,8 @@ Kirby::plugin('medienbaecker/modules', [
 				'info' => function(string $info = '{{ page.moduleName }}') {
 					return $info;
 				},
-				'parent' => function() {
-					if($this->model()->find('modules')) {
-						return 'page.find("modules")';
-					}
-					else {
-						return 'page';
-					}
+				'parent' => function(string $parent = 'page.find("modules")') {
+					return $parent;
 				}
 			]
 		])
