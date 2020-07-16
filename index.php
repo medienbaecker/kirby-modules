@@ -45,8 +45,14 @@ Kirby::plugin('medienbaecker/modules', [
 				'info' => function(string $info = '{{ page.moduleName }}') {
 					return $info;
 				},
-				'parent' => function(string $parent = 'page.find("modules")') {
-					return $parent;
+				'parent' => function($parent = null) {
+					if($parent != null) {
+						return $parent;
+					}
+					if($this->model()->find('modules')) {
+						return 'page.find("modules")';
+					}
+					return null;
 				}
 			]
 		])
@@ -69,6 +75,7 @@ Kirby::plugin('medienbaecker/modules', [
 			if ($page) {
 				if(!$page->find('modules') AND $page->intendedTemplate() != 'modules') {
 					if($page->blueprint()->section('modules')) {
+						kirby()->impersonate('kirby');
 						try {
 							$modulesPage = $page->createChild([
 								'content'  => ['title' => 'Modules'],
