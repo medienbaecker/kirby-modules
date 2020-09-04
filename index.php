@@ -45,6 +45,7 @@ Kirby::plugin('medienbaecker/modules', [
 				'info' => function(string $info = '{{ page.moduleName }}') {
 					return $info;
 				},
+				'image' => false,
 				'parent' => function($parent = null) {
 					if($parent != null) {
 						return $parent;
