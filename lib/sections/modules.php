@@ -3,7 +3,7 @@
 use Kirby\Cms\Section;
 
 $blueprints = [];
-foreach (moduleRegistry()['blueprints'] as $blueprint => $file) {
+foreach ($moduleRegistry['blueprints'] as $blueprint => $file) {
 	if(Str::startsWith($blueprint, 'pages/module.')) {
 		$blueprints[] = str_replace('pages/', '', $blueprint);
 	}
