@@ -1,7 +1,7 @@
 <?php
 
 function moduleRegistry() {
-	$registry = [];
+	$registry = ['blueprints' => [], 'templates' => [], 'pageModels' => []];
 	$modulesFolder = kirby()->root('site') . "/modules";
 	foreach (Dir::dirs($modulesFolder) as $folder) {
 		$blueprint = $modulesFolder . "/". $folder . "/" . $folder . ".yml";
@@ -13,6 +13,7 @@ function moduleRegistry() {
 		}
 	}
 	$registry['blueprints']['pages/modules'] = [
+		'title' => 'Modules',
 		'fields' => [
 			'modules_redirect' => true
 		]
