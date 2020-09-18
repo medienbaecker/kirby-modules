@@ -12,5 +12,11 @@ function moduleRegistry() {
 			$registry['pageModels']['module.'. $folder] = 'ModulePage';
 		}
 	}
+	$registry['blueprints']['pages/modules'] = [
+		'fields' => [
+			'modules_redirect' => true
+		]
+	];
+	$registry['pageModels']['modules'] = 'ModulesPage';
 	return $registry;
 }

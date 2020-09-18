@@ -1,0 +1,18 @@
+section.k-modules-section .k-list-item:not(.k-draggable-item) {
+	background-color: rgba(255, 255, 255, 0.5);
+}
+
+section.k-modules-section .k-list-item:not(.k-draggable-item) .k-list-item-text em {
+	color: rgba(0, 0, 0, 0.7);
+}
+
+section.k-modules-section .k-headline a {
+	pointer-events: none;
+}
+section.k-modules-section .k-headline {
+	cursor: text;
+}
+
+.k-topbar-crumbs a[href$="+modules"] {
+	display: none;
+}
