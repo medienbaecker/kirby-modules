@@ -1,6 +1,6 @@
 # Kirby Modules
 
-![module](https://user-images.githubusercontent.com/7975568/69164144-ba765480-0aef-11ea-8b4e-b586066c3cbf.gif)
+![modules](https://user-images.githubusercontent.com/7975568/93625345-147ec980-f9e2-11ea-8cbd-3cd640829ddc.png)
 
 ## What's a Module?
 
