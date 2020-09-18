@@ -2,7 +2,7 @@
 
 ![module](https://user-images.githubusercontent.com/7975568/69164144-ba765480-0aef-11ea-8b4e-b586066c3cbf.gif)
 
-## What's a module?
+## What's a Module?
 
 A module is a regular page, differentiated from other pages by being inside a modules container.
 This approach makes it possible to use pages as modules without sacrificing regular subpages.
@@ -24,13 +24,15 @@ You can create modules by putting them in a `site/modules` folder. For example y
 
 In the parent page template you can then use `<?php $page->renderModules() ?>` to render the modules.
 
-### `site/templates/default.php`
+### Parent Page
+
+#### `site/templates/default.php`
 
 ```php
 <?php $page->renderModules() ?>
 ```
 
-### `site/blueprints/pages/default.yml`
+#### `site/blueprints/pages/default.yml`
 
 ```yml
 title: Default Page
@@ -38,14 +40,16 @@ sections:
   modules: true
 ```
 
-### `site/modules/text/text.php`
+### Example Module
+
+#### `site/modules/text/text.php`
 
 ```php
 <h1><?= $module->title() ?></h1>
 <?= $module->text()->kt() ?>
 ```
 
-### `site/modules/text/text.yml`
+#### `site/modules/text/text.yml`
 
 ```yml
 title: Text Module
