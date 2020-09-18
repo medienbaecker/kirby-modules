@@ -2,8 +2,6 @@
 
 use Kirby\Cms\Section;
 
-$base = Section::$types['pages'];
-
 $blueprints = [];
 foreach (moduleRegistry()['blueprints'] as $blueprint => $file) {
 	if(Str::startsWith($blueprint, 'pages/module.')) {
@@ -16,6 +14,8 @@ if($default !== false) {
 	unset($blueprints[$default]);
 	array_unshift($blueprints, $module_text);
 }
+
+$base = Section::$types['pages'];
 
 return array_replace_recursive($base, [
 	'props' => [

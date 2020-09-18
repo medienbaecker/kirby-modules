@@ -1,0 +1,24 @@
+{
+  "name": "medienbaecker/kirby-modules",
+  "description": "Easily add modules to your pages",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Thomas Günther",
+      "email": "mail@medienbaecker.com",
+      "homepage": "https://www.medienbaecker.com"
+    }
+  ],
+  "type": "kirby-plugin",
+  "keywords": [
+    "kirby3",
+    "kirby3-cms",
+    "kirby3-plugin"
+  ],
+  "require": {
+    "getkirby/composer-installer": "^1.1"
+  },
+  "extra": {
+    "installer-name": "modules"
+  }
+}
