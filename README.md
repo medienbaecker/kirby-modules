@@ -14,6 +14,10 @@ This approach makes it possible to use pages as modules without sacrificing regu
     📄 Module B
 ```
 
+## What changed in version 2?
+
+Module blueprints and templates now live in a separate `site/modules` folder.
+
 ## Instructions
 
 Add a `modules` section to any page blueprint and a modules container will be automatically created.
