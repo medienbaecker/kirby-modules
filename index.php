@@ -1,5 +1,7 @@
 <?php
 
+use Kirby\Cms\Template;
+
 include __DIR__ . '/lib/models.php';
 include __DIR__ . '/lib/functions.php';
 
@@ -17,8 +19,13 @@ Kirby::plugin('medienbaecker/modules', [
 		'route:after' => include __DIR__ . '/lib/hooks/containerCreator.php'
 	],
 	'pageMethods' => [
-		'renderModules' => function() {
-			return 'bratan';
+		'renderModules' => function () {
+			if ($modules = $this->find('modules')) {
+				foreach ($modules->children()->listed() as $module) {
+					$moduleTemplate = new Template($module->intendedTemplate());
+					echo $moduleTemplate->render(['module' => $module]);
+				}
+			}
 		},
 		'isModule' => function () {
 			return Str::startsWith($this->intendedTemplate(), 'module.');
@@ -28,6 +35,6 @@ Kirby::plugin('medienbaecker/modules', [
 		},
 		'moduleId' => function () {
 			return str_replace('.', '_', $this->intendedTemplate());
-		},
+		}
 	]
 ]);
