@@ -5,10 +5,12 @@ use Kirby\Cms\Template;
 include __DIR__ . '/lib/models.php';
 include __DIR__ . '/lib/functions.php';
 
+$moduleRegistry = createModuleRegistry();
+
 Kirby::plugin('medienbaecker/modules', [
-	'templates' => moduleRegistry()['templates'],
-	'pageModels' => moduleRegistry()['pageModels'],
-	'blueprints' => moduleRegistry()['blueprints'],
+	'templates' => $moduleRegistry['templates'],
+	'pageModels' => $moduleRegistry['pageModels'],
+	'blueprints' => $moduleRegistry['blueprints'],
 	'sections' => [
 		'modules' => include __DIR__ . '/lib/sections/modules.php'
 	],

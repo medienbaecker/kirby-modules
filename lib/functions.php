@@ -1,6 +1,8 @@
 <?php
 
-function moduleRegistry() {
+
+function createModuleRegistry() {
+
 	$registry = ['blueprints' => [], 'templates' => [], 'pageModels' => []];
 	$modulesFolder = kirby()->root('site') . "/modules";
 	foreach (Dir::dirs($modulesFolder) as $folder) {
