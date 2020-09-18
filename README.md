@@ -28,12 +28,6 @@ In the parent page template you can then use `<?php $page->renderModules() ?>` t
 
 ### Parent Page
 
-#### `site/templates/default.php`
-
-```php
-<?php $page->renderModules() ?>
-```
-
 #### `site/blueprints/pages/default.yml`
 
 ```yml
@@ -42,14 +36,13 @@ sections:
   modules: true
 ```
 
-### Example Module
-
-#### `site/modules/text/text.php`
+#### `site/templates/default.php`
 
 ```php
-<h1><?= $module->title() ?></h1>
-<?= $module->text()->kt() ?>
+<?php $page->renderModules() ?>
 ```
+
+### Example Module
 
 #### `site/modules/text/text.yml`
 
@@ -57,6 +50,13 @@ sections:
 title: Text Module
 fields:
   textarea: true
+```
+
+#### `site/modules/text/text.php`
+
+```php
+<h1><?= $module->title() ?></h1>
+<?= $module->text()->kt() ?>
 ```
 
 ## Options
