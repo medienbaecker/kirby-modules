@@ -25,13 +25,9 @@ return array_replace_recursive($base, [
 		},
 		'image' => false,
 		'parent' => function($parent = null) {
-			if($parent != null) {
-				return $parent;
-			}
-			if($this->model()->find('modules')) {
-				return 'page.find("modules")';
-			}
-			return null;
+			return $this->model()->find('modules')
+				? 'page.find("modules")'
+				: $parent;
 		}
 	]
 ]);
