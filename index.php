@@ -29,6 +29,12 @@ Kirby::plugin('medienbaecker/modules', [
 				}
 			}
 		},
+		'hasModules' => function () {
+			$modules = array_filter($this->blueprint()->sections(), function ($section) {
+				return 'modules' === $section->type();
+			});
+			return count($modules) > 0;
+		},
 		'isModule' => function () {
 			return Str::startsWith($this->intendedTemplate(), 'module.');
 		},
