@@ -17,9 +17,6 @@ Kirby::plugin('medienbaecker/modules', [
 	'fields' => [
 		'modules_redirect' => include __DIR__ . '/lib/fields/redirect.php'
 	],
-	'hooks' => [
-		'route:after' => include __DIR__ . '/lib/hooks/containerCreator.php'
-	],
 	'pageMethods' => [
 		'renderModules' => function () {
 			if ($modules = $this->find('modules')) {
@@ -44,5 +41,8 @@ Kirby::plugin('medienbaecker/modules', [
 		'moduleId' => function () {
 			return str_replace('.', '_', $this->intendedTemplate());
 		}
-	]
+	],
+	'api' => [
+		'routes' => include __DIR__ . '/lib/routes.php',
+	],
 ]);
