@@ -19,7 +19,9 @@ $base = Section::$types['pages'];
 
 return array_replace_recursive($base, [
 	'props' => [
-		'create' => $blueprints,
+		'create' => function ($create = null) use ($blueprints) {
+			return $create ?? $blueprints;
+		},
 		'info' => function(string $info = '{{ page.moduleName }}') {
 			return $info;
 		},
