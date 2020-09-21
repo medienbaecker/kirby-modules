@@ -45,4 +45,5 @@ Kirby::plugin('medienbaecker/modules', [
 	'api' => [
 		'routes' => include __DIR__ . '/lib/routes.php',
 	],
+	'translations' => include __DIR__ . '/lib/translations.php',
 ]);
