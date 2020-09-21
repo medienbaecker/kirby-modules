@@ -22,7 +22,10 @@ Kirby::plugin('medienbaecker/modules', [
 			if ($modules = $this->find('modules')) {
 				foreach ($modules->children()->listed() as $module) {
 					$moduleTemplate = new Template($module->intendedTemplate());
-					echo $moduleTemplate->render(['module' => $module]);
+					echo $moduleTemplate->render([
+						'page' => $this,
+						'module' => $module
+					]);
 				}
 			}
 		},
