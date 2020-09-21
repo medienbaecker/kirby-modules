@@ -93,7 +93,7 @@ return [
 ];
 ```
 
-```
+```php
 // site/models/module.php
 
 class CustomModulePage extends ModulePage {
