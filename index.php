@@ -34,12 +34,6 @@ Kirby::plugin('medienbaecker/modules', [
 		},
 		'isModule' => function () {
 			return Str::startsWith($this->intendedTemplate(), 'module.');
-		},
-		'moduleName' => function () {
-			return $this->blueprint()->title();
-		},
-		'moduleId' => function () {
-			return str_replace('.', '_', $this->intendedTemplate());
 		}
 	],
 	'api' => [
