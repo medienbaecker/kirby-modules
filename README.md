@@ -53,11 +53,14 @@ fields:
 #### `site/modules/text/text.php`
 
 ```php
-<h1><?= $module->title() ?></h1>
-<?= $module->text()->kt() ?>
+<div class="module" class="<?= $module->moduleId() ?>" id="<?= $module->uid() ?>">
+  <h1><?= $module->title() ?></h1>
+  <?= $module->text()->kt() ?>
+</div>
 ```
 
 You can access the module page object with `$module` and the parent page object with `$page`.
+The `$module->moduleId()` method returns the module ID, e.g. `module_text` or `module_gallery`.
 
 ## Options
 
