@@ -65,12 +65,12 @@ You can access the module page object with `$module` and the parent page object 
 
 ### Default Module Blueprint
 
-By default, the `module.text` blueprint will be the first option when adding a module.
-You can set it to another blueprint in your `site/config/config.php`:
+By default, the `text` module will be the first/default option in the "Add page" modal.
+You can overwrite it in your `site/config/config.php`:
 
 ```php
 return [
-  'medienbaecker.modules.default' => 'module.text'
+  'medienbaecker.modules.default' => 'gallery'
 ];
 ```
 
