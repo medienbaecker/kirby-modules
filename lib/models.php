@@ -17,7 +17,7 @@ class ModulePage extends Page {
 	public function moduleName() {
 		return $this->blueprint()->title();
 	}
-	function moduleId() {
+	public function moduleId() {
 		return str_replace('.', '_', $this->intendedTemplate());
 	}
 }
