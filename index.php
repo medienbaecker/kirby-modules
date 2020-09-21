@@ -26,7 +26,8 @@ Kirby::plugin('medienbaecker/modules', [
 					$moduleTemplate = new Template($module->intendedTemplate());
 					echo $moduleTemplate->render([
 						'page' => $this,
-						'module' => $module
+						'module' => $module,
+						'site' => $this->site()
 					]);
 				}
 			}
