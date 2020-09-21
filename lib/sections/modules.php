@@ -23,11 +23,11 @@ return array_replace_recursive($base, [
 			return $create ?? $blueprints;
 		},
 		'empty' => function ($empty = 'modules.empty') {
-            return I18n::translate($empty, $empty);
+			return I18n::translate($empty, $empty);
 		},
 		'headline' => function ($headline = 'modules') {
-            return I18n::translate($headline, $headline);
-        },
+			return I18n::translate($headline, $headline);
+		},
 		'info' => function(string $info = '{{ page.moduleName }}') {
 			return $info;
 		},
