@@ -14,7 +14,7 @@ This approach makes it possible to use pages as modules without sacrificing regu
     📄 Module B
 ```
 
-## What changed in version 2?
+## ⚠️ Breaking change in version 2 ⚠️
 
 Module blueprints and templates now live in a separate `site/modules` folder.
 
