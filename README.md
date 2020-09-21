@@ -1,4 +1,4 @@
-![modules](https://user-images.githubusercontent.com/7975568/93625345-147ec980-f9e2-11ea-8cbd-3cd640829ddc.png)
+![modules](https://user-images.githubusercontent.com/7975568/93752618-37d29000-fbff-11ea-8276-abd679ef92ae.png)
 
 ## What's a Module?
 
