@@ -59,6 +59,8 @@ fields:
 <?= $module->text()->kt() ?>
 ```
 
+You can access the module page object with `$module` and the parent page object with `$page`.
+
 ## Options
 
 ### Default Module Blueprint
