@@ -14,9 +14,7 @@ This approach makes it possible to use pages as modules without sacrificing regu
     📄 Module B
 ```
 
-## ⚠️ Breaking change in version 2 ⚠️
-
-Module blueprints and templates now live in a separate `site/modules` folder.
+Module blueprints and templates live in a separate `site/modules` folder. This way you can easily reuse modules across projects and share them with other people.
 
 ## Instructions
 
