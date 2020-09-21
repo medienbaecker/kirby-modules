@@ -22,7 +22,7 @@ Kirby::plugin('medienbaecker/modules', [
 			if ($modules = $this->find('modules')) {
 				foreach ($modules->childrenAndDrafts() as $module) {
 					if(!$module->isListed() && !$module->isDraft()) continue;
-					if(!$module->isVerified(get('token'))) continue;
+					if($module->isDraft && !$module->isVerified(get('token'))) continue;
 					$moduleTemplate = new Template($module->intendedTemplate());
 					echo $moduleTemplate->render([
 						'page' => $this,
