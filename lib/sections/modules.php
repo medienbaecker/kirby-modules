@@ -8,7 +8,7 @@ foreach ($moduleRegistry['blueprints'] as $blueprint => $file) {
 		$blueprints[] = str_replace('pages/', '', $blueprint);
 	}
 }
-$default = array_search(option('medienbaecker.modules.default', 'module.text'), $blueprints);
+$default = array_search('module.' . option('medienbaecker.modules.default', 'text'), $blueprints);
 if($default !== false) {
 	$module_text = $blueprints[$default];
 	unset($blueprints[$default]);
