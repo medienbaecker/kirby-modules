@@ -63,7 +63,8 @@ fields:
 
 ### Default Module Blueprint
 
-By default, the `module.text` blueprint will be the first option when adding a module. You can set it to another blueprint in your `site/config/config.php`:
+By default, the `module.text` blueprint will be the first option when adding a module.
+You can set it to another blueprint in your `site/config/config.php`:
 
 ```php
 return [
@@ -83,7 +84,8 @@ return [
 
 ### Custom Module Model
 
-This plugin creates a `ModulePage` model, overwriting certain methods. You can extend this model with your own model:
+This plugin creates a `ModulePage` model, overwriting certain methods.
+You can extend this model with your own model:
 
 ```php
 // site/config/config.php

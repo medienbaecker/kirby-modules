@@ -17,6 +17,8 @@ function createModuleRegistry() {
 	$registry['blueprints']['pages/modules'] = [
 		'title' => 'Modules',
 		'options' => [
+			'changeSlug' => false,
+			'changeStatus' => false,
 			'changeTemplate' => false,
 			'delete' => false
 		],
