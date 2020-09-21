@@ -19,8 +19,7 @@ function createModuleRegistry() {
 		'options' => [
 			'changeSlug' => false,
 			'changeStatus' => false,
-			'changeTemplate' => false,
-			'delete' => false
+			'changeTemplate' => false
 		],
 		'fields' => [
 			'modules_redirect' => true
