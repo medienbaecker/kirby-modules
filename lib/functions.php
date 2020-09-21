@@ -11,7 +11,7 @@ function createModuleRegistry() {
 		if(F::exists($blueprint) AND F::exists($template)) {
 			$registry['blueprints']['pages/module.'. $folder] = $blueprint;
 			$registry['templates']['module.'. $folder] = $template;
-			$registry['pageModels']['module.'. $folder] = 'ModulePage';
+			$registry['pageModels']['module.'. $folder] = option('medienbaecker.modules.model', 'ModulePage');
 		}
 	}
 	$registry['blueprints']['pages/modules'] = [
