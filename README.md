@@ -59,6 +59,8 @@ fields:
 
 You can access the module page object with `$module` and the parent page object with `$page`.
 
+I created a simple [example installation](https://github.com/medienbaecker/kirby-modules/tree/example) with three different modules.
+
 ## Options
 
 ### Default Module Blueprint
