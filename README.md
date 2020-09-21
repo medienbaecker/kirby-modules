@@ -61,12 +61,42 @@ fields:
 
 ## Options
 
+### Default Module Blueprint
+
 By default, the `module.text` blueprint will be the first option when adding a module. You can set it to another blueprint in your `site/config/config.php`:
 
 ```php
 return [
-  'medienbaecker.modules' => [
-      'default' => 'module.text'
-  ]
+  'medienbaecker.modules.default' => 'module.text'
 ];
+```
+
+### Autopublish Modules
+
+You can turn on automatic publishing for modules in your `site/config/config.php`:
+
+```php
+return [
+  'medienbaecker.modules.autopublish' => true
+];
+```
+
+### Custom Module Model
+
+This plugin creates a `ModulePage` model, overwriting certain methods. You can extend this model with your own model:
+
+```php
+// site/config/config.php
+
+return [
+  'medienbaecker.modules.model' => 'CustomModulePage'
+];
+```
+
+```
+// site/models/module.php
+
+class CustomModulePage extends ModulePage {
+  // methods...
+}
 ```
