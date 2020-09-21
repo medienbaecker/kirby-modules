@@ -2,7 +2,7 @@
 
 class ModulePage extends Page {
 	public static function create(array $props) {
-		if (option('medienbaecker.modules.autopublish', true)) {
+		if (option('medienbaecker.modules.autopublish', false)) {
 			$props['num'] = 9999;
 		}
 		
