@@ -10,16 +10,10 @@ function createModuleRegistry() {
 		$template = $modulesFolder . "/". $folder . "/" . $folder . ".php";
 		if(F::exists($blueprint) AND F::exists($template)) {
 			$blueprintArray = Yaml::read($blueprint);
-			if(!array_key_exists('erstes', $blueprintArray)) {
+			if(!array_key_exists('status', $blueprintArray)) {
 				$blueprintArray['status'] = [
-					'draft' => [
-						'label' => I18n::translate('page.status.draft'),
-						'text' =>  I18n::translate('page.status.draft.description'),
-					],
-					'listed' => [
-						'label' => I18n::translate('page.status.listed'),
-						'text' =>  I18n::translate('page.status.listed.description'),
-					],
+					'draft' => true,
+					'listed' => true,
 				];
 			}
 			$registry['blueprints']['pages/module.'. $folder] = $blueprintArray;
