@@ -5,7 +5,6 @@ class ModulePage extends Page {
 		if (option('medienbaecker.modules.autopublish', false)) {
 			$props['num'] = 9999;
 		}
-		
 		return parent::create($props);
 	}
 	public function url($options = null): string {
