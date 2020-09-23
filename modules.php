@@ -1,1 +1,0 @@
-<?php go($page->parents()->first()) ?>

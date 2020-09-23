@@ -1,6 +1,6 @@
 {
   "name": "medienbaecker/kirby-modules",
-  "description": "This simple plugin helps keeping the blueprints of modular Kirby websites clean.",
+  "description": "Easily add modules to your pages",
   "license": "MIT",
   "authors": [
     {

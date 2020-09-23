@@ -1,13 +1,9 @@
-# Kirby Modules
+![modules](https://user-images.githubusercontent.com/7975568/93752618-37d29000-fbff-11ea-8276-abd679ef92ae.png)
 
-![module](https://user-images.githubusercontent.com/7975568/69164144-ba765480-0aef-11ea-8b4e-b586066c3cbf.gif)
-
-## Introduction to modules
-
-### What is a module?
+## What's a Module?
 
 A module is a regular page, differentiated from other pages by being inside a modules container.
-This approach makes it possible to use pages as modules without sacrificing regular subpages:
+This approach makes it possible to use pages as modules without sacrificing regular subpages.
 
 ```
 📄 Page
@@ -18,79 +14,94 @@ This approach makes it possible to use pages as modules without sacrificing regu
     📄 Module B
 ```
 
-### Comparison to other approaches
+Module blueprints and templates live in a separate `site/modules` folder. This way you can easily reuse modules across projects and share them with other people.
 
-You can also set up modular Kirby websites with a [structure field](https://getkirby.com/docs/reference/panel/fields/structure) or the [builder plugin](https://github.com/TimOetting/kirby-builder).
+## Instructions
 
-In comparison this approach offers some advantages:
+Add a `modules` section to any page blueprint and a modules container will be automatically created.
+ 
+You can create modules by putting them in a `site/modules` folder. For example you can add a `site/modules/text` folder with the template `text.php` and the blueprint `text.yml`.
 
-- Separate file pools
-- Better performance because of nesting
-- Anchor links out of the box
-- No issues with certain fields/plugins
+In the parent page template you can then use `<?php $page->renderModules() ?>` to render the modules.
 
-### How do I set up the templates/blueprints?
+### Parent Page
 
-This plugin assumes you're going to use a `module.` prefix for your module blueprints. For example `site/blueprints/pages/module.text.yml`. In there you can do anything you want—it's just a regular page.
+#### `site/blueprints/pages/default.yml`
 
-On the modular (mother) pages you iterate over the modules inside the modules container like this:
+```yml
+title: Default Page
+sections:
+  modules: true
+```
+
+#### `site/templates/default.php`
 
 ```php
-<?php
-  foreach($page->find("modules")->children()->listed() as $module) {
-    snippet('modules/' . $module->intendedTemplate(), ['page' => $module])
-  } 
-?>
+<?php $page->renderModules() ?>
 ```
 
-As you can see, the modules don't have templates and simply live in for example `site/snippets/modules/module.text.php` or `site/snippets/modules/module.images.php`.
+### Example Module
 
-## Features of this plugin
-
-### Modules section
-
-The modules section adds some features to the core pages section: 
-
-- Every blueprint starting with `module.` is available to create
-- The module blueprint title is displayed in the info
-- The parent is set to the modules container
-- The link to the modules container in the headline is disabled
-- Small style adjustments to differentiate it from pages
-
-Using the modules section on a page will automatically trigger a built-in hook that creates the `modules` container page.
+#### `site/modules/text/text.yml`
 
 ```yml
-sections:
-  modules:
-    type: modules
+title: Text Module
+fields:
+  textarea: true
 ```
 
-### Module models (sorry, that's what it's called)
+#### `site/modules/text/text.php`
 
-To overwrite the module URL you'd have to add a page model for every single module.
-This plugin overwrites the URL of every module page from `example.com/subpage-a/modules/text` to `example.com/subpage-a#text`.
-
-### Module templates
-
-This plugin adds templates with a redirection to the modules container and all the single modules. This way nobody can access the pages directly, not even by guessing the URLs.
-
-### Module blueprint
-
-By adding `extends: module/changeTemplate` to the options of your module blueprints, every blueprint starting with `module.` is available to change to in the page options.
-
-```yml
-options:
-  extends: module/changeTemplate
+```php
+<div class="module" class="<?= $module->moduleId() ?>" id="<?= $module->uid() ?>">
+  <h1><?= $module->title() ?></h1>
+  <?= $module->text()->kt() ?>
+</div>
 ```
+
+You can access the module page object with `$module` and the parent page object with `$page`.
+The `$module->moduleId()` method returns the module ID, e.g. `module_text` or `module_gallery`.
 
 ## Options
 
-By default, the `module.text` blueprint will be the first option when adding a module. You can set it to another blueprint in your `site/config/config.php`:
+### Default Module Blueprint
+
+By default, the `text` module will be the first/default option in the "Add page" modal.
+You can overwrite it in your `site/config/config.php`:
 
 ```php
 return [
-  'medienbaecker.modules' => [
-      'default' => 'module.text'
-  ]
+  'medienbaecker.modules.default' => 'gallery'
 ];
+```
+
+### Autopublish Modules
+
+You can turn on automatic publishing for modules in your `site/config/config.php`:
+
+```php
+return [
+  'medienbaecker.modules.autopublish' => true
+];
+```
+
+### Custom Module Model
+
+This plugin creates a `ModulePage` model, overwriting certain methods.
+You can extend this model with your own model:
+
+```php
+// site/config/config.php
+
+return [
+  'medienbaecker.modules.model' => 'CustomModulePage'
+];
+```
+
+```php
+// site/models/module.php
+
+class CustomModulePage extends ModulePage {
+  // methods...
+}
 ```
