@@ -26,6 +26,7 @@ This plugin makes it super easy to create modular websites with Kirby.
 - Every module is available to create in the `modules` section without editing any other file.
 - Modules can not be accessed directly and will automatically redirect to the parent page with an anchor.
 - The container page is automatically created and hidden in the panel.
+- You can preview draft modules on their parent pages via the panel preview button.
 
 ## Instructions
 
