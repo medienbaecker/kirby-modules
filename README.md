@@ -64,6 +64,15 @@ fields:
 You can access the module page object with `$module` and the parent page object with `$page`.
 The `$module->moduleId()` method returns the module ID, e.g. `module_text` or `module_gallery`.
 
+## Features
+
+This plugin makes it super easy to create modular websites with Kirby.
+
+- Modules are bundled in `site/modules` and registered as regular blueprints and templates.
+- Every module is available to create in the `modules` section without editing any other file.
+- Modules can not be accessed directly and will automatically redirect to the parent page with an anchor.
+- The container page is automatically created and hidden in the panel.
+
 ## Options
 
 ### Default Module Blueprint
