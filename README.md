@@ -1,5 +1,17 @@
 ![Kirby Modules](https://user-images.githubusercontent.com/7975568/93752618-37d29000-fbff-11ea-8276-abd679ef92ae.png)
 
+This plugin makes it super easy to create modular websites with Kirby.
+
+## Features
+
+- Modules are bundled in `site/modules` and registered as regular blueprints and templates.
+- Every module is available to create in the `modules` section without editing any other file.
+- Modules can not be accessed directly and will automatically redirect to the parent page with an anchor.
+- The container page is automatically created and hidden in the panel.
+- You can preview draft modules on their parent pages via the panel preview button.
+
+![Preview](https://user-images.githubusercontent.com/7975568/94016693-bb7eaf00-fdae-11ea-8114-f0862391ff91.gif)
+
 ## What's a Module?
 
 A module is a regular page, differentiated from other pages by being inside a modules container.
@@ -15,18 +27,6 @@ This approach makes it possible to use pages as modules without sacrificing regu
 ```
 
 Module blueprints and templates live in a separate `site/modules` folder. This way you can easily reuse modules across projects and share them with other people.
-
-![Preview](https://user-images.githubusercontent.com/7975568/94016693-bb7eaf00-fdae-11ea-8114-f0862391ff91.gif)
-
-## Features
-
-This plugin makes it super easy to create modular websites with Kirby.
-
-- Modules are bundled in `site/modules` and registered as regular blueprints and templates.
-- Every module is available to create in the `modules` section without editing any other file.
-- Modules can not be accessed directly and will automatically redirect to the parent page with an anchor.
-- The container page is automatically created and hidden in the panel.
-- You can preview draft modules on their parent pages via the panel preview button.
 
 ## Instructions
 
