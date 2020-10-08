@@ -122,4 +122,4 @@ class CustomModulePage extends ModulePage {
 
 Download this repository to `/site/plugins/kirby-modules`.
 
-Alternatively, you can install it with composer: composer require medienbaecker/kirby-modules
+Alternatively, you can install it with composer: `composer require medienbaecker/kirby-modules`
