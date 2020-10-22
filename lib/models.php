@@ -1,5 +1,7 @@
 <?php
 
+use Kirby\Cms\Template;
+
 class ModulePage extends Page {
 	public static function create(array $props) {
 		if (option('medienbaecker.modules.autopublish', false)) {
@@ -12,6 +14,14 @@ class ModulePage extends Page {
 	}
 	public function render(array $data = [], $contentType = 'html'): string {
 		go($this->parents()->filterBy('intendedTemplate', '!=', 'modules')->first()->url() . '#' . $this->slug());
+	}
+	public function renderModule() {
+		$moduleTemplate = new Template($this->intendedTemplate());
+		echo $moduleTemplate->render([
+			'page' => $this->parent()->parent(),
+			'module' => $this,
+			'site' => $this->site()
+		]);
 	}
 	public function moduleName() {
 		return $this->blueprint()->title();
