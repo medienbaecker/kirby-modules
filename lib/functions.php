@@ -11,7 +11,7 @@ function createModuleRegistry() {
 	foreach (Dir::dirs($modulesFolder) as $folder) {
 		$blueprint = $modulesFolder . "/". $folder . "/" . $folder . ".yml";
 		$template = $modulesFolder . "/". $folder . "/" . $folder . ".php";
-		if(F::exists($blueprint) AND F::exists($template)) {
+		if(F::exists($blueprint)) {
 			$blueprintArray = Yaml::read($blueprint);
 			if(!array_key_exists('status', $blueprintArray)) {
 				$blueprintArray['status'] = [
@@ -35,7 +35,7 @@ function createModuleRegistry() {
 		foreach($moduleBlueprints as $moduleBlueprint) {
 			$blueprint = $blueprintsFolder . "/pages/" . $moduleBlueprint . ".yml";
 			$template = $snippetsFolder . "/modules/" . $moduleBlueprint . ".php";
-			if(F::exists($blueprint) AND F::exists($template)) {
+			if(F::exists($blueprint)) {
 				$blueprintArray = Yaml::read($blueprint);
 				if(!array_key_exists('status', $blueprintArray)) {
 					$blueprintArray['status'] = [
