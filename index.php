@@ -38,6 +38,11 @@ Kirby::plugin('medienbaecker/modules', [
 			});
 			return count($modules) > 0;
 		},
+		'modules' => function () {
+			if ($modules = $this->find('modules')) {
+				return $modules->children();
+			}
+		},
 		'isModule' => function () {
 			return Str::startsWith($this->intendedTemplate(), 'module.');
 		}
