@@ -20,17 +20,15 @@ Kirby::plugin('medienbaecker/modules', [
 	],
 	'pageMethods' => [
 		'renderModules' => function () {
-			if ($modules = $this->find('modules')) {
-				foreach ($modules->childrenAndDrafts() as $module) {
-					if(!$module->isListed() && !$module->isDraft()) continue;
-					if($module->isDraft && !$module->isVerified(get('token'))) continue;
-					$moduleTemplate = new Template($module->intendedTemplate());
-					echo $moduleTemplate->render([
-						'page' => $this,
-						'module' => $module,
-						'site' => $this->site()
-					]);
-				}
+			foreach ($this->modules() as $module) {
+				if (!$module->isListed() && !$module->isDraft()) continue;
+				if ($module->isDraft && !$module->isVerified(get('token'))) continue;
+				$moduleTemplate = new Template($module->intendedTemplate());
+				echo $moduleTemplate->render([
+					'page' => $this,
+					'module' => $module,
+					'site' => $this->site()
+				]);
 			}
 		},
 		'hasModules' => function () {
@@ -40,10 +38,13 @@ Kirby::plugin('medienbaecker/modules', [
 			return count($modules) > 0;
 		},
 		'modules' => function () {
-			if ($modules = $this->find('modules')) {
-				return $modules->children();
+			$modules = new ModulesCollection;
+
+			if ($rawModules = $this->find('modules')) {
+				$modules = $modules->merge($rawModules->childrenAndDrafts()->data());
 			}
-			return [];
+
+			return $modules;
 		},
 		'isModule' => function () {
 			return Str::startsWith($this->intendedTemplate(), 'module.');
