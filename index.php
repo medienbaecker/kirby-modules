@@ -4,6 +4,7 @@ use Kirby\Cms\Template;
 
 include __DIR__ . '/lib/models.php';
 include __DIR__ . '/lib/functions.php';
+include __DIR__ . '/lib/collection.php';
 
 $moduleRegistry = createModuleRegistry();
 
