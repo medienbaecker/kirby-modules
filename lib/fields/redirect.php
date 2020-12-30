@@ -3,7 +3,12 @@
 return [
 	'computed' => [
 		'redirect' => function () {
-			return $this->model()->parent()->panelUrl();
+			if($this->model()->isHomePage()) {
+				return $this->model()->site()->panelUrl();	
+			}
+			else {
+				return $this->model()->parent()->panelUrl();	
+			}
 		}
 	]
 ];
