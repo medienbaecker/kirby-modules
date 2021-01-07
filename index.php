@@ -21,8 +21,6 @@ Kirby::plugin('medienbaecker/modules', [
 	'pageMethods' => [
 		'renderModules' => function () {
 			foreach ($this->modules() as $module) {
-				if (!$module->isListed() && !$module->isDraft()) continue;
-				if ($module->isDraft && !$module->isVerified(get('token'))) continue;
 				$moduleTemplate = new Template($module->intendedTemplate());
 				echo $moduleTemplate->render([
 					'page' => $this,
@@ -39,11 +37,13 @@ Kirby::plugin('medienbaecker/modules', [
 		},
 		'modules' => function () {
 			$modules = new ModulesCollection;
-
 			if ($rawModules = $this->find('modules')) {
-				$modules = $modules->merge($rawModules->childrenAndDrafts()->data());
+				foreach($rawModules->childrenAndDrafts() as $module) {
+					if (!$module->isListed() && !$module->isDraft()) continue;
+					if ($module->isDraft && !$module->isVerified(get('token'))) continue;
+					$modules->append($module);
+				}
 			}
-
 			return $modules;
 		},
 		'isModule' => function () {
