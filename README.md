@@ -49,7 +49,7 @@ sections:
 #### `site/templates/default.php`
 
 ```php
-<?php $page->renderModules() ?>
+<?php $page->modules() ?>
 ```
 
 ### Example Module
