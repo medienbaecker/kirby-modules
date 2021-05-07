@@ -34,7 +34,7 @@ Add a `modules` section to any page blueprint and a modules container will be au
  
 You can create modules by putting them in a `site/modules` folder. For example you can add a `site/modules/text` folder with the template `text.php` and the blueprint `text.yml`.
 
-In the parent page template you can then use `<?php $page->renderModules() ?>` to render the modules.
+In the parent page template you can then use `<?= $page->modules() ?>` to render the modules.
 
 ### Parent Page
 
@@ -49,7 +49,7 @@ sections:
 #### `site/templates/default.php`
 
 ```php
-<?php $page->modules() ?>
+<?= $page->modules() ?>
 ```
 
 ### Example Module
@@ -65,7 +65,7 @@ fields:
 #### `site/modules/text/text.php`
 
 ```php
-<div class="module" class="<?= $module->moduleId() ?>" id="<?= $module->uid() ?>">
+<div class="<?= $module->moduleId() ?>" id="<?= $module->uid() ?>">
   <h1><?= $module->title() ?></h1>
   <?= $module->text()->kt() ?>
 </div>
