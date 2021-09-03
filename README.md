@@ -67,7 +67,7 @@ fields:
 ```php
 <div class="<?= $module->moduleId() ?>" id="<?= $module->uid() ?>">
   <h1><?= $module->title() ?></h1>
-  <?= $module->text()->kt() ?>
+  <?= $module->textarea()->kt() ?>
 </div>
 ```
 
