@@ -17,6 +17,10 @@ if($default !== false) {
 
 $base = Section::$types['pages'];
 
+if (is_string($base)) {
+	$base = include $base;
+}
+
 return array_replace_recursive($base, [
 	'props' => [
 		'create' => function ($create = null) use ($blueprints) {
