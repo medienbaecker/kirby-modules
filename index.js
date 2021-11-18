@@ -3,6 +3,7 @@ panel.plugin('medienbaecker/modules', {
 		'k-modules-section': {
 			extends: 'k-pages-section',
 			created: function () {
+				if (this.parent == 'site') return;
 				this.$api.post(this.parent + '/modules')
 					.then((data) => {
 						if (data.created) {
