@@ -13,6 +13,6 @@ section.k-modules-section .k-headline {
 	cursor: text;
 }
 
-.k-topbar-crumbs a[href$="+modules"] {
+.k-topbar-breadcrumb li:has(a[href$="+modules"]) {
 	display: none;
 }
