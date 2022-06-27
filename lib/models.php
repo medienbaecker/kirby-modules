@@ -29,6 +29,10 @@ class ModulePage extends Page {
 	public function moduleId() {
 		return str_replace('.', '__', $this->intendedTemplate());
 	}
+    public function parents(){
+        $parents = parent::parents();
+        return $parents->filter('slug', '!=', 'modules');
+    }
 }
 
 class ModulesPage extends Page {
@@ -38,4 +42,8 @@ class ModulesPage extends Page {
 	public function render(array $data = [], $contentType = 'html'): string {
 		go($this->parent()->url());
 	}
+    public function parents(){
+        $parents = parent::parents();
+        return $parents->filter('slug', '!=', 'modules');
+    }
 }
