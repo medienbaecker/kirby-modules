@@ -108,6 +108,20 @@ return [
 ];
 ```
 
+### Exclude Module Blueprints
+
+By default, all modules will be available in the "Add page" modal.
+You can exclude certain modules in your `site/config/config.php`:
+
+```php
+return [
+  'medienbaecker.modules.exclude' => [
+    'hero',
+    'anotherForbiddenModule'
+  ]
+];
+```
+
 ### Autopublish Modules
 
 You can turn on automatic publishing for modules in your `site/config/config.php`:
