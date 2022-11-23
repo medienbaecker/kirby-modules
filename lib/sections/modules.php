@@ -10,11 +10,25 @@ foreach ($moduleRegistry['blueprints'] as $blueprint => $file) {
     $blueprints[] = str_replace('pages/', '', $blueprint);
   }
 }
-$default = array_search('module.' . option('medienbaecker.modules.default', 'text'), $blueprints);
-if ($default !== false) {
-  $module_text = $blueprints[$default];
-  unset($blueprints[$default]);
-  array_unshift($blueprints, $module_text);
+
+// Move default module to the top
+$defaultModule = array_search('module.' . option('medienbaecker.modules.default', 'text'), $blueprints);
+if ($defaultModule !== false) {
+  $defaultBlueprint = $blueprints[$defaultModule];
+  unset($blueprints[$defaultModule]);
+  array_unshift($blueprints, $defaultBlueprint);
+}
+
+// Exclude modules
+$excludedModules = option('medienbaecker.modules.exclude', []);
+if (!empty($excludedModules)) {
+
+  foreach($excludedModules as $excludedModule) {
+    if (in_array('module.' . $excludedModule, $blueprints)) {
+      $key = array_search('module.' . $excludedModule, $blueprints);
+      unset($blueprints[$key]);
+    }
+  }
 }
 
 $base = Section::$types['pages'];
