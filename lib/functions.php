@@ -18,6 +18,12 @@ function createModuleRegistry() {
           'listed' => true,
         ];
       }
+      if(!array_key_exists('navigation', $blueprintArray)) {
+        $blueprintArray['navigation'] = [
+          'status' => 'all',
+          'template' => 'all',
+        ];
+      }
       $registry['blueprints']['pages/module.'. $folder] = $blueprintArray;
       $registry['templates']['module.'. $folder] = $template;
       $registry['pageModels']['module.'. $folder] = option('medienbaecker.modules.model', 'ModulePage');
@@ -40,6 +46,12 @@ function createModuleRegistry() {
           $blueprintArray['status'] = [
             'draft' => true,
             'listed' => true,
+          ];
+        }
+        if(!array_key_exists('navigation', $blueprintArray)) {
+          $blueprintArray['navigation'] = [
+            'status' => 'all',
+            'template' => 'all',
           ];
         }
         if(!array_key_exists('pages/'. $moduleBlueprint, $registry['blueprints'])) {
