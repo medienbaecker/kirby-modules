@@ -54,4 +54,31 @@ Kirby::plugin('medienbaecker/modules', [
     'routes' => include __DIR__ . '/lib/routes.php',
   ],
   'translations' => include __DIR__ . '/lib/translations.php',
+  'commands' => [
+    'make:module' => [
+      'description' => 'Creates a new module',
+      'args' => [
+        'name' => [
+          'description' => 'The name of the module',
+        ]
+      ],
+      'command' => static function ($cli): void {
+        $kirby = $cli->kirby();
+        $name  = $cli->argOrPrompt('name', 'Enter a name for the module:');
+
+        $blueprintFile  = $kirby->root('site') . '/modules/' . $name . '/'. $name . '.yml';
+        $snippetFile = $kirby->root('site') . '/modules/' . $name . '/'. $name . '.php';
+
+        $cli->make($blueprintFile, 'title: {{ title }}', [
+          'title' => ucfirst($name)
+        ]);
+
+        $cli->make($snippetFile, '<!-- {{ title }} -->', [
+          'title' => ucfirst($name)
+        ]);
+
+        $cli->success('The module has been created');
+      }
+    ]
+  ]
 ]);
