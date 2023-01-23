@@ -26,14 +26,14 @@ This approach makes it possible to use pages as modules without sacrificing regu
     📄 Module B
 ```
 
-Module blueprints and templates live in a separate `site/modules` folder. This way you can easily reuse modules across projects and share them with other people.
-
 ## Instructions
 
 Add a `modules` section to any page blueprint and a modules container will be automatically created.
  
-You can create modules by putting them in a `site/modules` folder. For example you can add a `site/modules/text` folder with the template `text.php` and the blueprint `text.yml`.
+Similar to [blocks](https://getkirby.com/docs/reference/panel/fields/blocks), you can create module blueprints in `site/blueprints/modules/` and module templates in `site/snippets/modules/`. E.g. `site/blueprints/modules/text.yml` and `site/snippets/modules/text.php`.
 
+It's also possible to use a separate `site/modules/` folder. In this case, you create your module blueprint in `site/modules/text/text.yml` and the module template in `site/modules/text/text.php`.
+ 
 In the parent page template you can then use `<?= $page->modules() ?>` to render the modules.
 
 ### Parent Page
@@ -54,7 +54,7 @@ sections:
 
 ### Example Module
 
-#### `site/modules/text/text.yml`
+#### `site/blueprints/modules/text.yml`
 
 ```yml
 title: Text Module
@@ -62,7 +62,7 @@ fields:
   textarea: true
 ```
 
-#### `site/modules/text/text.php`
+#### `site/snippets/modules/text.php`
 
 ```php
 <div class="<?= $module->moduleId() ?>" id="<?= $module->uid() ?>">
