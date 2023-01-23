@@ -45,10 +45,14 @@ function createModuleRegistry() {
     return Str::startsWith($blueprint, 'module.');
   });
 
-  foreach($moduleBlueprints as $moduleBlueprint) {
-    $blueprintPath = $blueprintsFolder . "/pages/" . $moduleBlueprint . ".yml";
-    $templatePath = $snippetsFolder . "/modules/" . $moduleBlueprint . ".php";
-    $registry = addToModulesRegistry($registry, $moduleBlueprint, $blueprintPath, $templatePath);
+  // Check if there are any module blueprints and throw a deprecation warning
+  if(count($moduleBlueprints)) {
+    deprecated('This folder structure is deprecated. Please move your module blueprints to site/blueprints/modules/ and your module templates to site/snippets/modules/.');
+    foreach($moduleBlueprints as $moduleBlueprint) {
+      $blueprintPath = $blueprintsFolder . "/pages/" . $moduleBlueprint . ".yml";
+      $templatePath = $snippetsFolder . "/modules/" . $moduleBlueprint . ".php";
+      $registry = addToModulesRegistry($registry, $moduleBlueprint, $blueprintPath, $templatePath);
+    }
   }
 
   // ----------------------------------------------------------------------
