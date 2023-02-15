@@ -4,7 +4,7 @@ This plugin makes it super easy to create modular websites with Kirby.
 
 ## Features
 
-- Modules are bundled in `site/modules` and registered as regular blueprints and templates.
+- Modules are registered as regular blueprints and templates.
 - Every module is available to create in the `modules` section without editing any other file.
 - Modules can not be accessed directly and will automatically redirect to the parent page with an anchor.
 - The container page is automatically created and hidden in the panel.
@@ -27,14 +27,14 @@ This approach makes it possible to use pages as modules without sacrificing regu
 ```
 
 ## Instructions
-
-Add a `modules` section to any page blueprint and a modules container will be automatically created.
  
 Similar to [blocks](https://getkirby.com/docs/reference/panel/fields/blocks), you can create module blueprints in `site/blueprints/modules/` and module templates in `site/snippets/modules/`. E.g. `site/blueprints/modules/text.yml` and `site/snippets/modules/text.php`.
 
 It's also possible to use a separate `site/modules/` folder. In this case, you create your module blueprint in `site/modules/text/text.yml` and the module template in `site/modules/text/text.php`.
+
+Add a `modules` section to any page blueprint and a modules container will be automatically created.
  
-In the parent page template you can then use `<?= $page->modules() ?>` to render the modules.
+In the template you can then use `<?= $page->modules() ?>` to render the modules.
 
 ### Parent Page
 
