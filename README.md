@@ -74,27 +74,6 @@ fields:
 You can access the module page object with `$module` and the parent page object with `$page`.
 The `$module->moduleId()` method returns the module ID, e.g. `module_text` or `module_gallery`.
 
-### Skipping the delete confirmation dialog
-
-Adding a page model for the parent page(s) and overwriting the `hasChildren` method skips the confirmation dialog you see when deleting a page with children. You can adjust the code depending on what you want to happen when there are modules or just a modules container:
-
-```php
-<?php
-
-use Kirby\Cms\Page;
-
-class DefaultPage extends Page {
-  public function hasChildren(): bool {
-    $children = $this->children()->filterBy('intendedTemplate', '!=', 'modules');
-    $children = $children->merge($this->grandChildren());
-    $children = $children->merge($this->children()->drafts());
-    return $children->count() > 0;
-  }
-}
-```
-
-Thanks to [@lukaskleinschmidt](https://github.com/lukaskleinschmidt) for helping me with this.
-
 ## Options
 
 ### Default Module Blueprint
