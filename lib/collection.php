@@ -14,13 +14,24 @@ class ModulesCollection extends Pages {
 
     foreach ($this->data() as $module) {
       $moduleTemplate = new Template($module->intendedTemplate());
+      $page = $this->getParentPage($module);
       $html .= $moduleTemplate->render([
-        'page' => $module->parent(),
+        'page' => $page,
         'module' => $module,
         'site' => site(),
       ]);
     }
 
     return $html;
+  }
+
+  private function getParentPage($module): ?Page
+  {
+    $page = $module->parent();
+    while (!is_null($page) and get_class($page) === "ModulesPage") {
+      $page = $page->parent();
+    }
+
+    return $page;
   }
 }
