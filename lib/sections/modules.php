@@ -53,7 +53,8 @@ return array_replace_recursive($base, [
     },
     'image' => false,
     'parent' => function ($parent = null) {
-      return $this->model()->find('modules') ? 'page.find("modules")' : $parent;
+      $class = get_class($this->model()) === 'Kirby\Cms\Site' ? 'site' : 'page';
+      return $this->model()->find('modules') ? $class . '.find("modules")' : $parent;
     },
     'layout' => function (string $layout = 'list') {
       $layouts = ['list', 'cardlets', 'cards', 'table', 'module'];

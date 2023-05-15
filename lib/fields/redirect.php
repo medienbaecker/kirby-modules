@@ -3,11 +3,7 @@
 return [
   'computed' => [
     'redirect' => function () {
-      if ($this->model()->isHomePage()) {
-        return $this->model()->site()->panel()->url();
-      } else {
-        return $this->model()->parent()->panel()->url();
-      }
+      return $this->model()->parents()->count() > 0 ? $this->model()->parents()->first()->panel()->url() : $this->model()->site()->panel()->url();
     }
   ]
 ];

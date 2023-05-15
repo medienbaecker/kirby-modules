@@ -9,16 +9,19 @@ class ModulePage extends Page {
     }
     return parent::create($props);
   }
+  public function parentUrl(): string {
+    return $this->parents()->count() > 0 ? $this->parents()->first()->url() : $this->site()->url();
+  }
   public function url($options = null): string {
-    return $this->parents()->filterBy('intendedTemplate', '!=', 'modules')->first()->url() . '#' . $this->slug();
+    return $this->parentUrl() . '#' . $this->slug();
   }
   public function render(array $data = [], $contentType = 'html'): string {
-    go($this->parents()->filterBy('intendedTemplate', '!=', 'modules')->first()->url() . '#' . $this->slug());
+    go($this->parentUrl() . '#' . $this->slug());
   }
   public function renderModule() {
     $moduleTemplate = new Template($this->intendedTemplate());
     echo $moduleTemplate->render([
-      'page' => $this->parent()->parent(),
+      'page' => $this->parents()->first() ?? $this->site(),
       'module' => $this,
       'site' => $this->site()
     ]);
@@ -29,7 +32,7 @@ class ModulePage extends Page {
   public function moduleId() {
     return str_replace('.', '__', $this->intendedTemplate());
   }
-  public function parents(){
+  public function parents() {
     $parents = parent::parents();
     return $parents->filter('slug', '!=', 'modules');
   }
@@ -37,9 +40,9 @@ class ModulePage extends Page {
 
 class ModulesPage extends Page {
   public function url($options = null): string {
-    return $this->parent()->url();
+    return $this->parentUrl();
   }
   public function render(array $data = [], $contentType = 'html'): string {
-    go($this->parent()->url());
+    go($this->parentUrl());
   }
 }
