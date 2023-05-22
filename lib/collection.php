@@ -15,7 +15,7 @@ class ModulesCollection extends Pages {
     foreach ($this->data() as $module) {
       $moduleTemplate = new Template($module->intendedTemplate());
       $html .= $moduleTemplate->render([
-        'page' => $module->parent(),
+        'page' => $module->parents()->first(),
         'module' => $module,
         'site' => site(),
       ]);
