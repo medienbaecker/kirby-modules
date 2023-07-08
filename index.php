@@ -19,13 +19,14 @@ Kirby::plugin('medienbaecker/modules', [
     'modules_redirect' => include __DIR__ . '/lib/fields/redirect.php'
   ],
   'pageMethods' => [
-    'renderModules' => function () {
+    'renderModules' => function (array $params = []) {
       foreach ($this->modules() as $module) {
         $moduleTemplate = new Template($module->intendedTemplate());
         echo $moduleTemplate->render([
           'page' => $this,
           'module' => $module,
-          'site' => $this->site()
+          'site' => $this->site(),
+          ...$params
         ]);
       }
     },
