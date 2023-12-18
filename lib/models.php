@@ -1,9 +1,11 @@
 <?php
 
-use Kirby\Cms\Template;
+use Kirby\Cms\Page;
+use Kirby\Cms\Pages;
+use Kirby\Template\Template;
 
 class ModulePage extends Page {
-  public static function create(array $props) {
+  public static function create(array $props): Page {
     if (option('medienbaecker.modules.autopublish', false)) {
       $props['num'] = 9999;
     }
@@ -32,7 +34,7 @@ class ModulePage extends Page {
   public function moduleId() {
     return str_replace('.', '__', $this->intendedTemplate());
   }
-  public function parents() {
+  public function parents(): Pages {
     $parents = parent::parents();
     return $parents->filter('slug', '!=', 'modules');
   }
