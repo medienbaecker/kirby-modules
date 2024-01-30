@@ -96,12 +96,15 @@ function addToModulesRegistry(array $registry, string $name, string $blueprintPa
   // Turn the blueprint into an array
   $blueprintArray = Yaml::read($blueprintPath);
 
-  // Set up default values for status and navigation
+  // Set up default values for status, navigation and create
   if(!array_key_exists('status', $blueprintArray)) {
     $blueprintArray['status'] = ['draft' => true, 'listed' => true];
   }
   if(!array_key_exists('navigation', $blueprintArray)) {
     $blueprintArray['navigation'] = ['status' => 'all', 'template' => 'all'];
+  }
+  if(!array_key_exists('create', $blueprintArray)) {
+    $blueprintArray['create'] = ['slug' => '{{ page.title.slug }}'];
   }
 
   if(Str::startsWith($name, 'module.') === false) {
