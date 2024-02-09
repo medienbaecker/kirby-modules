@@ -49,6 +49,23 @@ Kirby::plugin('medienbaecker/modules', [
     },
     'isModule' => function () {
       return Str::startsWith($this->intendedTemplate(), 'module.');
+    },
+    'uniqueModuleSlug' => function() {
+      $slug = $this->title()->slug();
+      $siblings = $this->parent()?->parent()?->childrenAndDrafts() ?? new Pages();
+      
+      // if the slug is already unique, return it
+      if ($siblings->filterBy('slug', $slug)->count() === 0) {
+        return $slug;
+      }
+
+      // if the slug is not unique, add a number
+      $i = 2;
+      while ($siblings->filterBy('slug', $slug . '-' . $i)->count() > 0) {
+        $i++;
+      }
+
+      return $slug . '-' . $i;
     }
   ],
   'api' => [

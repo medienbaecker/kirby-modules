@@ -104,9 +104,10 @@ function addToModulesRegistry(array $registry, string $name, string $blueprintPa
     $blueprintArray['navigation'] = ['status' => 'all', 'template' => 'all'];
   }
   if(!array_key_exists('create', $blueprintArray)) {
-    $blueprintArray['create'] = ['slug' => '{{ page.title.slug }}'];
+    $blueprintArray['create'] = ['slug' => '{{ page.uniqueModuleSlug }}'];
   }
 
+  // Add module prefix to blueprint name
   if(Str::startsWith($name, 'module.') === false) {
     $name = 'module.' . $name;
   }
