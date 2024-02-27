@@ -56,6 +56,24 @@ function createModuleRegistry() {
   }
 
   // ----------------------------------------------------------------------
+  // Populate changeTemplate option
+  // ----------------------------------------------------------------------
+
+  $blueprintNames = array_keys($registry['blueprints']);
+  $blueprintNames = array_map(function($blueprintName) {
+    return Str::replace($blueprintName, 'pages/', '');
+  }, $blueprintNames);
+
+  foreach($registry['blueprints'] as $key => $blueprint) {
+    if(
+      !array_key_exists('options', $registry['blueprints'][$key]) ||
+      !array_key_exists('changeTemplate', $registry['blueprints'][$key]['options'])
+    ) {
+      $registry['blueprints'][$key]['options']['changeTemplate'] = $blueprintNames;
+    }
+  }
+
+  // ----------------------------------------------------------------------
   // Add modules container blueprint with redirect field
   // ----------------------------------------------------------------------
   
