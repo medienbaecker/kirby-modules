@@ -32,7 +32,7 @@ class ModulePage extends Page {
     return $this->blueprint()->title();
   }
   public function moduleId() {
-    return str_replace('.', '__', $this->intendedTemplate());
+    return str_replace('.', '--', $this->intendedTemplate());
   }
   public function parents(): Pages {
     $parents = parent::parents();
