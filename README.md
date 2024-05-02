@@ -10,7 +10,7 @@ This plugin makes it super easy to create modular websites with Kirby.
 - The container page is automatically created and hidden in the panel.
 - You can preview draft modules on their parent pages via the panel preview button.
 
-![Preview](https://github.com/medienbaecker/kirby-modules/assets/7975568/1bece4a6-9ba3-4e8a-be67-7053876f71ba)
+<img src="https://github.com/medienbaecker/kirby-modules/assets/7975568/1bece4a6-9ba3-4e8a-be67-7053876f71ba" alt="Preview" width="500px">
 
 ## What's a Module?
 
