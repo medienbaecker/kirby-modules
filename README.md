@@ -74,7 +74,7 @@ fields:
 ```
 
 You can access the module page object with `$module` and the parent page object with `$page`.
-The `$module->moduleId()` method returns the module ID, e.g. `module_text` or `module_gallery`.
+The `$module->moduleId()` method returns the module ID as a BEM class, e.g. `module--text` or `module--gallery`.
 
 ## Options
 
