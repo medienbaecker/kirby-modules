@@ -114,15 +114,19 @@ function addToModulesRegistry(array $registry, string $name, string $blueprintPa
   // Turn the blueprint into an array
   $blueprintArray = Yaml::read($blueprintPath);
 
-  // Set up default values for status, navigation and create
+  // Set up default values for status and navigation
   if(!array_key_exists('status', $blueprintArray)) {
     $blueprintArray['status'] = ['draft' => true, 'listed' => true];
   }
   if(!array_key_exists('navigation', $blueprintArray)) {
     $blueprintArray['navigation'] = ['status' => 'all', 'template' => 'all'];
   }
-  if(!array_key_exists('create', $blueprintArray)) {
-    $blueprintArray['create'] = ['slug' => '{{ page.uniqueModuleSlug }}'];
+
+  // Add slug field if autoslug is enabled
+  if(option('medienbaecker.modules.autoslug') === true) {
+    if(!array_key_exists('create', $blueprintArray)) {
+      $blueprintArray['create'] = ['slug' => '{{ page.uniqueModuleSlug }}'];
+    }
   }
 
   // Add module prefix to blueprint name

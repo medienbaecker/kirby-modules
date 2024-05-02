@@ -6,10 +6,10 @@ section.k-modules-section .k-list-item:not(.k-draggable-item) .k-list-item-text 
 	color: rgba(0, 0, 0, 0.7);
 }
 
-section.k-modules-section .k-headline a {
+section.k-modules-section .k-section-label a {
 	pointer-events: none;
 }
-section.k-modules-section .k-headline {
+section.k-modules-section .k-section-label {
 	cursor: text;
 }
 
