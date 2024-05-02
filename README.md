@@ -101,6 +101,16 @@ return [
 ];
 ```
 
+### Automatically generate slug
+
+If you want to automatically generate the slug according to the title, you can enable the `autoslug` option. This hides the slug field from the create page modal:
+
+```php
+return [
+  'medienbaecker.modules.autoslug' => true
+];
+```
+
 ### Autopublish Modules
 
 You can turn on automatic publishing for modules in your `site/config/config.php`:
