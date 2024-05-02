@@ -27,6 +27,8 @@ This approach makes it possible to use pages as modules without sacrificing regu
 ```
 
 ## Instructions
+
+tl;dr: I created an [example repository](https://github.com/medienbaecker/modules-example) with Kirby's plainkit, this plugin and three very simple modules.
  
 Similar to [blocks](https://getkirby.com/docs/reference/panel/fields/blocks), you can create module blueprints in `site/blueprints/modules/` and module templates in `site/snippets/modules/`. E.g. `site/blueprints/modules/text.yml` and `site/snippets/modules/text.php`.
 
