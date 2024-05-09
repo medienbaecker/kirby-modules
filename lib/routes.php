@@ -22,7 +22,7 @@ return function ($kirby) {
         try {
           $kirby->impersonate('kirby');
           $modulesPage = $page->createChild([
-            'content'  => ['title' => 'Modules'],
+            'content'  => ['title' => I18n::translate('modules')],
             'slug'     => 'modules',
             'template' => 'modules',
           ]);
