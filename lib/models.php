@@ -5,12 +5,6 @@ use Kirby\Cms\Pages;
 use Kirby\Template\Template;
 
 class ModulePage extends Page {
-  public static function create(array $props): Page {
-    if (option('medienbaecker.modules.autopublish', false)) {
-      $props['num'] = 9999;
-    }
-    return parent::create($props);
-  }
   public function parentUrl(): string {
     return $this->parents()->count() > 0 ? $this->parents()->first()->url() : $this->site()->url();
   }

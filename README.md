@@ -78,10 +78,11 @@ The `$module->moduleId()` method returns the module ID as a BEM class, e.g. `mod
 
 ## Options
 
+The following options are available to add to your `site/config/config.php`:
+
 ### Default Module Blueprint
 
-By default, the `text` module will be the first/default option in the "Add page" modal.
-You can overwrite it in your `site/config/config.php`:
+By default, the `text` module will be the first/default option in the "Add page" modal. You can change this behaviour by setting your own default module:
 
 ```php
 return [
@@ -91,8 +92,7 @@ return [
 
 ### Exclude Module Blueprints
 
-By default, all modules will be available in the "Add page" modal.
-You can exclude certain modules in your `site/config/config.php`:
+By default, all modules will be available in the "Add page" modal. Change this by providing an array of excluded modules:
 
 ```php
 return [
@@ -115,11 +115,21 @@ return [
 
 ### Autopublish Modules
 
-You can turn on automatic publishing for modules in your `site/config/config.php`:
+With this option you can skip the draft status and create listed modules directly:
 
 ```php
 return [
   'medienbaecker.modules.autopublish' => true
+];
+```
+
+### Enable redirect
+
+By default you won't get redirected to the modules pages you create. Change this behaviour by setting the `redirect` option to `true`:
+
+```php
+return [
+  'medienbaecker.modules.redirect' => true
 ];
 ```
 

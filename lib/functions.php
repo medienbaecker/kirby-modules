@@ -122,11 +122,26 @@ function addToModulesRegistry(array $registry, string $name, string $blueprintPa
     $blueprintArray['navigation'] = ['status' => 'all', 'template' => 'all'];
   }
 
-  // Add slug field if autoslug is enabled
-  if(option('medienbaecker.modules.autoslug') === true) {
-    if(!array_key_exists('create', $blueprintArray)) {
-      $blueprintArray['create'] = ['slug' => '{{ page.uniqueModuleSlug }}'];
+  // Adjust the create blueprint option if it doesn't exist
+  if(!array_key_exists('create', $blueprintArray)) {
+
+    $blueprintArray['create'] = [];
+
+    // Add slug field if autoslug is enabled
+    if(option('medienbaecker.modules.autoslug') === true) {
+      $blueprintArray['create']['slug'] = '{{ page.uniqueModuleSlug }}';
     }
+
+    // Set status to listed if autopublish is enabled
+    if(option('medienbaecker.modules.autopublish') === true) {
+      $blueprintArray['create']['status'] = 'listed';
+    }
+
+    // Disable redirect if the redirect option is not explicitely set to true
+    if(option('medienbaecker.modules.redirect') !== true) {
+      $blueprintArray['create']['redirect'] = false;
+    }
+
   }
 
   // Add module prefix to blueprint name
