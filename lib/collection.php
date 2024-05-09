@@ -1,7 +1,7 @@
 <?php
 
 use Kirby\Cms\Pages;
-use Kirby\Cms\Template;
+use Kirby\Template\Template;
 
 class ModulesCollection extends Pages {
   /**
