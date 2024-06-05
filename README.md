@@ -76,6 +76,17 @@ fields:
 You can access the module page object with `$module` and the parent page object with `$page`.
 The `$module->moduleId()` method returns the module ID as a BEM class, e.g. `module--text` or `module--gallery`.
 
+## Manually define available modules
+
+By default, this plugin automatically populates the `create` option of the modules section with all modules. If you want to manually define the available modules, you can do so in your blueprint:
+
+```yml
+modules:
+  create:
+    - module.text
+    - module.images
+```
+
 ## Options
 
 The following options are available to add to your `site/config/config.php`:
