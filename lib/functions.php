@@ -116,7 +116,14 @@ function addToModulesRegistry(array $registry, string $name, string $blueprintPa
 
   // Set up default values for status and navigation
   if(!array_key_exists('status', $blueprintArray)) {
-    $blueprintArray['status'] = ['draft' => true, 'listed' => true];
+    $blueprintArray['status'] = [
+      'draft' => [
+        'text' => false
+      ],
+      'listed' => [
+        'text' => false
+      ]
+    ];
   }
   if(!array_key_exists('navigation', $blueprintArray)) {
     $blueprintArray['navigation'] = ['status' => 'all', 'template' => 'all'];
