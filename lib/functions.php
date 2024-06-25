@@ -64,12 +64,14 @@ function createModuleRegistry() {
     return Str::replace($blueprintName, 'pages/', '');
   }, $blueprintNames);
 
-  foreach($registry['blueprints'] as $key => $blueprint) {
+  foreach($registry['blueprints'] as &$blueprint) {
     if(
-      !array_key_exists('options', $registry['blueprints'][$key]) ||
-      !array_key_exists('changeTemplate', $registry['blueprints'][$key]['options'])
+      !isset($blueprint['options']) ||
+      (
+        is_array($blueprint['options']) && !isset($blueprint['options']['changeTemplate']
+      ))
     ) {
-      $registry['blueprints'][$key]['options']['changeTemplate'] = $blueprintNames;
+      $blueprint['options']['changeTemplate'] = $blueprintNames;
     }
   }
 
