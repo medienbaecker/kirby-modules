@@ -76,7 +76,7 @@ function createModuleRegistry() {
   }
 
   // ----------------------------------------------------------------------
-  // Add modules container blueprint with redirect field
+  // Add modules container blueprint with pages section and redirect field
   // ----------------------------------------------------------------------
   
   $registry['blueprints']['pages/modules'] = [
@@ -86,9 +86,16 @@ function createModuleRegistry() {
       'changeStatus' => false,
       'changeTemplate' => false
     ],
-    'fields' => [
-      'modules_redirect' => true
-    ]
+    'sections' => [
+      'pages' => [
+        'templates' => $blueprintNames
+      ],
+      'fields' => [
+        'fields' => [
+          'modules_redirect' => true
+        ]
+      ]
+    ],
   ];
   
   // ----------------------------------------------------------------------
