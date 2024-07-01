@@ -6,7 +6,7 @@ This plugin makes it super easy to create modular websites with Kirby.
 
 📦 **Module Creation**
 - 🗂️ Create modules in `site/blueprints/modules/[module].yml` and `site/snippets/modules/[module].php`
-- 📁 Alternatively, use `site/modules/[module]/module.yml` and `site/modules/[module]/module.php` for a dedicated folder for each module
+- 📁 Alternatively: `site/modules/[module]/` folder with `[module].yml` and `[module].php` inside
 - 🔧 Use the `make:module` CLI command to generate new modules
 
 🧩 **Integration & Display**
