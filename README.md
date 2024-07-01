@@ -9,10 +9,13 @@ This plugin makes it super easy to create modular websites with Kirby.
 - 📁 Alternatively: `site/modules/[module]/` folder with `[module].yml` and `[module].php` inside
 - 🔧 Use the `make:module` CLI command to generate new modules
 
-🧩 **Integration & Display**
+🧩 **Core Functionality**
 - 🔄 Automatically creates a hidden modules storage page for pages with a modules section
 - 🎨 Keeps `changeTemplate` options up to date
+- 🚚 Allows moving modules to other modules storage pages
+- 🧭 Sets the `navigation` option so you can use the arrows to move between modules
 - 📄 Easily render modules with `<?= $page->modules() ?>`
+- 🧰 Useful methods like `hasModules()`, `isModule()` and `moduleId()`
 
 🔗 **URL Handling**
 - 🔗 Extended `url()` method with anchor links on the parent page
