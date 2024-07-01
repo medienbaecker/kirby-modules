@@ -16,14 +16,10 @@ This plugin makes it super easy to create modular websites with Kirby.
 - 🧭 Sets the `navigation` option so you can use the arrows to move between modules
 - 📄 Easily render modules with `<?= $page->modules() ?>`
 - 🧰 Useful methods like `hasModules()`, `isModule()` and `moduleId()`
-
-🔗 **URL Handling**
+- 🏷️ Optionally auto-generate unique slugs for modules
+- 👁️ View draft modules on parent pages via the panel preview button
 - 🔗 Extended `url()` method with anchor links on the parent page
 - 🚦 Accessing Module URLs directly redirects to the parent page with an anchor
-
-👀 **Preview & Management**
-- 👁️ View draft modules on parent pages via the panel preview button
-- 🏷️ Optionally auto-generate unique slugs for modules
 
 ⚙️ **Customization Options**
 - 🎛️ Set a default module type
