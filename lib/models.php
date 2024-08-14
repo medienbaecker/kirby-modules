@@ -32,6 +32,9 @@ class ModulePage extends Page {
     $parents = parent::parents();
     return $parents->filter('slug', '!=', 'modules');
   }
+	public function metaDefaults() {
+		return ['robotsIndex' => false];
+	}
 }
 
 class ModulesPage extends Page {
@@ -41,4 +44,7 @@ class ModulesPage extends Page {
   public function render(array $data = [], $contentType = 'html'): string {
     go($this->parentUrl());
   }
+	public function metaDefaults() {
+		return ['robotsIndex' => false];
+	}
 }
