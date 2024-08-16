@@ -44,7 +44,7 @@ class ModulesPage extends Page {
   public function render(array $data = [], $contentType = 'html'): string {
     go($this->parentUrl());
   }
-	public function metaDefaults() {
-		return ['robotsIndex' => false];
-	}
+  public function metaDefaults() {
+    return ['robotsIndex' => false];
+  }
 }
