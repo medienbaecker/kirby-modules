@@ -23,7 +23,7 @@ if ($defaultModule !== false) {
 $excludedModules = option('medienbaecker.modules.exclude', []);
 if (!empty($excludedModules)) {
 
-  foreach($excludedModules as $excludedModule) {
+  foreach ($excludedModules as $excludedModule) {
     if (in_array('module.' . $excludedModule, $blueprints)) {
       $key = array_search('module.' . $excludedModule, $blueprints);
       unset($blueprints[$key]);
@@ -51,7 +51,11 @@ return array_replace_recursive($base, [
     'info' => function (string $info = '{{ page.moduleName }}') {
       return $info;
     },
-    'image' => false,
+    'image' => [
+      'query' => false,
+      'back' => 'item-color-back',
+      'color' => 'item-color',
+    ],
     'parent' => function ($parent = null) {
       $class = get_class($this->model()) === 'Kirby\Cms\Site' ? 'site' : 'page';
       return $this->model()->find('modules') ? $class . '.find("modules")' : $parent;
