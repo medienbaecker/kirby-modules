@@ -1,18 +1,10 @@
-section.k-modules-section .k-list-item:not(.k-draggable-item) {
-	background-color: rgba(255, 255, 255, 0.5);
-}
-
-section.k-modules-section .k-list-item:not(.k-draggable-item) .k-list-item-text em {
-	color: rgba(0, 0, 0, 0.7);
-}
-
 section.k-modules-section .k-section-label a {
-	pointer-events: none;
+  pointer-events: none;
 }
 section.k-modules-section .k-section-label {
-	cursor: text;
+  cursor: text;
 }
 
 .k-topbar-breadcrumb li:has(a[href$="+modules"]) {
-	display: none;
+  display: none;
 }

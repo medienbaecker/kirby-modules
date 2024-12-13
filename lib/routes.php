@@ -1,5 +1,7 @@
 <?php
 
+use Kirby\Toolkit\I18n;
+
 return function ($kirby) {
   return [
     [
@@ -18,7 +20,7 @@ return function ($kirby) {
             'created' => false,
           ];
         }
-      
+
         try {
           $kirby->impersonate('kirby');
           $modulesPage = $page->createChild([
@@ -30,7 +32,7 @@ return function ($kirby) {
           if ($modulesPage) {
             $modulesPage->publish();
           }
-  
+
           return [
             'status'  => 'ok',
             'created' => true,

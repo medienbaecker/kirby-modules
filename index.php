@@ -1,6 +1,9 @@
 <?php
 
-use Kirby\Cms\Template;
+use Kirby\Cms\App as Kirby;
+use Kirby\Cms\Pages;
+use Kirby\Template\Template;
+use Kirby\Toolkit\Str;
 
 include __DIR__ . '/lib/models.php';
 include __DIR__ . '/lib/functions.php';
@@ -50,10 +53,10 @@ Kirby::plugin('medienbaecker/modules', [
     'isModule' => function () {
       return Str::startsWith($this->intendedTemplate(), 'module.');
     },
-    'uniqueModuleSlug' => function() {
+    'uniqueModuleSlug' => function () {
       $slug = $this->title()->slug();
       $siblings = $this->parent()?->parent()?->childrenAndDrafts() ?? new Pages();
-      
+
       // if the slug is already unique, return it
       if ($siblings->filterBy('slug', $slug)->count() === 0) {
         return $slug;
@@ -84,8 +87,8 @@ Kirby::plugin('medienbaecker/modules', [
         $kirby = $cli->kirby();
         $name  = $cli->argOrPrompt('name', 'Enter a name for the module:');
 
-        $blueprintFile  = $kirby->root('site') . '/modules/' . $name . '/'. $name . '.yml';
-        $snippetFile = $kirby->root('site') . '/modules/' . $name . '/'. $name . '.php';
+        $blueprintFile  = $kirby->root('blueprints') . '/modules/' . $name . '.yml';
+        $snippetFile = $kirby->root('snippets') . '/modules/' . $name . '.php';
 
         $cli->make($blueprintFile, 'title: {{ title }}', [
           'title' => ucfirst($name)

@@ -2,19 +2,24 @@
 
 use Kirby\Cms\Page;
 use Kirby\Cms\Pages;
+use Kirby\Content\VersionId;
 use Kirby\Template\Template;
 
-class ModulePage extends Page {
-  public function parentUrl(): string {
-    return $this->parents()->count() > 0 ? $this->parents()->first()->url() : $this->site()->url();
+class ModulePage extends Page
+{
+  public function parentUrl(): string
+  {
+    return $this->parents()->count() ? $this->parents()->first()->url() : $this->site()->url();
   }
-  public function url($options = null): string {
-    return $this->parentUrl() . '#' . $this->slug();
+  public function render(
+    array $data = [],
+    $contentType = 'html',
+    VersionId|string|null $versionId = null
+  ): string {
+    go($this->parent()->url() . '#' . $this->slug());
   }
-  public function render(array $data = [], $contentType = 'html'): string {
-    go($this->parentUrl() . '#' . $this->slug());
-  }
-  public function renderModule() {
+  public function renderModule()
+  {
     $moduleTemplate = new Template($this->intendedTemplate());
     echo $moduleTemplate->render([
       'page' => $this->parents()->first() ?? $this->site(),
@@ -22,29 +27,36 @@ class ModulePage extends Page {
       'site' => $this->site()
     ]);
   }
-  public function moduleName() {
+  public function moduleName()
+  {
     return $this->blueprint()->title();
   }
-  public function moduleId() {
+  public function moduleId()
+  {
     return str_replace('.', '--', $this->intendedTemplate());
   }
-  public function parents(): Pages {
+  public function parents(): Pages
+  {
     $parents = parent::parents();
     return $parents->filter('slug', '!=', 'modules');
   }
-	public function metaDefaults() {
-		return ['robotsIndex' => false];
-	}
+  public function metaDefaults()
+  {
+    return ['robotsIndex' => false];
+  }
 }
 
-class ModulesPage extends Page {
-  public function url($options = null): string {
-    return $this->parentUrl();
+class ModulesPage extends Page
+{
+  public function render(
+    array $data = [],
+    $contentType = 'html',
+    VersionId|string|null $versionId = null
+  ): string {
+    go($this->parent()->url());
   }
-  public function render(array $data = [], $contentType = 'html'): string {
-    go($this->parentUrl());
-  }
-  public function metaDefaults() {
+  public function metaDefaults()
+  {
     return ['robotsIndex' => false];
   }
 }
