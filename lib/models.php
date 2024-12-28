@@ -18,14 +18,16 @@ class ModulePage extends Page
   ): string {
     go($this->parent()->url() . '#' . $this->slug());
   }
-  public function renderModule()
+  public function renderModule(array $params = [])
   {
+    $controllerData = $this->controller();
     $moduleTemplate = new Template($this->intendedTemplate());
-    echo $moduleTemplate->render([
+    echo $moduleTemplate->render(array_merge($controllerData, [
       'page' => $this->parents()->first() ?? $this->site(),
       'module' => $this,
-      'site' => $this->site()
-    ]);
+      'site' => $this->site(),
+      ...$params
+    ]));
   }
   public function moduleName()
   {

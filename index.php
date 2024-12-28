@@ -24,13 +24,7 @@ Kirby::plugin('medienbaecker/modules', [
   'pageMethods' => [
     'renderModules' => function (array $params = []) {
       foreach ($this->modules() as $module) {
-        $moduleTemplate = new Template($module->intendedTemplate());
-        echo $moduleTemplate->render([
-          'page' => $this,
-          'module' => $module,
-          'site' => $this->site(),
-          ...$params
-        ]);
+        echo $module->renderModule($params);
       }
     },
     'hasModules' => function () {
