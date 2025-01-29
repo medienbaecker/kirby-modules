@@ -35,10 +35,8 @@ Kirby::plugin('medienbaecker/modules', [
     },
     'modules' => function () {
       $modules = new ModulesCollection;
-      if ($rawModules = $this->find('modules')) {
-        foreach ($rawModules->childrenAndDrafts() as $module) {
-          if (!$module->isListed() && !$module->isDraft()) continue;
-          if ($module->isDraft && !$module->isVerified(get('token'))) continue;
+      if ($modulesContainer = $this->find('modules')) {
+        foreach ($modulesContainer->children()->listed() as $module) {
           $modules->append($module);
         }
       }
