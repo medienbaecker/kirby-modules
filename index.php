@@ -2,7 +2,6 @@
 
 use Kirby\Cms\App as Kirby;
 use Kirby\Cms\Pages;
-use Kirby\Template\Template;
 use Kirby\Toolkit\Str;
 
 include __DIR__ . '/lib/models.php';
@@ -36,7 +35,9 @@ Kirby::plugin('medienbaecker/modules', [
     'modules' => function () {
       $modules = new ModulesCollection;
       if ($modulesContainer = $this->find('modules')) {
-        foreach ($modulesContainer->children()->listed() as $module) {
+        foreach ($modulesContainer->childrenAndDrafts() as $module) {
+          if ($module->isUnlisted()) continue;
+          if ($module->isDraft() && $module->renderVersionFromRequest() === null) continue;
           $modules->append($module);
         }
       }

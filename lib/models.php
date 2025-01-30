@@ -2,21 +2,24 @@
 
 use Kirby\Cms\Page;
 use Kirby\Cms\Pages;
+use Kirby\Cms\Site;
 use Kirby\Content\VersionId;
 use Kirby\Template\Template;
 
 class ModulePage extends Page
 {
-  public function parentUrl(): string
-  {
-    return $this->parents()->count() ? $this->parents()->first()->url() : $this->site()->url();
-  }
   public function render(
     array $data = [],
     $contentType = 'html',
     VersionId|string|null $versionId = null
   ): string {
-    go($this->parent()->url() . '#' . $this->slug());
+
+    $parentUrl = $this->page()->url();
+    if ($token = get('_token')) {
+      $parentUrl .= '?_token=' . $token;
+    }
+
+    go($parentUrl . '#' . $this->slug());
   }
   public function renderModule(array $params = [])
   {
@@ -29,11 +32,19 @@ class ModulePage extends Page
       ...$params
     ]));
   }
-  public function moduleName()
+  public function page(): Page|Site
+  {
+    return $this->parent()->parent() ?? $this->site();
+  }
+  public function parentUrl(): string
+  {
+    return $this->page()->url();
+  }
+  public function moduleName(): string
   {
     return $this->blueprint()->title();
   }
-  public function moduleId()
+  public function moduleId(): string
   {
     return str_replace('.', '--', $this->intendedTemplate());
   }
@@ -42,7 +53,7 @@ class ModulePage extends Page
     $parents = parent::parents();
     return $parents->filter('slug', '!=', 'modules');
   }
-  public function metaDefaults()
+  public function metaDefaults(): array
   {
     return ['robotsIndex' => false];
   }
