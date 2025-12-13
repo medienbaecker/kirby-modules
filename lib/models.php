@@ -4,7 +4,6 @@ use Kirby\Cms\Page;
 use Kirby\Cms\Pages;
 use Kirby\Cms\Site;
 use Kirby\Content\VersionId;
-use Kirby\Template\Template;
 
 class ModulePage extends Page
 {
@@ -13,7 +12,6 @@ class ModulePage extends Page
     $contentType = 'html',
     VersionId|string|null $versionId = null
   ): string {
-
     $parentUrl = $this->page()->url();
     if ($token = get('_token')) {
       $parentUrl .= '?_token=' . $token;
@@ -21,16 +19,20 @@ class ModulePage extends Page
 
     go($parentUrl . '#' . $this->slug());
   }
-  public function renderModule(array $params = [])
+
+  public function toHtml(array $params = []): string
   {
-    $controllerData = $this->controller();
-    $moduleTemplate = new Template($this->intendedTemplate());
-    echo $moduleTemplate->render(array_merge($controllerData, [
+    $name = str_replace('module.', '', $this->intendedTemplate()->name());
+    return snippet('modules/' . $name, [
       'page' => $this->parents()->first() ?? $this->site(),
       'module' => $this,
-      'site' => $this->site(),
       ...$params
-    ]));
+    ], true);
+  }
+
+  public function renderModule(array $params = [])
+  {
+    echo $this->toHtml($params);
   }
   public function page(): Page|Site
   {

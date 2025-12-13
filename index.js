@@ -30,15 +30,5 @@ panel.plugin('medienbaecker/modules', {
         }
       }
     }
-  },
-  fields: {
-    modules_redirect: {
-      props: {
-        redirect: String
-      },
-      render: function () {
-        window.location.href = this.redirect;
-      }
-    }
   }
 });

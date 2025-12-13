@@ -6,7 +6,6 @@ This plugin makes it super easy to create modular websites with Kirby.
 
 📦 **Module Creation**
 - 🗂️ Create modules in `site/blueprints/modules/[module].yml` and `site/snippets/modules/[module].php`
-- 📁 Alternatively: `site/modules/[module]/` folder with `[module].yml` and `[module].php` inside
 - 🔧 Use the `make:module` CLI command to generate new modules
 
 🧩 **Core Functionality**
@@ -38,8 +37,8 @@ Alternatively, you can install it with composer: `composer require medienbaecker
 ## Quick Start
 
 1. Install the plugin
-2. Set up your first module in `site/blueprints/modules/[module].yml` and `site/snippets/modules/[module].php`
-3. Add a `modules` section to a page blueprint and create some modules
+2. Create a module blueprint in `site/blueprints/modules/[module].yml` and a snippet in `site/snippets/modules/[module].php`
+3. Add a `modules` section to a page blueprint
 4. Render the modules in your template with `<?= $page->modules() ?>`
 
 I created an [example repository](https://github.com/medienbaecker/modules-example) with Kirby's plainkit, this plugin and three very simple modules.
@@ -62,9 +61,7 @@ This approach makes it possible to use pages as modules without sacrificing regu
 
 ### Creating Modules
 
-Similar to [blocks](https://getkirby.com/docs/reference/panel/fields/blocks), you can create module blueprints in `site/blueprints/modules/` and module templates in `site/snippets/modules/`. E.g. `site/blueprints/modules/text.yml` and `site/snippets/modules/text.php`.
-
-It's also possible to use a separate `site/modules/` folder. In this case, you create your module blueprint in `site/modules/text/text.yml` and the module template in `site/modules/text/text.php`.
+Similar to [blocks](https://getkirby.com/docs/reference/panel/fields/blocks), you can create module blueprints in `site/blueprints/modules/` and module snippets in `site/snippets/modules/`. E.g. `site/blueprints/modules/text.yml` and `site/snippets/modules/text.php`.
 
 ### Adding Modules to Pages
 
@@ -182,14 +179,16 @@ class CustomModulePage extends ModulePage {
 
 ### Manually define available modules
 
-By default, this plugin automatically populates the `create` option of the modules section with all modules. If you want to manually define the available modules, you can do so in your blueprint:
+By default, this plugin automatically populates the `templates` option of the modules section with all modules. If you want to manually define the available modules, you can do so in your blueprint:
 
 ```yml
 modules:
-  create:
+  templates:
     - module.text
     - module.images
 ```
+
+This restricts which modules can be created AND moved into this section.
 
 ## License
 

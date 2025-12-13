@@ -1,7 +1,7 @@
 {
   "name": "medienbaecker/kirby-modules",
   "description": "Easily add modules to your pages",
-  "version": "2.9.3",
+  "version": "3.0.0",
   "license": "MIT",
   "authors": [
     {
@@ -12,9 +12,9 @@
   ],
   "type": "kirby-plugin",
   "keywords": [
-    "kirby3",
-    "kirby3-cms",
-    "kirby3-plugin"
+    "kirby",
+    "kirby-cms",
+    "kirby-plugin"
   ],
   "require": {
     "getkirby/composer-installer": "^1.1"
