@@ -2,6 +2,9 @@
 
 This plugin makes it super easy to create modular websites with Kirby.
 
+> [!WARNING]  
+> Using Kirby 4, you'll have to stick to version [2.8.4](https://github.com/medienbaecker/kirby-modules/releases/tag/2.8.4).
+
 ## Features
 
 📦 **Module Creation**
