@@ -1,5 +1,7 @@
 <?php
 
+namespace Medienbaecker\Modules;
+
 use Kirby\Cms\Page;
 use Kirby\Cms\Pages;
 use Kirby\Cms\Site;
@@ -30,47 +32,38 @@ class ModulePage extends Page
     ], true);
   }
 
-  public function renderModule(array $params = [])
+  public function renderModule(array $params = []): void
   {
     echo $this->toHtml($params);
   }
+
   public function page(): Page|Site
   {
     return $this->parent()->parent() ?? $this->site();
   }
+
   public function parentUrl(): string
   {
     return $this->page()->url();
   }
+
   public function moduleName(): string
   {
     return $this->blueprint()->title();
   }
+
   public function moduleId(): string
   {
     return str_replace('.', '--', $this->intendedTemplate());
   }
+
   public function parents(): Pages
   {
     $parents = parent::parents();
     return $parents->filter('slug', '!=', 'modules');
   }
-  public function metaDefaults(): array
-  {
-    return ['robotsIndex' => false];
-  }
-}
 
-class ModulesPage extends Page
-{
-  public function render(
-    array $data = [],
-    $contentType = 'html',
-    VersionId|string|null $versionId = null
-  ): string {
-    go($this->parent()->url());
-  }
-  public function metaDefaults()
+  public function metaDefaults(): array
   {
     return ['robotsIndex' => false];
   }

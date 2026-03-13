@@ -12,6 +12,7 @@ return [
     'modules.addAbove' => 'Add above',
     'modules.addBelow' => 'Add below',
     'modules.unpublish' => 'Unpublish',
+    'modules.deleteAll.confirm' => 'Do you really want to delete all modules?',
   ],
   'de' => [
     'modules' => 'Module',
@@ -24,5 +25,6 @@ return [
     'modules.addAbove' => 'Darüber hinzufügen',
     'modules.addBelow' => 'Darunter hinzufügen',
     'modules.unpublish' => 'Zurückziehen',
+    'modules.deleteAll.confirm' => 'Möchtest du wirklich alle Module löschen?',
   ],
 ];

@@ -1,5 +1,7 @@
 <?php
 
+namespace Medienbaecker\Modules;
+
 use Kirby\Cms\Pages;
 
 class ModulesCollection extends Pages

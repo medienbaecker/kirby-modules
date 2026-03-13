@@ -9,8 +9,14 @@ use Kirby\Data\Yaml;
 
 class ModuleRegistry
 {
+  private static ?array $cache = null;
+
   public static function create(): array
   {
+    if (static::$cache !== null) {
+      return static::$cache;
+    }
+
     $registry = ['blueprints' => [], 'templates' => [], 'snippets' => [], 'pageModels' => []];
 
     $modulesFolder = kirby()->root('site') . '/modules';
@@ -62,8 +68,9 @@ class ModuleRegistry
     ];
 
     // Add modules container model
-    $registry['pageModels']['modules'] = 'ModulesPage';
+    $registry['pageModels']['modules'] = ModulesPage::class;
 
+    static::$cache = $registry;
     return $registry;
   }
 
@@ -110,7 +117,9 @@ class ModuleRegistry
     $registry['blueprints']['pages/' . $name] = $blueprintArray;
     $registry['templates'][$name] = $snippetPath;
     $registry['snippets']['modules/' . $shortName] = $snippetPath;
-    $registry['pageModels'][$name] = option('medienbaecker.modules.model', 'ModulePage');
+    $model = option('medienbaecker.modules.model', ModulePage::class);
+    if ($model === 'ModulePage') $model = ModulePage::class;
+    $registry['pageModels'][$name] = $model;
 
     return $registry;
   }

@@ -3,9 +3,12 @@
 use Kirby\Form\Form;
 use Kirby\Toolkit\Str;
 use Kirby\Toolkit\I18n;
+use Medienbaecker\Modules\ModuleRegistry;
+
+$registry = ModuleRegistry::create();
 
 $blueprints = [];
-foreach ($moduleRegistry['blueprints'] as $blueprint => $file) {
+foreach ($registry['blueprints'] as $blueprint => $file) {
   if (Str::startsWith($blueprint, 'pages/module.')) {
     $blueprints[] = str_replace('pages/', '', $blueprint);
   }
@@ -147,6 +150,19 @@ return [
               if ($page->isDraft()) continue;
               $page->changeStatus('listed', $position);
               $position++;
+            }
+          }
+          return ['status' => 'ok'];
+        }
+      ],
+      [
+        'pattern' => 'deleteAll',
+        'method'  => 'POST',
+        'action'  => function () {
+          $modulesPage = $this->section()->model()->find('modules');
+          if ($modulesPage) {
+            foreach ($modulesPage->childrenAndDrafts() as $child) {
+              $child->delete(true);
             }
           }
           return ['status' => 'ok'];
