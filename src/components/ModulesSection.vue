@@ -7,7 +7,7 @@
     </k-empty>
     <k-draggable v-else :list="modules" :options="dragOptions" @sort="onSort" class="k-modules-list">
       <div v-for="module in modules" :key="module.id" class="k-module" :data-module-id="module.id"
-        :data-selected="selectedModule === module.id" :data-disabled="isDisabled(module)"
+        :data-status="module.status" :data-selected="selectedModule === module.id" :data-disabled="isDisabled(module)"
         :tabindex="isDisabled(module) ? null : 0" @focusin.stop="select(module)">
         <div class="k-module-body" :data-collapsed="!isExpanded(module.id)">
           <header class="k-module-header">
@@ -19,8 +19,10 @@
               </span>
               <span>{{ module.moduleName }}</span>
             </button>
+            <button class="k-module-status" :data-status="module.status" @click.stop="toggleVisibility(module)">
+              <k-icon :type="module.status === 'draft' ? 'hidden' : 'preview'" />
+            </button>
             <k-drawer-tabs :tab="activeTabName(module)" :tabs="drawerTabs(module)" @open="switchTab(module, $event)" />
-            <k-button v-bind="statusButton(module)" @click.stop="toggleVisibility(module)" />
           </header>
           <div v-if="isContentReady(module.id)" class="k-module-content">
             <k-sections v-for="tab in module.tabs" v-show="isExpanded(module.id) && activeTabName(module) === tab.name"
@@ -438,18 +440,6 @@ export default {
     },
 
     // --- UI helpers ---
-    statusButton(module) {
-      const isDraft = module.status === "draft";
-      return {
-        ...this.$helper.page.status(
-          module.status,
-          module.permissions.changeStatus === false,
-        ),
-        text: isDraft ? this.$t("page.status.draft") : this.$t("page.status.listed"),
-        variant: "filled",
-        size: 'sm'
-      };
-    },
     moduleToolbar(module) {
       const isDraft = module.status === "draft";
       return [
@@ -580,6 +570,12 @@ export default {
 <style>
 .k-module {
   --module-color-back: light-dark(var(--color-white), var(--color-gray-850));
+
+  &[data-status="draft"] {
+    --module-color-back: color-mix(in srgb, light-dark(var(--color-white), var(--color-gray-850)) 50%, transparent);
+    box-shadow: none;
+  }
+
   position: relative;
   background: var(--module-color-back);
   box-shadow: var(--shadow);
@@ -678,7 +674,7 @@ export default {
     justify-content: center;
   }
 
-  .k-module-header .k-button {
+  .k-module-header .k-module-status {
     justify-self: end;
     z-index: 1;
   }
@@ -691,7 +687,7 @@ export default {
     justify-content: center;
   }
 
-  .k-module-header .k-button {
+  .k-module-header .k-module-status {
     grid-row: 1;
     grid-column: 2;
   }
@@ -718,6 +714,24 @@ export default {
 
 .k-module-title .k-icon {
   color: var(--color-gray-500);
+}
+
+.k-module-title:hover .k-icon {
+  color: light-dark(var(--color-gray-600), var(--color-gray-400));
+}
+
+.k-module-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--rounded);
+
+  &:hover {
+    color: light-dark(var(--color-gray-600), var(--color-gray-400));
+  }
 }
 
 .k-module-icon {
