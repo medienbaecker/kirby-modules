@@ -6,37 +6,26 @@
       {{ empty }}
     </k-empty>
     <k-draggable v-else :list="modules" :options="dragOptions" @sort="onSort" class="k-modules-list">
-      <div v-for="module in modules" :key="module.id" class="k-module" :data-module-id="module.id"
-        :data-status="module.status" :data-selected="selectedModule === module.id" :data-disabled="isDisabled(module)"
-        :tabindex="isDisabled(module) ? null : 0" @focusin.stop="select(module)">
-        <div class="k-module-body" :data-collapsed="!isExpanded(module.id)">
-          <header class="k-module-header">
-            <button class="k-module-title" @click="toggle(module)">
-              <k-icon v-if="loadingModules[module.id]" type="loader" />
-              <span v-else class="k-module-icon">
-                <k-icon :type="module.icon" />
-                <k-icon :type="isExpanded(module.id) ? 'angle-up' : 'angle-down'" />
-              </span>
-              <span>{{ module.moduleName }}</span>
-            </button>
-            <button class="k-module-status" :data-status="module.status" @click.stop="toggleVisibility(module)">
-              <k-icon :type="module.status === 'draft' ? 'hidden' : 'preview'" />
-            </button>
-            <k-drawer-tabs :tab="activeTabName(module)" :tabs="drawerTabs(module)" @open="switchTab(module, $event)" />
-          </header>
-          <div v-if="isContentReady(module.id)" class="k-module-content">
-            <k-sections v-for="tab in module.tabs" v-show="isExpanded(module.id) && activeTabName(module) === tab.name"
-              :key="tab.name" :parent="pageUrl(module.id)" :tab="tab" :content="currentValues(module.id)"
-              @input="onInput(module, $event)" />
-          </div>
-          <k-empty v-if="fieldData[module.id]?.error" icon="alert" layout="cardlets" class="k-module-error">
-            {{ $t("error") }}
-          </k-empty>
-        </div>
-
-        <k-toolbar v-if="selectedModule === module.id && !isDisabled(module)" :buttons="moduleToolbar(module)"
-          data-inline="true" class="k-module-toolbar" @mousedown.native.prevent />
-      </div>
+      <k-module-card
+        v-for="module in modules"
+        :key="module.id"
+        :module="module"
+        :expanded="expanded[module.id] === true"
+        :loading="!!loadingModules[module.id]"
+        :selected="selectedModule === module.id"
+        :values="currentValues(module.id)"
+        :page-url="pageUrl(module.id)"
+        :has-error="!!(fieldData[module.id] && fieldData[module.id].error)"
+        @toggle="toggle(module)"
+        @toggle-visibility="toggleVisibility(module)"
+        @select="select(module)"
+        @input="onInput(module, $event)"
+        @add="addAt(module, $event)"
+        @remove="remove(module)"
+        @duplicate="duplicate(module)"
+        @change-type="changeType(module)"
+        @sort="sortModule(module, $event)"
+      />
     </k-draggable>
     <footer v-if="!isLoading && modules.length">
       <k-button icon="add" size="xs" variant="filled" @click="add()" />
@@ -45,7 +34,12 @@
 </template>
 
 <script>
+import ModuleCard from "./ModuleCard.vue";
+
 export default {
+  components: {
+    "k-module-card": ModuleCard,
+  },
   props: {
     name: String,
     parent: String,
@@ -58,7 +52,6 @@ export default {
       empty: "",
       link: null,
       expanded: {},
-      activeTabs: {},
       fieldData: {},
       changes: {},
       isLoading: true,
@@ -128,6 +121,8 @@ export default {
       ? this.$api.post(this.parent + "/modules")
       : Promise.resolve();
     init.then(() => this.fetch());
+
+    // Bridge module changes into the parent page's publish/discard flow
     this._onPublish = () => this.applyChanges("publish");
     this._onDiscard = () => this.applyChanges("discard");
     this.$events.on("content.publish", this._onPublish);
@@ -153,7 +148,7 @@ export default {
         this.empty = response.empty;
         this.link = response.link;
 
-        // Invalidate field data for modules whose template changed
+        // Invalidate cached fields when template changed (e.g. after "change type")
         for (const module of this.modules) {
           const prev = previousTemplates.get(module.id);
           if (prev && prev !== module.template) {
@@ -166,8 +161,8 @@ export default {
           this.restoreExpandState(module, collapsed);
         }
 
-        this.trackPendingChanges();
-        this.insertNewModule(previousIds);
+        this.syncPendingChanges();
+        this.positionNewModule(previousIds);
       } catch (e) {
         this.handleError(e);
       } finally {
@@ -179,6 +174,7 @@ export default {
         this.$set(this.expanded, module.id, false);
         return;
       }
+      // Fields must load before k-sections can render them
       const needsLoad = module.hasFields &&
         (!this.fieldData[module.id] || module.hasPendingChanges);
       if (needsLoad) {
@@ -191,19 +187,16 @@ export default {
         this.$set(this.expanded, module.id, true);
       }
     },
-    trackPendingChanges() {
-      let hasPending = false;
-      for (const module of this.modules) {
-        if (module.hasPendingChanges) {
-          this.$set(this.changes, module.id, true);
-          hasPending = true;
-        }
-      }
+    // Modules are child pages — they can have server-side pending changes
+    // independent of the parent. Dirty the parent so Save/Discard buttons appear.
+    syncPendingChanges() {
+      const hasPending = this.modules.some((m) => m.hasPendingChanges);
       if (hasPending) {
         this.dirtyParent();
       }
     },
-    insertNewModule(previousIds) {
+    // After create dialog, position the new module at the requested index
+    positionNewModule(previousIds) {
       if (this.pendingInsertPosition == null) return;
 
       const newModule = this.modules.find((m) => !previousIds.has(m.id));
@@ -260,6 +253,7 @@ export default {
         await this.$api.post(
           this.sectionUrl + "/duplicate/" + this.encodeId(module.id),
         );
+        // -1 = append to end, but still triggers focus via positionNewModule
         this.pendingInsertPosition = -1;
         this.fetch();
       } catch (e) {
@@ -301,6 +295,7 @@ export default {
         await this.$api.post(
           this.sectionUrl + "/toggle-visibility/" + this.encodeId(module.id),
         );
+        // Re-send sort order — Kirby re-sorts by status after visibility change
         await this.$api.post(this.sectionUrl + "/sort", { ids });
         await this.fetch();
         this.$nextTick(() => {
@@ -320,8 +315,11 @@ export default {
     },
 
     // --- Field change tracking ---
+    // Each module is a separate Kirby page with its own content file.
+    // Changes are tracked per-module and bridged to the parent's Save/Discard.
     async onInput(module, values) {
       const data = this.fieldData[module.id];
+      // Compare against original snapshot to detect manual reverts
       const unchanged = data?.original && JSON.stringify(values) === data.original;
 
       if (unchanged) {
@@ -362,20 +360,15 @@ export default {
       );
     },
     currentValues(moduleId) {
-      if (
-        this.changes[moduleId] &&
-        typeof this.changes[moduleId] === "object"
-      ) {
-        return this.changes[moduleId];
-      }
-      if (this.fieldData[moduleId]) {
-        return this.fieldData[moduleId].values || {};
-      }
-      return {};
+      return this.changes[moduleId]
+        || this.fieldData[moduleId]?.values
+        || {};
     },
+    // Timestamp string triggers Panel's dirty detection via content diff
     dirtyParent() {
       this.$panel.content.merge({ _modulesChanged: String(Date.now()) });
     },
+    // Setting undefined drops the key from Panel's diff, clearing dirty state
     undirtyParent() {
       this.$panel.content.merge({ _modulesChanged: undefined });
     },
@@ -396,21 +389,17 @@ export default {
       this.$set(this.expanded, module.id, true);
       this.saveCollapsedState();
     },
-    isExpanded(moduleId) {
-      return this.expanded[moduleId] === true;
-    },
-    storageKey() {
-      return "kirby-modules:" + this.parent;
-    },
     saveCollapsedState() {
+      const key = "kirby-modules:" + this.parent;
       const ids = Object.keys(this.expanded).filter(
         (id) => !this.expanded[id],
       );
-      localStorage.setItem(this.storageKey(), JSON.stringify(ids));
+      localStorage.setItem(key, JSON.stringify(ids));
     },
     loadCollapsedState() {
+      const key = "kirby-modules:" + this.parent;
       try {
-        const stored = localStorage.getItem(this.storageKey());
+        const stored = localStorage.getItem(key);
         return stored ? JSON.parse(stored) : [];
       } catch (e) {
         return [];
@@ -440,117 +429,12 @@ export default {
     },
 
     // --- UI helpers ---
-    moduleToolbar(module) {
-      const isDraft = module.status === "draft";
-      return [
-        {
-          icon: "edit",
-          title: this.$t("edit"),
-          click: () => this.$go(module.link),
-        },
-        {
-          icon: "add",
-          title: this.$t("modules.addBelow"),
-          click: () => this.addAt(module, 1),
-        },
-        {
-          icon: "trash",
-          title: this.$t("delete"),
-          click: () => this.remove(module),
-        },
-        {
-          icon: "sort",
-          title: this.$t("sort"),
-          class: "k-sort-handle",
-          key: (e) => {
-            if (e.key === "ArrowUp") { e.preventDefault(); this.sortModule(module, -1); }
-            if (e.key === "ArrowDown") { e.preventDefault(); this.sortModule(module, 1); }
-          },
-        },
-        {
-          icon: "dots",
-          dropdown: [
-            {
-              icon: "edit",
-              label: this.$t("edit"),
-              click: () => this.$go(module.link),
-            },
-            "-",
-            {
-              icon: "add-module-above",
-              label: this.$t("modules.addAbove"),
-              click: () => this.addAt(module, 0),
-            },
-            {
-              icon: "add-module-below",
-              label: this.$t("modules.addBelow"),
-              click: () => this.addAt(module, 1),
-            },
-            "-",
-            {
-              icon: "template",
-              label: this.$t("field.blocks.changeType"),
-              click: () => this.changeType(module),
-            },
-            {
-              icon: "copy",
-              label: this.$t("duplicate"),
-              click: () => this.duplicate(module),
-            },
-            "-",
-            {
-              icon: this.isExpanded(module.id) ? "collapse" : "expand",
-              label: this.isExpanded(module.id)
-                ? this.$t("collapse")
-                : this.$t("expand"),
-              click: () => this.toggle(module),
-            },
-            {
-              icon: isDraft ? "preview" : "hidden",
-              label: isDraft ? this.$t("publish") : this.$t("modules.unpublish"),
-              click: () => this.toggleVisibility(module),
-            },
-            "-",
-            {
-              icon: "trash",
-              label: this.$t("delete"),
-              click: () => this.remove(module),
-            },
-          ],
-        },
-      ];
-    },
     select(module) {
       this.selectedModule = module.id;
     },
     onClickOutside(e) {
       if (e.target.closest(".k-module, .k-dialog, .k-drawer")) return;
       this.selectedModule = null;
-    },
-    isContentReady(moduleId) {
-      const module = this.modules.find((m) => m.id === moduleId);
-      if (!module || !module.hasFields) return true;
-      return !!(
-        this.fieldData[moduleId] && this.fieldData[moduleId].values
-      );
-    },
-    isDisabled(module) {
-      return (
-        (module.lock && module.lock.isLocked) ||
-        !(module.permissions && module.permissions.update)
-      );
-    },
-    activeTabName(module) {
-      return (
-        this.activeTabs[module.id] ||
-        (module.tabs[0] && module.tabs[0].name)
-      );
-    },
-    switchTab(module, tabName) {
-      this.$set(this.activeTabs, module.id, tabName);
-    },
-    drawerTabs(module) {
-      return module.tabs.map(({ link, ...tab }) => tab);
     },
 
     // --- Utilities ---
@@ -568,207 +452,17 @@ export default {
 </script>
 
 <style>
-.k-module {
-  --module-color-back: light-dark(var(--color-white), var(--color-gray-850));
-
-  &[data-status="draft"] {
-    --module-color-back: color-mix(in srgb, light-dark(var(--color-white), var(--color-gray-850)) 50%, transparent);
-    box-shadow: none;
-  }
-
-  position: relative;
-  background: var(--module-color-back);
-  box-shadow: var(--shadow);
-  border-radius: var(--rounded);
-
-  &[data-selected="true"] {
-    z-index: 2;
-    outline: var(--outline);
-  }
-
-  &[data-disabled="true"] {
-    pointer-events: none;
-    opacity: 0.5;
-  }
-
-  &:is(.k-sortable-ghost, .k-sortable-fallback) .k-module-body {
-    position: relative;
-    max-height: 4rem;
-    overflow: hidden;
-
-    &::after {
-      position: absolute;
-      bottom: 0;
-      content: "";
-      height: 2rem;
-      width: 100%;
-      background: linear-gradient(to top, var(--module-color-back), transparent);
-    }
-  }
-
-  &.k-sortable-ghost {
-    outline: 2px solid var(--color-focus);
-    box-shadow: rgba(17, 17, 17, 0.25) 0 5px 10px;
-    cursor: grabbing;
-  }
-}
-
 .k-modules-list>.k-module+.k-module {
   margin-top: var(--spacing-2);
-}
-
-.k-module-toolbar {
-  --toolbar-size: 30px;
-  display: none;
-  position: absolute;
-  top: 0;
-  inset-inline-end: var(--spacing-3);
-  margin-top: calc(-1.75rem + 2px);
-  box-shadow: var(--shadow-xl);
-  border: 1px solid light-dark(var(--color-border), var(--color-gray-900));
-
-  .k-module[data-selected="true"]>& {
-    display: flex;
-  }
-
-  &>.k-button:not(:last-of-type) {
-    border-inline-end: 1px solid var(--toolbar-border);
-  }
-}
-
-.k-module-body {
-  &:not([data-collapsed="true"]) {
-    padding-bottom: var(--spacing-3);
-  }
-
-  &[data-collapsed="true"] {
-
-    .k-module-content,
-    .k-drawer-tabs {
-      display: none;
-    }
-  }
-}
-
-.k-module-header {
-  display: grid;
-  align-items: center;
-  padding-inline-end: var(--spacing-3);
-
-  @media (min-width: 60rem) {
-    grid-template-columns: 1fr;
-  }
-
-  @media (max-width: 60rem) {
-    grid-template-columns: 1fr auto;
-  }
-}
-
-@media (min-width: 60rem) {
-  .k-module-header > * {
-    grid-row: 1;
-    grid-column: 1;
-  }
-
-  .k-module-header .k-drawer-tabs {
-    justify-content: center;
-  }
-
-  .k-module-header .k-module-status {
-    justify-self: end;
-    z-index: 1;
-  }
-}
-
-@media (max-width: 60rem) {
-  .k-module-header .k-drawer-tabs {
-    grid-row: 2;
-    grid-column: 1 / -1;
-    justify-content: center;
-  }
-
-  .k-module-header .k-module-status {
-    grid-row: 1;
-    grid-column: 2;
-  }
-}
-
-.k-module-title {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-3);
-  border-radius: var(--rounded);
-  max-width: fit-content;
-
-  &:is(:hover, :focus-visible) .k-module-icon {
-    > :first-child {
-      opacity: 0;
-    }
-
-    > :last-child {
-      opacity: 1;
-    }
-  }
-}
-
-.k-module-title .k-icon {
-  color: var(--color-gray-500);
-}
-
-.k-module-title:hover .k-icon {
-  color: light-dark(var(--color-gray-600), var(--color-gray-400));
-}
-
-.k-module-status {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-1);
-  font-size: var(--text-xs);
-  color: var(--color-gray-500);
-  padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--rounded);
-
-  &:hover {
-    color: light-dark(var(--color-gray-600), var(--color-gray-400));
-  }
-}
-
-.k-module-icon {
-  display: grid;
-
-  >* {
-    grid-area: 1 / 1;
-  }
-
-  > :last-child {
-    opacity: 0;
-  }
-}
-
-.k-module-content {
-  background-color: var(--panel-color-back);
-  border-radius: var(--rounded-sm);
-  padding: var(--spacing-6) var(--spacing-6) var(--spacing-8);
-  margin: 0 var(--spacing-3);
-  container: column / inline-size;
-}
-
-.k-module-content>.k-grid {
-  gap: var(--spacing-6);
-}
-
-.k-module-error {
-  margin: 0 var(--spacing-3);
-}
-
-.k-topbar-breadcrumb li:has(a[href$="+modules"]) {
-  display: none;
 }
 
 .k-section-name-modules footer {
   display: flex;
   justify-content: center;
   margin-top: var(--spacing-3);
+}
+
+.k-topbar-breadcrumb li:has(a[href$="+modules"]) {
+  display: none;
 }
 </style>
