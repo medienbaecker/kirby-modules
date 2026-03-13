@@ -19,9 +19,9 @@
               </span>
               <span>{{ module.moduleName }}</span>
             </button>
+            <k-drawer-tabs :tab="activeTabName(module)" :tabs="drawerTabs(module)" @open="switchTab(module, $event)" />
             <k-button v-bind="statusButton(module)" @click.stop="toggleVisibility(module)" />
           </header>
-          <k-drawer-tabs :tab="activeTabName(module)" :tabs="drawerTabs(module)" @open="switchTab(module, $event)" />
           <div v-if="isContentReady(module.id)" class="k-module-content">
             <k-sections v-for="tab in module.tabs" v-show="isExpanded(module.id) && activeTabName(module) === tab.name"
               :key="tab.name" :parent="pageUrl(module.id)" :tab="tab" :content="currentValues(module.id)"
@@ -273,7 +273,6 @@ export default {
       const index = this.modules.findIndex((m) => m.id === module.id);
       const target = index + direction;
       if (target < 0 || target >= this.modules.length) return;
-      if (module.status === "draft") return;
 
       const clone = [...this.modules];
       clone.splice(index, 1);
@@ -286,7 +285,7 @@ export default {
       if (el) el.focus();
     },
     async onSort() {
-      const ids = this.modules.filter((m) => m.status !== "draft").map((m) => m.id);
+      const ids = this.modules.map((m) => m.id);
       try {
         await this.$api.post(this.sectionUrl + "/sort", { ids });
       } catch (e) {
@@ -295,10 +294,12 @@ export default {
       this.fetch();
     },
     async toggleVisibility(module) {
+      const ids = this.modules.map((m) => m.id);
       try {
         await this.$api.post(
           this.sectionUrl + "/toggle-visibility/" + this.encodeId(module.id),
         );
+        await this.$api.post(this.sectionUrl + "/sort", { ids });
         await this.fetch();
         this.$nextTick(() => {
           const el = this.$el.querySelector(`[data-module-id="${module.id}"]`);
@@ -470,9 +471,8 @@ export default {
         {
           icon: "sort",
           title: this.$t("sort"),
-          disabled: isDraft,
-          class: isDraft ? "" : "k-sort-handle",
-          key: isDraft ? undefined : (e) => {
+          class: "k-sort-handle",
+          key: (e) => {
             if (e.key === "ArrowUp") { e.preventDefault(); this.sortModule(module, -1); }
             if (e.key === "ArrowDown") { e.preventDefault(); this.sortModule(module, 1); }
           },
@@ -655,18 +655,46 @@ export default {
 }
 
 .k-module-header {
-  display: flex;
+  display: grid;
   align-items: center;
   padding-inline-end: var(--spacing-3);
+
+  @media (min-width: 60rem) {
+    grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 60rem) {
+    grid-template-columns: 1fr auto;
+  }
 }
 
-.k-module-header .k-button {
-  margin-inline-start: auto;
+@media (min-width: 60rem) {
+  .k-module-header > * {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .k-module-header .k-drawer-tabs {
+    justify-content: center;
+  }
+
+  .k-module-header .k-button {
+    justify-self: end;
+    z-index: 1;
+  }
 }
 
-.k-module-body>.k-drawer-tabs {
-  justify-content: flex-start;
-  padding-inline-start: var(--spacing-3);
+@media (max-width: 60rem) {
+  .k-module-header .k-drawer-tabs {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .k-module-header .k-button {
+    grid-row: 1;
+    grid-column: 2;
+  }
 }
 
 .k-module-title {
@@ -675,6 +703,7 @@ export default {
   gap: var(--spacing-2);
   padding: var(--spacing-3);
   border-radius: var(--rounded);
+  max-width: fit-content;
 
   &:is(:hover, :focus-visible) .k-module-icon {
     > :first-child {

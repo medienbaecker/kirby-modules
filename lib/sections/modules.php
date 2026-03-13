@@ -74,8 +74,17 @@ return [
       if (!$modulesPage) return [];
 
       $modules = [];
-      foreach ($modulesPage->childrenAndDrafts() as $child) {
-        if ($child->isUnlisted()) continue;
+      $children = $modulesPage->childrenAndDrafts()->filter(
+        fn($child) => !$child->isUnlisted()
+      )->sortBy(function ($child) {
+        if ($child->isDraft()) {
+          $sort = (float) $child->content()->moduleSort()->value();
+          return $sort ?: PHP_FLOAT_MAX;
+        }
+        return (float) ($child->num() ?? PHP_INT_MAX);
+      }, 'asc');
+
+      foreach ($children as $child) {
 
         $modules[] = [
           'id'                => $child->id(),
@@ -144,12 +153,20 @@ return [
         'method'  => 'POST',
         'action'  => function () {
           $ids = $this->requestBody('ids');
-          $position = 1;
+          $lastListedNum = 0;
+          $draftCounter = 0;
           foreach ($ids as $id) {
             if ($page = kirby()->page($id)) {
-              if ($page->isDraft()) continue;
-              $page->changeStatus('listed', $position);
-              $position++;
+              if ($page->isDraft()) {
+                $draftCounter++;
+                kirby()->impersonate('kirby', function () use ($page, $lastListedNum, $draftCounter) {
+                  $page->update(['moduleSort' => $lastListedNum + $draftCounter * 0.001]);
+                });
+              } else {
+                $lastListedNum++;
+                $draftCounter = 0;
+                $page->changeStatus('listed', $lastListedNum);
+              }
             }
           }
           return ['status' => 'ok'];
