@@ -1,10 +1,6 @@
 <template>
-  <k-section :headline="headline" :buttons="[{
-    icon: 'add',
-    text: 'Add',
-    click: add,
-    responsive: true
-  }]">
+  <k-section :headline="headline" :buttons="sectionButtons">
+    <k-dropdown-content ref="options" :options="dropdownOptions" align-x="end" />
     <k-empty v-if="!isLoading && !modules.length" icon="box" @click="add">
       {{ empty }}
     </k-empty>
@@ -34,17 +30,9 @@
           </div>
         </div>
 
-        <nav v-if="selectedModule === module.id && !isDisabled(module)" class="k-block-options k-toolbar"
-          data-inline="true">
-          <k-button class="k-toolbar-button" icon="add-module-below" title="Add after" @click="addAt(module, 1)" />
-          <k-button class="k-toolbar-button" icon="add-module-above" title="Add before" @click="addAt(module, 0)" />
-          <k-button class="k-toolbar-button" icon="copy" title="Duplicate" @click="duplicate(module)" />
-          <k-button class="k-toolbar-button" :icon="module.status === 'draft' ? 'preview' : 'hidden'"
-            :title="module.status === 'draft' ? $t('show') : $t('hide')" @click="toggleVisibility(module)" />
-          <k-button class="k-toolbar-button" icon="trash" title="Delete" @click="remove(module)" />
-          <k-button class="k-toolbar-button" :class="{ 'k-sort-handle': module.status !== 'draft' }" icon="sort"
-            title="Sort" :disabled="module.status === 'draft'" />
-        </nav>
+        <k-toolbar v-if="selectedModule === module.id && !isDisabled(module)"
+          :buttons="moduleToolbar(module)" data-inline="true"
+          class="k-block-options" @mousedown.native.prevent />
       </div>
     </k-draggable>
     <footer v-if="!isLoading && modules.length">
@@ -85,6 +73,34 @@ export default {
     sectionUrl() {
       return this.parent + "/sections/" + this.name;
     },
+    sectionButtons() {
+      return [
+        { icon: "add", text: "Add", click: this.add, responsive: true },
+        { icon: "dots", click: () => this.$refs.options?.toggle() },
+      ];
+    },
+    dropdownOptions() {
+      return [
+        {
+          text: this.$t("modules.expandAll"),
+          icon: "angle-down",
+          click: () => this.expandAll(),
+          disabled: this.isFullyExpanded,
+        },
+        {
+          text: this.$t("modules.collapseAll"),
+          icon: "angle-up",
+          click: () => this.collapseAll(),
+          disabled: this.isFullyCollapsed,
+        },
+      ];
+    },
+    isFullyExpanded() {
+      return this.modules.length > 0 && this.modules.every((m) => this.expanded[m.id]);
+    },
+    isFullyCollapsed() {
+      return this.modules.length > 0 && this.modules.every((m) => !this.expanded[m.id]);
+    },
   },
   watch: {
     timestamp() {
@@ -116,11 +132,20 @@ export default {
     async fetch() {
       try {
         const previousIds = new Set(this.modules.map((m) => m.id));
+        const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
         const response = await this.$api.get(this.sectionUrl);
         this.headline = response.headline;
         this.modules = response.modules;
         this.empty = response.empty;
         this.link = response.link;
+
+        // Invalidate field data for modules whose template changed
+        for (const module of this.modules) {
+          const prev = previousTemplates.get(module.id);
+          if (prev && prev !== module.template) {
+            this.$delete(this.fieldData, module.id);
+          }
+        }
 
         const collapsed = this.loadCollapsedState();
         for (const module of this.modules) {
@@ -225,6 +250,11 @@ export default {
       } catch (e) {
         console.error(e);
       }
+    },
+    changeType(module) {
+      this.$dialog("modules/change-type", {
+        query: { page: this.encodeId(module.id) },
+      });
     },
     async onSort() {
       const ids = this.modules.filter((m) => m.status !== "draft").map((m) => m.id);
@@ -354,8 +384,95 @@ export default {
         return [];
       }
     },
+    async expandAll() {
+      const toLoad = this.modules.filter(
+        (m) => !this.expanded[m.id] && m.hasFields && !this.fieldData[m.id],
+      );
+      for (const m of toLoad) {
+        this.$set(this.loadingModules, m.id, true);
+      }
+      await Promise.all(toLoad.map((m) => this.loadFields(m)));
+      for (const m of toLoad) {
+        this.$delete(this.loadingModules, m.id);
+      }
+      for (const m of this.modules) {
+        this.$set(this.expanded, m.id, true);
+      }
+      this.saveCollapsedState();
+    },
+    collapseAll() {
+      for (const m of this.modules) {
+        this.$set(this.expanded, m.id, false);
+      }
+      this.saveCollapsedState();
+    },
 
     // --- UI helpers ---
+    moduleToolbar(module) {
+      const isDraft = module.status === "draft";
+      return [
+        {
+          icon: "edit",
+          title: this.$t("open"),
+          click: () => this.$router.push(module.link),
+        },
+        {
+          icon: "add",
+          title: this.$t("modules.addBelow"),
+          click: () => this.addAt(module, 1),
+        },
+        {
+          icon: "trash",
+          title: this.$t("delete"),
+          click: () => this.remove(module),
+        },
+        {
+          icon: "sort",
+          title: this.$t("sort"),
+          disabled: isDraft,
+          class: isDraft ? "" : "k-sort-handle",
+        },
+        {
+          icon: "dots",
+          title: "More",
+          dropdown: [
+            {
+              icon: "add-module-above",
+              label: this.$t("modules.addAbove"),
+              click: () => this.addAt(module, 0),
+            },
+            {
+              icon: "add-module-below",
+              label: this.$t("modules.addBelow"),
+              click: () => this.addAt(module, 1),
+            },
+            "-",
+            {
+              icon: "template",
+              label: this.$t("field.blocks.changeType"),
+              click: () => this.changeType(module),
+            },
+            {
+              icon: "copy",
+              label: this.$t("duplicate"),
+              click: () => this.duplicate(module),
+            },
+            "-",
+            {
+              icon: isDraft ? "preview" : "hidden",
+              label: isDraft ? this.$t("publish") : this.$t("modules.unpublish"),
+              click: () => this.toggleVisibility(module),
+            },
+            "-",
+            {
+              icon: "trash",
+              label: this.$t("delete"),
+              click: () => this.remove(module),
+            },
+          ],
+        },
+      ];
+    },
     select(module) {
       this.selectedModule = module.id;
     },

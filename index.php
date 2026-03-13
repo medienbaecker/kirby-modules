@@ -101,6 +101,45 @@ Kirby::plugin('medienbaecker/modules', [
             'pattern' => 'modules/create',
             'load' => fn() => ModuleCreateDialog::load(),
             'submit' => fn() => ModuleCreateDialog::submit(),
+          ],
+          'modules/change-type' => [
+            'pattern' => 'modules/change-type',
+            'load' => function () {
+              $pageId = kirby()->request()->get('page');
+              $page = kirby()->page(str_replace('+', '/', $pageId));
+
+              $options = [];
+              foreach ($page->blueprints() as $bp) {
+                $options[] = ['text' => $bp['title'], 'value' => $bp['name']];
+              }
+
+              return [
+                'component' => 'k-form-dialog',
+                'props' => [
+                  'fields' => [
+                    'template' => [
+                      'type' => 'select',
+                      'label' => t('modules.create.type'),
+                      'options' => $options,
+                      'required' => true,
+                      'empty' => false,
+                    ]
+                  ],
+                  'value' => [
+                    'page' => $pageId,
+                    'template' => $page->intendedTemplate()->name()
+                  ],
+                  'submitButton' => t('change'),
+                ]
+              ];
+            },
+            'submit' => function () {
+              $input = kirby()->request()->body()->toArray();
+              $pageId = kirby()->request()->get('page');
+              $page = kirby()->page(str_replace('+', '/', $pageId));
+              $page->changeTemplate($input['template']);
+              return true;
+            }
           ]
         ]
       ];
