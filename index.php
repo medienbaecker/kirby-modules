@@ -1,14 +1,17 @@
 <?php
 
+@include_once __DIR__ . '/vendor/autoload.php';
+
 use Kirby\Cms\App as Kirby;
 use Kirby\Cms\Pages;
 use Kirby\Toolkit\Str;
+use Medienbaecker\Modules\ModuleRegistry;
+use Medienbaecker\Modules\ModuleCreateDialog;
 
 include __DIR__ . '/lib/models.php';
-include __DIR__ . '/lib/functions.php';
 include __DIR__ . '/lib/collection.php';
 
-$moduleRegistry = createModuleRegistry();
+$moduleRegistry = ModuleRegistry::create();
 
 Kirby::plugin('medienbaecker/modules', [
   'templates' => $moduleRegistry['templates'],
@@ -82,6 +85,25 @@ Kirby::plugin('medienbaecker/modules', [
       }
 
       return $slug . '-' . $i;
+    },
+    'uniqueModuleTitle' => function () {
+      $title = $this->blueprint()->title();
+      $siblings = $this->parent()?->childrenAndDrafts() ?? new Pages();
+      $count = $siblings->filterBy('intendedTemplate', $this->intendedTemplate()->name())->count();
+      return $count > 0 ? $title . ' ' . ($count + 1) : $title;
+    }
+  ],
+  'areas' => [
+    'modules' => function () {
+      return [
+        'dialogs' => [
+          'modules/create' => [
+            'pattern' => 'modules/create',
+            'load' => fn() => ModuleCreateDialog::load(),
+            'submit' => fn() => ModuleCreateDialog::submit(),
+          ]
+        ]
+      ];
     }
   ],
   'api' => [

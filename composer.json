@@ -16,6 +16,11 @@
     "kirby-cms",
     "kirby-plugin"
   ],
+  "autoload": {
+    "psr-4": {
+      "Medienbaecker\\Modules\\": "lib/"
+    }
+  },
   "require": {
     "getkirby/composer-installer": "^1.1"
   },

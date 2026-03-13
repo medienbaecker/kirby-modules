@@ -4,3 +4,6 @@
 .project
 .settings
 config.codekit
+
+# Node
+node_modules/
