@@ -18,7 +18,6 @@ This plugin makes it super easy to create modular websites with Kirby.
 - 🧭 Sets the `navigation` option so you can use the arrows to move between modules
 - 📄 Easily render modules with `<?= $page->modules() ?>`
 - 🧰 Useful methods like `hasModules()`, `isModule()` and `moduleId()`
-- 🏷️ Optionally auto-generate unique slugs for modules
 - 👁️ View draft modules on parent pages via the panel preview button
 - 🔗 Extended `url()` method with anchor links on the parent page
 - 🚦 Accessing Module URLs directly redirects to the parent page with an anchor
@@ -114,46 +113,45 @@ The `$module->moduleId()` method returns the module ID as a BEM class, e.g. `mod
 
 The following options are available to add to your `site/config/config.php`:
 
-### Default Module Blueprint
+### Default Module Type
+
+Set the default (pre-selected) module type in the create dialog:
+
+```yml
+modules:
+  type: modules
+  default: gallery
+```
+
+### Ignore Module Types
+
+Hide specific module types from a section:
+
+```yml
+modules:
+  type: modules
+  templatesIgnore:
+    - module.hero
+    - module.legacy
+```
+
+### Auto-publish Modules
+
+Mirrors Kirby's `create: status` blueprint option, applied globally to all modules:
 
 ```php
 return [
-  'medienbaecker.modules.default' => 'gallery' // default: 'text'
+  'medienbaecker.modules.create.status' => 'listed'
 ];
 ```
 
-### Exclude Module Blueprints
+### Enable redirect after creation
+
+Mirrors Kirby's `create: redirect` blueprint option. By default, creating a module stays on the current page.
 
 ```php
 return [
-  'medienbaecker.modules.exclude' => [
-    'hero',
-    'anotherForbiddenModule'
-  ]
-];
-```
-
-### Automatically generate slug
-
-```php
-return [
-  'medienbaecker.modules.autoslug' => true
-];
-```
-
-### Autopublish Modules
-
-```php
-return [
-  'medienbaecker.modules.autopublish' => true
-];
-```
-
-### Enable redirect
-
-```php
-return [
-  'medienbaecker.modules.redirect' => true
+  'medienbaecker.modules.create.redirect' => true
 ];
 ```
 

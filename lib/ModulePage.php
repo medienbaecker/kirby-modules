@@ -15,8 +15,9 @@ class ModulePage extends Page
     VersionId|string|null $versionId = null
   ): string {
     $parentUrl = $this->page()->url();
+    $parentUrl .= '?_module=' . $this->slug();
     if ($token = get('_token')) {
-      $parentUrl .= '?_token=' . $token;
+      $parentUrl .= '&_token=' . $token;
     }
 
     go($parentUrl . '#' . $this->slug());
@@ -42,11 +43,6 @@ class ModulePage extends Page
     return $this->parent()->parent() ?? $this->site();
   }
 
-  public function parentUrl(): string
-  {
-    return $this->page()->url();
-  }
-
   public function moduleName(): string
   {
     return $this->blueprint()->title();
@@ -60,7 +56,7 @@ class ModulePage extends Page
   public function parents(): Pages
   {
     $parents = parent::parents();
-    return $parents->filter('slug', '!=', 'modules');
+    return $parents->filter('intendedTemplate', '!=', 'modules');
   }
 
   public function metaDefaults(): array

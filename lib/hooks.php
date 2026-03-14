@@ -2,10 +2,12 @@
 
 return [
   'panel.route:before' => function ($route, $path, $method) {
-    if ($path && preg_match('#^pages/(.+)\+modules$#', $path, $matches)) {
-      $parentId = str_replace('+', '/', $matches[1]);
-      if ($parent = kirby()->page($parentId)) {
-        \Kirby\Panel\Panel::go($parent->panel()->url());
+    if ($path && str_starts_with($path, 'pages/')) {
+      $pageId = str_replace('+', '/', substr($path, 6));
+      if ($page = kirby()->page($pageId)) {
+        if ($page->intendedTemplate()->name() === 'modules') {
+          \Kirby\Panel\Panel::go($page->parent()->panel()->url());
+        }
       }
     }
     return $route;
@@ -15,10 +17,16 @@ return [
 
     $grandparent = $parent->parent();
     $sections = $grandparent?->blueprint()->sections() ?? [];
-    $section = array_filter($sections, fn($s) => $s->type() === 'modules');
-    $section = reset($section) ?: null;
-    $allowed = $section?->templates() ?? [];
 
+    $targetSection = null;
+    foreach ($sections as $section) {
+      if ($section->type() === 'modules' && $section->name() === $parent->slug()) {
+        $targetSection = $section;
+        break;
+      }
+    }
+
+    $allowed = $targetSection?->templates() ?? [];
     if ($allowed && !in_array($page->intendedTemplate()->name(), $allowed)) {
       throw new \Kirby\Exception\PermissionException(t('modules.move.notallowed'));
     }

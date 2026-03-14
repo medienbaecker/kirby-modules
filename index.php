@@ -18,9 +18,6 @@ Kirby::plugin('medienbaecker/modules', [
   'hooks'        => require __DIR__ . '/lib/hooks.php',
   'pageMethods'  => require __DIR__ . '/lib/page-methods.php',
   'areas'        => require __DIR__ . '/lib/areas.php',
-  'api'          => [
-    'routes' => require __DIR__ . '/lib/routes.php',
-  ],
   'translations' => require __DIR__ . '/lib/translations.php',
   'commands'     => require __DIR__ . '/lib/commands.php',
 ]);

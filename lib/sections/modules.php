@@ -1,41 +1,53 @@
 <?php
 
 use Kirby\Form\Form;
+use Kirby\Http\Uri;
 use Kirby\Toolkit\Str;
 use Kirby\Toolkit\I18n;
 use Medienbaecker\Modules\ModuleRegistry;
 
 $registry = ModuleRegistry::create();
 
-$blueprints = [];
+$allBlueprints = [];
 foreach ($registry['blueprints'] as $blueprint => $file) {
   if (Str::startsWith($blueprint, 'pages/module.')) {
-    $blueprints[] = str_replace('pages/', '', $blueprint);
-  }
-}
-
-// Move default module to the top
-$defaultModule = array_search('module.' . option('medienbaecker.modules.default', 'text'), $blueprints);
-if ($defaultModule !== false) {
-  $defaultBlueprint = $blueprints[$defaultModule];
-  unset($blueprints[$defaultModule]);
-  array_unshift($blueprints, $defaultBlueprint);
-}
-
-// Exclude modules
-$excludedModules = option('medienbaecker.modules.exclude', []);
-foreach ($excludedModules as $excludedModule) {
-  $key = array_search('module.' . $excludedModule, $blueprints);
-  if ($key !== false) {
-    unset($blueprints[$key]);
+    $allBlueprints[] = str_replace('pages/', '', $blueprint);
   }
 }
 
 return [
   'mixins' => ['headline', 'parent', 'sort', 'empty', 'min', 'max'],
   'props' => [
-    'templates' => function ($templates = null) use ($blueprints) {
-      return $templates ?? $blueprints;
+    'default' => function (string $default = null) {
+      return $default;
+    },
+    'templatesIgnore' => function (array $templatesIgnore = []) {
+      return $templatesIgnore;
+    },
+    'templates' => function ($templates = null) use ($allBlueprints) {
+      $blueprints = $templates ?? $allBlueprints;
+
+      // Filter ignored templates
+      if ($this->templatesIgnore) {
+        $blueprints = array_values(array_filter($blueprints, function ($bp) {
+          $short = str_replace('module.', '', $bp);
+          return !in_array($short, $this->templatesIgnore) && !in_array($bp, $this->templatesIgnore);
+        }));
+      }
+
+      // Move default to top
+      if ($this->default) {
+        $name = 'module.' . $this->default;
+        $key = array_search($name, $blueprints);
+        if ($key !== false) {
+          $item = $blueprints[$key];
+          unset($blueprints[$key]);
+          array_unshift($blueprints, $item);
+          $blueprints = array_values($blueprints);
+        }
+      }
+
+      return $blueprints;
     },
     'empty' => function ($empty = null) {
       return $empty ?? I18n::translate('modules.empty');
@@ -45,7 +57,7 @@ return [
     },
     'parent' => function ($parent = null) {
       $class = get_class($this->model()) === 'Kirby\Cms\Site' ? 'site' : 'page';
-      return $this->model()->find('modules') ? $class . '.find("modules")' : $parent;
+      return $this->model()->find($this->name) ? $class . '.find("' . $this->name . '")' : $parent;
     },
   ],
   'methods' => [
@@ -69,8 +81,14 @@ return [
     },
   ],
   'computed' => [
+    'total' => function () {
+      return count($this->modules ?? []);
+    },
+    'add' => function () {
+      return !$this->isFull();
+    },
     'modules' => function () {
-      $modulesPage = $this->model()->find('modules');
+      $modulesPage = $this->model()->find($this->name);
       if (!$modulesPage) return [];
 
       $modules = [];
@@ -88,6 +106,7 @@ return [
 
         $modules[] = [
           'id'                => $child->id(),
+          'slug'              => $child->slug(),
           'title'             => $child->title()->value(),
           'template'          => $child->intendedTemplate()->name(),
           'moduleName'        => $child->moduleName(),
@@ -103,6 +122,12 @@ return [
             'changeSort' => $child->permissions()->can('sort'),
           ],
           'lock' => $child->lock()?->toArray(),
+          'previewUrl' => $child->isDraft()
+            ? (new Uri($child->page()->url(), [
+                'query'    => ['_token' => $child->version('latest')->previewToken(), '_module' => $child->slug()],
+                'fragment' => $child->slug()
+              ]))->toString()
+            : null,
         ];
       }
 
@@ -144,7 +169,14 @@ return [
         'action'  => function (string $childId) use ($resolveModule) {
           $child = $resolveModule($childId);
           $duplicate = $child->duplicate();
-          $duplicate->changeStatus('listed', $child->num() + 1);
+          if ($child->isDraft()) {
+            kirby()->impersonate('kirby', function () use ($duplicate, $child) {
+              $sort = (float) $child->content()->moduleSort()->value();
+              $duplicate->update(['moduleSort' => $sort + 0.0001]);
+            });
+          } else {
+            $duplicate->changeStatus('listed', $child->num() + 1);
+          }
           return ['status' => 'ok'];
         }
       ],
@@ -176,7 +208,7 @@ return [
         'pattern' => 'deleteAll',
         'method'  => 'POST',
         'action'  => function () {
-          $modulesPage = $this->section()->model()->find('modules');
+          $modulesPage = $this->section()->model()->find($this->section()->name());
           if ($modulesPage) {
             foreach ($modulesPage->childrenAndDrafts() as $child) {
               $child->delete(true);
@@ -200,18 +232,41 @@ return [
 
           return ['status' => 'ok'];
         }
+      ],
+      [
+        'pattern' => 'create-container',
+        'method'  => 'POST',
+        'action'  => function () {
+          $section = $this->section();
+          $model = $section->model();
+          $slug = $section->name();
+          if (!$model->find($slug)) {
+            kirby()->impersonate('kirby');
+            $model->createChild([
+              'content'  => ['title' => $section->headline()],
+              'slug'     => $slug,
+              'template' => 'modules',
+            ])->publish();
+          }
+          return ['status' => 'ok'];
+        }
       ]
     ];
   },
   'toArray' => function () {
-    $modulesPage = $this->model()->find('modules');
+    $modulesPage = $this->model()->find($this->name);
     return [
-      'headline'  => $this->headline,
-      'modules'   => $this->modules,
-      'empty'     => $this->empty,
-      'sortable'  => $this->sortable,
-      'link'      => $modulesPage ? 'pages/' . str_replace('/', '+', $modulesPage->id()) : null,
-      'templates' => $this->templates,
+      'data'    => $this->modules,
+      'options' => [
+        'add'       => $this->add,
+        'empty'     => $this->empty,
+        'headline'  => $this->headline,
+        'link'      => $modulesPage ? 'pages/' . str_replace('/', '+', $modulesPage->id()) : null,
+        'max'       => $this->max,
+        'min'       => $this->min,
+        'sortable'  => $this->sortable,
+        'templates' => $this->templates,
+      ],
     ];
   }
 ];

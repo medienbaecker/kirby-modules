@@ -1,7 +1,7 @@
 {
   "name": "kirby-modules",
   "scripts": {
-    "dev": "kirbyup serve src/index.js",
+    "dev": "kirbyup src/index.js --watch",
     "build": "kirbyup src/index.js"
   },
   "devDependencies": {

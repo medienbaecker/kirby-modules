@@ -1,33 +1,20 @@
 <template>
-  <k-section :headline="headline" :buttons="sectionButtons">
+  <k-section :headline="headline" :buttons="sectionButtons" :required="Boolean(min)" :invalid="isInvalid">
     <k-dropdown-content ref="options" :options="dropdownOptions" align-x="end" />
     <k-loader v-if="isLoading" />
     <k-empty v-else-if="!modules.length" icon="box" @click="add()">
       {{ empty }}
     </k-empty>
     <k-draggable v-else :list="modules" :options="dragOptions" @sort="onSort" class="k-modules-list">
-      <k-module-card
-        v-for="module in modules"
-        :key="module.id"
-        :module="module"
-        :expanded="expanded[module.id] === true"
-        :loading="!!loadingModules[module.id]"
-        :selected="selectedModule === module.id"
-        :values="currentValues(module.id)"
-        :page-url="pageUrl(module.id)"
-        :has-error="!!(fieldData[module.id] && fieldData[module.id].error)"
-        @toggle="toggle(module)"
-        @toggle-visibility="toggleVisibility(module)"
-        @select="select(module)"
-        @input="onInput(module, $event)"
-        @add="addAt(module, $event)"
-        @remove="remove(module)"
-        @duplicate="duplicate(module)"
-        @change-type="changeType(module)"
-        @sort="sortModule(module, $event)"
-      />
+      <k-module-card v-for="module in modules" :key="module.id" :module="module"
+        :expanded="expanded[module.id] === true" :loading="!!loadingModules[module.id]"
+        :selected="selectedModule === module.id" :values="currentValues(module.id)" :page-url="pageUrl(module.id)"
+        :has-error="!!(fieldData[module.id] && fieldData[module.id].error)" @toggle="toggle(module)"
+        @toggle-visibility="toggleVisibility(module)" @select="select(module)" @input="onInput(module, $event)"
+        @add="addAt(module, $event)" @remove="remove(module)" @duplicate="duplicate(module)"
+        @change-type="changeType(module)" @change-slug="changeSlug(module)" @sort="sortModule(module, $event)" />
     </k-draggable>
-    <footer v-if="!isLoading && modules.length">
+    <footer v-if="!isLoading && modules.length && canAdd">
       <k-button icon="add" size="xs" variant="filled" @click="add()" />
     </footer>
   </k-section>
@@ -51,9 +38,13 @@ export default {
       modules: [],
       empty: "",
       link: null,
+      canAdd: true,
+      min: null,
+      max: null,
       expanded: {},
       fieldData: {},
       changes: {},
+      serverPendingIds: [],
       isLoading: true,
       loadingModules: {},
       selectedModule: null,
@@ -65,11 +56,19 @@ export default {
     sectionUrl() {
       return this.parent + "/sections/" + this.name;
     },
+    isInvalid() {
+      if (this.min && this.modules.length < this.min) return true;
+      if (this.max && this.modules.length > this.max) return true;
+      return false;
+    },
     sectionButtons() {
-      return [
+      const buttons = [
         { icon: "cog", click: () => this.$refs.options?.toggle() },
-        { icon: "add", text: this.$t("add"), click: () => this.add(), responsive: true },
       ];
+      if (this.canAdd) {
+        buttons.push({ icon: "add", text: this.$t("add"), click: () => this.add(), responsive: true });
+      }
+      return buttons;
     },
     dropdownOptions() {
       return [
@@ -118,13 +117,17 @@ export default {
   },
   created() {
     const init = this.parent !== "site"
-      ? this.$api.post(this.parent + "/modules")
+      ? this.$api.post(this.sectionUrl + "/create-container")
       : Promise.resolve();
     init.then(() => this.fetch());
 
     // Bridge module changes into the parent page's publish/discard flow
-    this._onPublish = () => this.applyChanges("publish");
-    this._onDiscard = () => this.applyChanges("discard");
+    this._onPublish = ({ api }) => {
+      if (api === this.parent) this.applyChanges("publish");
+    };
+    this._onDiscard = ({ api }) => {
+      if (api === this.parent) this.applyChanges("discard");
+    };
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
   },
@@ -143,16 +146,22 @@ export default {
         const previousIds = new Set(this.modules.map((m) => m.id));
         const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
         const response = await this.$api.get(this.sectionUrl);
-        this.headline = response.headline;
-        this.modules = response.modules;
-        this.empty = response.empty;
-        this.link = response.link;
+        this.headline = response.options.headline;
+        this.modules = response.data;
+        this.empty = response.options.empty;
+        this.link = response.options.link;
+        this.canAdd = response.options.add;
+        this.min = response.options.min;
+        this.max = response.options.max;
 
         // Invalidate cached fields when template changed (e.g. after "change type")
         for (const module of this.modules) {
           const prev = previousTemplates.get(module.id);
           if (prev && prev !== module.template) {
             this.$delete(this.fieldData, module.id);
+            this.$delete(this.changes, module.id);
+            module.hasPendingChanges = false;
+            this.$api.post(this.pageUrl(module.id) + "/changes/discard").catch(() => {});
           }
         }
 
@@ -161,7 +170,7 @@ export default {
           this.restoreExpandState(module, collapsed);
         }
 
-        this.syncPendingChanges();
+        this.reconcileState();
         this.positionNewModule(previousIds);
       } catch (e) {
         this.handleError(e);
@@ -187,12 +196,33 @@ export default {
         this.$set(this.expanded, module.id, true);
       }
     },
-    // Modules are child pages — they can have server-side pending changes
-    // independent of the parent. Dirty the parent so Save/Discard buttons appear.
-    syncPendingChanges() {
-      const hasPending = this.modules.some((m) => m.hasPendingChanges);
-      if (hasPending) {
+    // Reconcile client-side tracking maps with server state.
+    // Prunes stale entries from all maps and derives dirty state.
+    reconcileState() {
+      const currentIds = new Set(this.modules.map((m) => m.id));
+
+      for (const id of Object.keys(this.changes)) {
+        if (!currentIds.has(id)) this.$delete(this.changes, id);
+      }
+      for (const id of Object.keys(this.fieldData)) {
+        if (!currentIds.has(id)) this.$delete(this.fieldData, id);
+      }
+      for (const id of Object.keys(this.expanded)) {
+        if (!currentIds.has(id)) this.$delete(this.expanded, id);
+      }
+      for (const id of Object.keys(this.loadingModules)) {
+        if (!currentIds.has(id)) this.$delete(this.loadingModules, id);
+      }
+
+      this.serverPendingIds = this.modules
+        .filter((m) => m.hasPendingChanges && !this.changes[m.id])
+        .map((m) => m.id);
+      const hasLocalChanges = Object.keys(this.changes).length > 0;
+
+      if (this.serverPendingIds.length > 0 || hasLocalChanges) {
         this.dirtyParent();
+      } else {
+        this.undirtyParent();
       }
     },
     // After create dialog, position the new module at the requested index
@@ -201,16 +231,18 @@ export default {
 
       const newModule = this.modules.find((m) => !previousIds.has(m.id));
       if (newModule) {
+        const ids = this.modules
+          .map((m) => m.id)
+          .filter((id) => id !== newModule.id);
         if (this.pendingInsertPosition >= 0) {
-          const ids = this.modules
-            .map((m) => m.id)
-            .filter((id) => id !== newModule.id);
           ids.splice(this.pendingInsertPosition, 0, newModule.id);
-          this.modules = ids.map((id) =>
-            this.modules.find((m) => m.id === id),
-          );
-          this.onSort();
+        } else {
+          ids.push(newModule.id);
         }
+        this.modules = ids.map((id) =>
+          this.modules.find((m) => m.id === id),
+        );
+        this.onSort();
         this.$nextTick(() => {
           const el = this.$el.querySelector(`[data-module-id="${newModule.id}"]`);
           if (el) el.focus();
@@ -265,6 +297,11 @@ export default {
         query: { page: this.encodeId(module.id) },
       });
     },
+    changeSlug(module) {
+      this.$dialog("modules/change-slug", {
+        query: { page: this.encodeId(module.id) },
+      });
+    },
     async sortModule(module, direction) {
       const index = this.modules.findIndex((m) => m.id === module.id);
       const target = index + direction;
@@ -287,7 +324,7 @@ export default {
       } catch (e) {
         this.handleError(e);
       }
-      this.fetch();
+      await this.fetch();
     },
     async toggleVisibility(module) {
       const ids = this.modules.map((m) => m.id);
@@ -334,30 +371,48 @@ export default {
         }
       }
 
-      if (Object.keys(this.changes).length > 0) {
+      const hasLocalChanges = Object.keys(this.changes).length > 0;
+      if (this.serverPendingIds.length > 0 || hasLocalChanges) {
         this.dirtyParent();
       } else {
         this.undirtyParent();
       }
     },
     async applyChanges(action) {
-      const changedIds = Object.keys(this.changes);
-      if (!changedIds.length) return;
+      if (this._isApplying) return;
+      this._isApplying = true;
 
-      await Promise.all(
-        changedIds.map((moduleId) =>
-          this.$api
-            .post(this.pageUrl(moduleId) + "/changes/" + action)
-            .catch((e) => this.handleError(e)),
-        ),
-      );
+      try {
+        const currentIds = new Set(this.modules.map((m) => m.id));
+        const changedIds = Object.keys(this.changes);
+        const allIds = [...new Set([...changedIds, ...this.serverPendingIds])]
+          .filter((id) => currentIds.has(id));
 
-      this.changes = {};
-      await Promise.all(
-        this.modules
-          .filter((m) => changedIds.includes(m.id) && this.expanded[m.id] && m.hasFields)
-          .map((m) => this.loadFields(m)),
-      );
+        if (!allIds.length) {
+          this.changes = {};
+          this.serverPendingIds = [];
+          this.undirtyParent();
+          return;
+        }
+
+        await Promise.all(
+          allIds.map((moduleId) =>
+            this.$api
+              .post(this.pageUrl(moduleId) + "/changes/" + action)
+              .catch(() => {}),
+          ),
+        );
+
+        this.changes = {};
+        this.serverPendingIds = [];
+        await Promise.all(
+          this.modules
+            .filter((m) => allIds.includes(m.id) && this.expanded[m.id] && m.hasFields)
+            .map((m) => this.loadFields(m)),
+        );
+      } finally {
+        this._isApplying = false;
+      }
     },
     currentValues(moduleId) {
       return this.changes[moduleId]
@@ -366,11 +421,11 @@ export default {
     },
     // Timestamp string triggers Panel's dirty detection via content diff
     dirtyParent() {
-      this.$panel.content.merge({ _modulesChanged: String(Date.now()) });
+      this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: String(Date.now()) });
     },
     // Setting undefined drops the key from Panel's diff, clearing dirty state
     undirtyParent() {
-      this.$panel.content.merge({ _modulesChanged: undefined });
+      this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: undefined });
     },
 
     // --- Expand/collapse state ---
@@ -390,14 +445,14 @@ export default {
       this.saveCollapsedState();
     },
     saveCollapsedState() {
-      const key = "kirby-modules:" + this.parent;
+      const key = "kirby-modules:" + this.parent + ":" + this.name;
       const ids = Object.keys(this.expanded).filter(
         (id) => !this.expanded[id],
       );
       localStorage.setItem(key, JSON.stringify(ids));
     },
     loadCollapsedState() {
-      const key = "kirby-modules:" + this.parent;
+      const key = "kirby-modules:" + this.parent + ":" + this.name;
       try {
         const stored = localStorage.getItem(key);
         return stored ? JSON.parse(stored) : [];
@@ -433,7 +488,9 @@ export default {
       this.selectedModule = module.id;
     },
     onClickOutside(e) {
-      if (e.target.closest(".k-module, .k-dialog, .k-drawer")) return;
+      const clickedModule = e.target.closest(".k-module");
+      if (clickedModule && this.$el.contains(clickedModule)) return;
+      if (e.target.closest(".k-dialog, .k-drawer")) return;
       this.selectedModule = null;
     },
 
@@ -451,18 +508,14 @@ export default {
 };
 </script>
 
-<style>
-.k-modules-list>.k-module+.k-module {
-  margin-top: var(--spacing-2);
+<style scoped>
+.k-module+.k-module {
+  margin-block-start: var(--spacing-2);
 }
 
-.k-section-name-modules footer {
+footer {
   display: flex;
   justify-content: center;
-  margin-top: var(--spacing-3);
-}
-
-.k-topbar-breadcrumb li:has(a[href$="+modules"]) {
-  display: none;
+  margin-block-start: var(--spacing-3);
 }
 </style>

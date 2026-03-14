@@ -2,6 +2,7 @@
 
 use Medienbaecker\Modules\ModuleCreateDialog;
 use Medienbaecker\Modules\ModuleChangeTypeDialog;
+use Medienbaecker\Modules\ModuleChangeSlugDialog;
 return [
   'modules' => function () {
     return [
@@ -15,6 +16,11 @@ return [
           'pattern' => 'modules/change-type',
           'load' => fn() => ModuleChangeTypeDialog::load(),
           'submit' => fn() => ModuleChangeTypeDialog::submit(),
+        ],
+        'modules/change-slug' => [
+          'pattern' => 'modules/change-slug',
+          'load' => fn() => ModuleChangeSlugDialog::load(),
+          'submit' => fn() => ModuleChangeSlugDialog::submit(),
         ]
       ]
     ];

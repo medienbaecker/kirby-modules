@@ -5,8 +5,14 @@ use Kirby\Toolkit\Str;
 use Medienbaecker\Modules\ModulesCollection;
 
 return [
-  'renderModules' => function (array $params = []) {
-    foreach ($this->modules() as $module) {
+  'renderModules' => function (string|array $containerOrParams = 'modules', array $params = []) {
+    if (is_array($containerOrParams)) {
+      $params = $containerOrParams;
+      $container = 'modules';
+    } else {
+      $container = $containerOrParams;
+    }
+    foreach ($this->modules($container) as $module) {
       echo $module->renderModule($params);
     }
   },
@@ -16,12 +22,29 @@ return [
     });
     return count($modules) > 0;
   },
-  'modules' => function () {
+  'modules' => function (string $container = 'modules') {
     $modules = new ModulesCollection;
-    if ($modulesContainer = $this->find('modules')) {
-      foreach ($modulesContainer->childrenAndDrafts() as $module) {
-        if ($module->isUnlisted()) continue;
-        if ($module->isDraft() && $module->renderVersionFromRequest() === null) continue;
+    if ($modulesContainer = $this->find($container)) {
+      $previewSlug = get('_module');
+      if ($previewSlug) {
+        $draft = $modulesContainer->draft($previewSlug);
+        $hasAccess = kirby()->user() || ($draft && $draft->renderVersionFromRequest() !== null);
+        if (!$hasAccess) $previewSlug = null;
+      }
+      $children = $previewSlug
+        ? $modulesContainer->childrenAndDrafts()->filter(
+            fn($child) => !$child->isUnlisted()
+          )->sortBy(function ($child) {
+            if ($child->isDraft()) {
+              $sort = (float) $child->content()->moduleSort()->value();
+              return $sort ?: PHP_FLOAT_MAX;
+            }
+            return (float) ($child->num() ?? PHP_INT_MAX);
+          }, 'asc')
+        : $modulesContainer->children()->listed();
+
+      foreach ($children as $module) {
+        if ($module->isDraft() && $previewSlug !== $module->slug()) continue;
         $modules->append($module);
       }
     }
@@ -29,21 +52,6 @@ return [
   },
   'isModule' => function () {
     return Str::startsWith($this->intendedTemplate(), 'module.');
-  },
-  'uniqueModuleSlug' => function () {
-    $slug = $this->title()->slug();
-    $siblings = $this->parent()?->parent()?->childrenAndDrafts() ?? new Pages();
-
-    if ($siblings->filterBy('slug', $slug)->count() === 0) {
-      return $slug;
-    }
-
-    $i = 2;
-    while ($siblings->filterBy('slug', $slug . '-' . $i)->count() > 0) {
-      $i++;
-    }
-
-    return $slug . '-' . $i;
   },
   'uniqueModuleTitle' => function () {
     $title = $this->blueprint()->title();

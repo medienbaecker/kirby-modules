@@ -55,6 +55,10 @@ class ModuleRegistry
     // Add modules container blueprint
     $registry['blueprints']['pages/modules'] = [
       'title' => 'Modules',
+      'image' => [
+        'query' => false,
+      ],
+      'icon' => 'modules',
       'options' => [
         'changeSlug' => false,
         'changeStatus' => false,
@@ -95,15 +99,11 @@ class ModuleRegistry
       $blueprintArray['create'] = [];
       $blueprintArray['create']['title'] = '{{ page.uniqueModuleTitle }}';
 
-      if (option('medienbaecker.modules.autoslug') === true) {
-        $blueprintArray['create']['slug'] = '{{ page.uniqueModuleSlug }}';
+      if ($status = option('medienbaecker.modules.create.status')) {
+        $blueprintArray['create']['status'] = $status;
       }
 
-      if (option('medienbaecker.modules.autopublish') !== false) {
-        $blueprintArray['create']['status'] = 'listed';
-      }
-
-      if (option('medienbaecker.modules.redirect') !== true) {
+      if (option('medienbaecker.modules.create.redirect') !== true) {
         $blueprintArray['create']['redirect'] = false;
       }
     }
