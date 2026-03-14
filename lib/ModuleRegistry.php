@@ -13,8 +13,8 @@ class ModuleRegistry
 
   public static function create(): array
   {
-    if (static::$cache !== null) {
-      return static::$cache;
+    if (self::$cache !== null) {
+      return self::$cache;
     }
 
     $registry = ['blueprints' => [], 'templates' => [], 'snippets' => [], 'pageModels' => []];
@@ -70,7 +70,7 @@ class ModuleRegistry
     // Add modules container model
     $registry['pageModels']['modules'] = ModulesPage::class;
 
-    static::$cache = $registry;
+    self::$cache = $registry;
     return $registry;
   }
 

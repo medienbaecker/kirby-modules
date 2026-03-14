@@ -14,7 +14,9 @@ return [
     if (!$page->isModule()) return;
 
     $grandparent = $parent->parent();
-    $section = $grandparent?->blueprint()->section('modules');
+    $sections = $grandparent?->blueprint()->sections() ?? [];
+    $section = array_filter($sections, fn($s) => $s->type() === 'modules');
+    $section = reset($section) ?: null;
     $allowed = $section?->templates() ?? [];
 
     if ($allowed && !in_array($page->intendedTemplate()->name(), $allowed)) {
