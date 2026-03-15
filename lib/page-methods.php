@@ -41,12 +41,13 @@ return [
       }
       // Preview mode: include drafts with moduleSort ordering
       // Normal mode: just listed children
+      $defaultLanguage = kirby()->defaultLanguage()?->code();
       $children = $previewSlug
         ? $modulesContainer->childrenAndDrafts()->filter(
           fn($child) => !$child->isUnlisted()
-        )->sortBy(function ($child) {
+        )->sortBy(function ($child) use ($defaultLanguage) {
           if ($child->isDraft()) {
-            $sort = (float) $child->content()->moduleSort()->value();
+            $sort = (float) $child->content($defaultLanguage)->moduleSort()->value();
             return $sort ?: PHP_FLOAT_MAX;
           }
           return (float) ($child->num() ?? PHP_INT_MAX);

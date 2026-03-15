@@ -10,6 +10,7 @@ use Kirby\Toolkit\A;
 use Medienbaecker\Modules\ModuleRegistry;
 
 $moduleRegistry = ModuleRegistry::create();
+$pageMethods = require __DIR__ . '/lib/page-methods.php';
 
 Kirby::plugin(
   'medienbaecker/modules',
@@ -23,7 +24,12 @@ Kirby::plugin(
       'modules' => require __DIR__ . '/lib/sections/modules.php'
     ],
     'hooks'        => require __DIR__ . '/lib/hooks.php',
-    'pageMethods'  => require __DIR__ . '/lib/page-methods.php',
+    'pageMethods'  => $pageMethods,
+    'siteMethods'  => [
+      'modules'       => $pageMethods['modules'],
+      'renderModules' => $pageMethods['renderModules'],
+      'hasModules'    => $pageMethods['hasModules'],
+    ],
     'areas'        => require __DIR__ . '/lib/areas.php',
     'commands'     => require __DIR__ . '/lib/commands.php',
     'translations' => A::keyBy(

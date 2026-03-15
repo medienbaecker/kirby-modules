@@ -145,18 +145,15 @@ export default {
     this._language = this.$panel.language?.code;
 
     // Ensure the container page exists (section name = container slug)
-    const init = this.parent !== "site"
-      ? this.$api.post(this.sectionUrl + "/create-container")
-      : Promise.resolve();
-    init.then(() => this.fetch());
+    this.$api.post(this.sectionUrl + "/create-container").then(() => this.fetch());
 
     // Bridge module changes into the parent page's publish/discard flow.
     // The { api } guard ensures only this section's parent triggers it.
     this._onPublish = ({ api }) => {
-      if (api === this.parent) this.applyChanges("publish");
+      if (this.isParentApi(api)) this.applyChanges("publish");
     };
     this._onDiscard = ({ api }) => {
-      if (api === this.parent) this.applyChanges("discard");
+      if (this.isParentApi(api)) this.applyChanges("discard");
     };
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
@@ -322,6 +319,7 @@ export default {
     // --- Module actions --------------------------------------------------
 
     add(position = -1) {
+      if (!this.canAdd) return;
       this.pendingInsertPosition = position;
       this.$dialog("modules/create", {
         query: {
@@ -567,6 +565,10 @@ export default {
 
     // --- Utilities --------------------------------------------------------
 
+    // SiteView passes parent="site" (no slash) but content events use "/site"
+    isParentApi(api) {
+      return api?.replace(/^\//, "") === this.parent.replace(/^\//, "");
+    },
     handleError(e) {
       this.$panel.notification.error(e.message || this.$t("error"));
     },

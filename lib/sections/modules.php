@@ -107,6 +107,34 @@ return [
     'add' => function () {
       return !$this->isFull();
     },
+    'errors' => function () {
+      $errors = [];
+
+      if ($this->validateMax() === false) {
+        $errors['max'] = I18n::template('error.section.pages.max.' . I18n::form($this->max), [
+          'max'     => $this->max,
+          'section' => $this->headline
+        ]);
+      }
+
+      if ($this->validateMin() === false) {
+        $errors['min'] = I18n::template('error.section.pages.min.' . I18n::form($this->min), [
+          'min'     => $this->min,
+          'section' => $this->headline
+        ]);
+      }
+
+      if (empty($errors) === true) {
+        return [];
+      }
+
+      return [
+        $this->name => [
+          'label'   => $this->headline,
+          'message' => $errors,
+        ]
+      ];
+    },
 
     // Loads all modules from the container page
     'modules' => function () {
@@ -116,11 +144,12 @@ return [
       $modules = [];
 
       // Listed pages sort by num(), drafts by fractional moduleSort (e.g. 3.001)
+      $defaultLanguage = kirby()->defaultLanguage()?->code();
       $children = $modulesPage->childrenAndDrafts()->filter(
         fn($child) => !$child->isUnlisted()
-      )->sortBy(function ($child) {
+      )->sortBy(function ($child) use ($defaultLanguage) {
         if ($child->isDraft()) {
-          $sort = (float) $child->content()->moduleSort()->value();
+          $sort = (float) $child->content($defaultLanguage)->moduleSort()->value();
           return $sort ?: PHP_FLOAT_MAX;
         }
         return (float) ($child->num() ?? PHP_INT_MAX);
@@ -137,7 +166,7 @@ return [
           'icon'              => $child->blueprint()->icon() ?? 'box',
           'status'            => $child->status(),
           'hasFields'         => count($child->blueprint()->fields()) > 0,
-          'hasPendingChanges' => $child->version('changes')->exists(),
+          'hasPendingChanges' => $child->version('changes')->exists('*'),
           'tabs'              => $child->blueprint()->tabs(),
           'link'              => $child->panel()->url(),
           'permissions'       => [
@@ -183,8 +212,9 @@ return [
           $child = $resolveModule($childId);
 
           // Use pending changes if they exist, otherwise published content
-          if ($child->version('changes')->exists()) {
-            $values = $child->version('changes')->content()->toArray();
+          $language = kirby()->language()?->code() ?? 'default';
+          if ($child->version('changes')->exists($language)) {
+            $values = $child->version('changes')->content($language)->toArray();
             $form = Form::for($child, ['values' => $values]);
           } else {
             $form = Form::for($child);
@@ -206,8 +236,9 @@ return [
           $duplicate = $child->duplicate();
           if ($child->isDraft()) {
             kirby()->impersonate('kirby', function () use ($duplicate, $child) {
-              $sort = (float) $child->content()->moduleSort()->value();
-              $duplicate->update(['moduleSort' => $sort + 0.0001]);
+              $defaultLanguage = kirby()->defaultLanguage()?->code();
+              $sort = (float) $child->content($defaultLanguage)->moduleSort()->value();
+              $duplicate->update(['moduleSort' => $sort + 0.0001], $defaultLanguage);
             });
           } else {
             $duplicate->changeStatus('listed', $child->num() + 1);
@@ -230,7 +261,8 @@ return [
                 // Drafts get fractional sort values (e.g. 3.001, 3.002)
                 $draftCounter++;
                 kirby()->impersonate('kirby', function () use ($page, $lastListedNum, $draftCounter) {
-                  $page->update(['moduleSort' => $lastListedNum + $draftCounter * 0.001]);
+                  $defaultLanguage = kirby()->defaultLanguage()?->code();
+                  $page->update(['moduleSort' => $lastListedNum + $draftCounter * 0.001], $defaultLanguage);
                 });
               } else {
                 $lastListedNum++;
@@ -306,6 +338,7 @@ return [
     $modulesPage = $this->model()->find($this->name);
     return [
       'data'    => $this->modules,
+      'errors'  => $this->errors,
       'options' => [
         'add'       => $this->add,
         'empty'     => $this->empty,
