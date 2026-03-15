@@ -141,6 +141,9 @@ export default {
     },
   },
   created() {
+    // Track content language for cache invalidation on language switch
+    this._language = this.$panel.language?.code;
+
     // Ensure the container page exists (section name = container slug)
     const init = this.parent !== "site"
       ? this.$api.post(this.sectionUrl + "/create-container")
@@ -177,6 +180,14 @@ export default {
 
     async fetch() {
       try {
+        // Clear field cache when content language changes
+        const lang = this.$panel.language?.code;
+        if (this._language !== undefined && this._language !== lang) {
+          this.fieldData = {};
+          this.changes = {};
+        }
+        this._language = lang;
+
         // Snapshot current state for change detection after refresh
         const previousIds = new Set(this.modules.map((m) => m.id));
         const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
