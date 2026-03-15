@@ -189,6 +189,7 @@ export default {
   background: var(--module-color-back);
   box-shadow: var(--shadow);
   border-radius: var(--rounded);
+  scroll-margin-block-start: var(--header-sticky-offset);
 
   &[data-status="draft"] {
     --module-color-back: color-mix(in srgb, light-dark(var(--color-white), var(--color-gray-850)), transparent 50%);
