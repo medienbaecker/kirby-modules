@@ -88,8 +88,7 @@ export default {
         ...(this.module.previewUrl ? [{
           icon: "open",
           title: this.$t("preview"),
-          link: this.module.previewUrl,
-          target: "_blank",
+          click: () => window.open(this.module.previewUrl, "_blank"),
         }] : []),
         {
           icon: "add",
