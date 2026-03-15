@@ -1,10 +1,12 @@
 import ModulesSection from "./components/ModulesSection.vue";
 import ModuleCreateDialog from "./components/ModuleCreateDialog.vue";
+import ModulesLicenseDialog from "./components/ModulesLicenseDialog.vue";
 
 panel.plugin("medienbaecker/modules", {
   components: {
     "k-modules-section": ModulesSection,
     "k-module-create-dialog": ModuleCreateDialog,
+    "k-modules-license-dialog": ModulesLicenseDialog,
   },
   icons: {
     "add-module-above":

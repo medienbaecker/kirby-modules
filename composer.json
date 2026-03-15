@@ -1,8 +1,8 @@
 {
   "name": "medienbaecker/kirby-modules",
   "description": "Easily add modules to your pages",
-  "version": "3.0.0",
-  "license": "MIT",
+  "version": "5.0.0",
+  "license": "proprietary",
   "authors": [
     {
       "name": "Thomas Günther",

@@ -1,0 +1,14 @@
+# git
+.gitattributes export-ignore
+.gitignore export-ignore
+
+# composer
+composer.lock export-ignore
+
+# node
+package.json export-ignore
+package-lock.json export-ignore
+
+# development
+src/ export-ignore
+.github/ export-ignore

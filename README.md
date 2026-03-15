@@ -2,14 +2,17 @@
 
 Modular page building for [Kirby](https://getkirby.com/) using regular Kirby pages with their own blueprint and snippet, edited inline on the parent page.
 
-> [!WARNING]
-> Using Kirby 4, you'll have to stick to version [2.8.4](https://github.com/medienbaecker/kirby-modules/releases/tag/2.8.4).
+<img width="1988" height="1452" alt="Screenshot of the modules section with two modules, a text module with a textarea and a text with buttons module with both a textarea and a structure field for buttons" src=".github/screenshot.webp" />
 
-<!-- TODO: screenshot/video -->
+## Licensing
+
+Kirby Modules is a commercial plugin. You can use it for free on local environments but using it in production requires a valid licence. You can pay what you want, the suggested price being 99€ per project. Feel free to choose "0" when working on a purposeful project ❤️
+
+[Buy a licence](https://medienbaecker.com/plugins/modules)
 
 ## Features
 
-- Edit module fields inline on the parent page
+- Edit module fields inline on the parent page with a blocks-like UI
 - Draft previews for individual modules
 - Great performance with large numbers of modules
 - Robust multilanguage behaviour
@@ -162,7 +165,3 @@ class ModuletextPage extends Medienbaecker\Modules\ModulePage {
 ## Example
 
 Check out the [example repository](https://github.com/medienbaecker/modules-example) with Kirby's plainkit and a few simple modules.
-
-## Licence
-
-MIT
