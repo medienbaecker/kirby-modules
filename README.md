@@ -197,7 +197,3 @@ class ModuletextPage extends Medienbaecker\Modules\ModulePage {
   // your methods
 }
 ```
-
-## Example
-
-Check out the [example repository](https://github.com/medienbaecker/modules-example) with Kirby's plainkit and a few simple modules.
