@@ -14,8 +14,8 @@ export default {
 };
 </script>
 
-<style>
-.k-dialog-body>.k-select-field {
+<style scoped>
+.k-select-field {
   margin-block-end: var(--spacing-6);
 }
 </style>

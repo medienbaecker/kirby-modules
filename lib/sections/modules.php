@@ -17,17 +17,24 @@ foreach ($registry['blueprints'] as $blueprint => $file) {
 
 return [
   'mixins' => ['headline', 'parent', 'sort', 'empty', 'min', 'max'],
+
+  // ---------------------------------------------------------------
+  // Blueprint-configurable section settings
+  // ---------------------------------------------------------------
+
   'props' => [
+
     'default' => function (string $default = null) {
       return $default;
     },
+
     'templatesIgnore' => function (array $templatesIgnore = []) {
       return $templatesIgnore;
     },
+
     'templates' => function ($templates = null) use ($allBlueprints) {
       $blueprints = $templates ?? $allBlueprints;
 
-      // Filter ignored templates
       if ($this->templatesIgnore) {
         $blueprints = array_values(array_filter($blueprints, function ($bp) {
           $short = str_replace('module.', '', $bp);
@@ -35,7 +42,6 @@ return [
         }));
       }
 
-      // Move default to top
       if ($this->default) {
         $name = 'module.' . $this->default;
         $key = array_search($name, $blueprints);
@@ -49,17 +55,25 @@ return [
 
       return $blueprints;
     },
+
     'empty' => function ($empty = null) {
       return $empty ?? I18n::translate('modules.empty');
     },
-    'headline' => function ($headline = null) {
-      return $headline ?? I18n::translate('modules');
+
+    'label' => function ($label = null) {
+      return $label ?? I18n::translate('modules');
     },
+
     'parent' => function ($parent = null) {
       $class = get_class($this->model()) === 'Kirby\Cms\Site' ? 'site' : 'page';
       return $this->model()->find($this->name) ? $class . '.find("' . $this->name . '")' : $parent;
     },
   ],
+
+  // ---------------------------------------------------------------
+  // Methods
+  // ---------------------------------------------------------------
+
   'methods' => [
     'blueprints' => function () {
       $blueprints = [];
@@ -80,18 +94,28 @@ return [
       return $blueprints;
     },
   ],
+
+  // ---------------------------------------------------------------
+  // Computed methods
+  // ---------------------------------------------------------------
+
   'computed' => [
+    // For min/max validation
     'total' => function () {
       return count($this->modules ?? []);
     },
     'add' => function () {
       return !$this->isFull();
     },
+
+    // Loads all modules from the container page
     'modules' => function () {
       $modulesPage = $this->model()->find($this->name);
       if (!$modulesPage) return [];
 
       $modules = [];
+
+      // Listed pages sort by num(), drafts by fractional moduleSort (e.g. 3.001)
       $children = $modulesPage->childrenAndDrafts()->filter(
         fn($child) => !$child->isUnlisted()
       )->sortBy(function ($child) {
@@ -122,11 +146,13 @@ return [
             'changeSort' => $child->permissions()->can('sort'),
           ],
           'lock' => $child->lock()?->toArray(),
+
+          // Signed preview URL for drafts (token + _module param)
           'previewUrl' => $child->isDraft()
             ? (new Uri($child->page()->url(), [
-                'query'    => ['_token' => $child->version('latest')->previewToken(), '_module' => $child->slug()],
-                'fragment' => $child->slug()
-              ]))->toString()
+              'query'    => ['_token' => $child->version('latest')->previewToken(), '_module' => $child->slug()],
+              'fragment' => $child->slug()
+            ]))->toString()
             : null,
         ];
       }
@@ -134,6 +160,11 @@ return [
       return $modules;
     },
   ],
+
+  // ---------------------------------------------------------------
+  // Section endpoints called by the Vue frontend
+  // ---------------------------------------------------------------
+
   'api' => function () {
     $resolveModule = function (string $childId) {
       $child = kirby()->page(str_replace('+', '/', $childId));
@@ -144,12 +175,14 @@ return [
     };
 
     return [
+      // Load form fields and values for inline editing
       [
         'pattern' => 'fields/(:any)',
         'method'  => 'GET',
         'action'  => function (string $childId) use ($resolveModule) {
           $child = $resolveModule($childId);
 
+          // Use pending changes if they exist, otherwise published content
           if ($child->version('changes')->exists()) {
             $values = $child->version('changes')->content()->toArray();
             $form = Form::for($child, ['values' => $values]);
@@ -163,6 +196,8 @@ return [
           ];
         }
       ],
+
+      // Duplicate a module (drafts get fractional sort, listed get next num)
       [
         'pattern' => 'duplicate/(:any)',
         'method'  => 'POST',
@@ -180,6 +215,8 @@ return [
           return ['status' => 'ok'];
         }
       ],
+
+      // Persist sort order — interleaves drafts with listed pages
       [
         'pattern' => 'sort',
         'method'  => 'POST',
@@ -190,6 +227,7 @@ return [
           foreach ($ids as $id) {
             if ($page = kirby()->page($id)) {
               if ($page->isDraft()) {
+                // Drafts get fractional sort values (e.g. 3.001, 3.002)
                 $draftCounter++;
                 kirby()->impersonate('kirby', function () use ($page, $lastListedNum, $draftCounter) {
                   $page->update(['moduleSort' => $lastListedNum + $draftCounter * 0.001]);
@@ -204,6 +242,8 @@ return [
           return ['status' => 'ok'];
         }
       ],
+
+      // Delete all modules in this section's container
       [
         'pattern' => 'deleteAll',
         'method'  => 'POST',
@@ -217,6 +257,8 @@ return [
           return ['status' => 'ok'];
         }
       ],
+
+      // Toggle between draft and listed status
       [
         'pattern' => 'toggle-visibility/(:any)',
         'method'  => 'POST',
@@ -233,6 +275,8 @@ return [
           return ['status' => 'ok'];
         }
       ],
+
+      // Auto-create the container page on demand (section name = slug)
       [
         'pattern' => 'create-container',
         'method'  => 'POST',
@@ -253,6 +297,11 @@ return [
       ]
     ];
   },
+
+  // ---------------------------------------------------------------
+  // Response structure for the Vue frontend
+  // ---------------------------------------------------------------
+
   'toArray' => function () {
     $modulesPage = $this->model()->find($this->name);
     return [

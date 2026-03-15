@@ -3,6 +3,7 @@
 use Medienbaecker\Modules\ModuleCreateDialog;
 use Medienbaecker\Modules\ModuleChangeTypeDialog;
 use Medienbaecker\Modules\ModuleChangeSlugDialog;
+
 return [
   'modules' => function () {
     return [

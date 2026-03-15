@@ -4,6 +4,10 @@ namespace Medienbaecker\Modules;
 
 use Kirby\Panel\PageCreateDialog;
 
+/**
+ * Custom create dialog that adds a template picker
+ * and reframes the slug field as an optional anchor
+ */
 class ModuleCreateDialog
 {
   public static function load(): array
@@ -18,8 +22,11 @@ class ModuleCreateDialog
       title: $request->get('title'),
       uuid: $request->get('uuid'),
     ))->load();
+
+    // Use custom Vue component with template picker
     $result['component'] = 'k-module-create-dialog';
 
+    // Turn slug into an optional anchor field with # prefix
     $slug = ModuleRegistry::generateSlug(
       $request->get('parent') ?? '',
       $result['props']['template'] ?? ''
@@ -40,6 +47,7 @@ class ModuleCreateDialog
   {
     $input = kirby()->request()->body()->toArray();
 
+    // Auto-generate slug if left empty
     if (empty($input['slug'])) {
       $input['slug'] = ModuleRegistry::generateSlug(
         $input['parent'] ?? '',

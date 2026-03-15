@@ -38,6 +38,7 @@
 
 <script>
 export default {
+  // All state comes from props, all actions emit events
   props: {
     module: Object,
     expanded: Boolean,
@@ -56,12 +57,14 @@ export default {
     isDraft() {
       return this.module.status === "draft";
     },
+    // Locked by another, no update permission or translate: false
     disabled() {
       return (
         (this.module.lock && this.module.lock.isLocked) ||
         !(this.module.permissions && this.module.permissions.update)
       );
     },
+    // Gate rendering until field values are loaded
     contentReady() {
       if (!this.module.hasFields) return true;
       return !!this.values && Object.keys(this.values).length > 0;
@@ -69,9 +72,12 @@ export default {
     activeTab() {
       return this.currentTab || (this.module.tabs[0] && this.module.tabs[0].name);
     },
+    // Strip link prop that k-drawer-tabs doesn't need
     tabs() {
       return this.module.tabs.map(({ link, ...tab }) => tab);
     },
+
+    // --- Toolbar buttons (primary) + dots dropdown (full action set) ---
     toolbar() {
       return [
         {
@@ -95,6 +101,7 @@ export default {
           title: this.$t("delete"),
           click: () => this.$emit("remove"),
         },
+        // Sort handle: drag target + keyboard ArrowUp/ArrowDown
         {
           icon: "sort",
           title: this.$t("sort"),
@@ -194,7 +201,7 @@ export default {
   }
 
   &[data-disabled="true"] {
-    /* TODO: more accessible disabled state */
+    /* TODO: more accessible disabled state? */
     pointer-events: none;
     opacity: 0.5;
   }
@@ -268,20 +275,16 @@ export default {
     grid-area: 1 / 1;
   }
 
-  /* Arrow */
   > :last-child {
     visibility: hidden;
   }
 
   /* Turning the module icon into arrows on hover/focus */
   @container style(--show-arrow: true) {
-
-    /* Individual module icon */
     > :first-child {
       visibility: hidden;
     }
 
-    /* Arrow */
     > :last-child {
       visibility: visible;
     }
@@ -315,8 +318,6 @@ export default {
   /* Needs higher specificity because Kirby uses this double class for drawer tabs */
   &.k-tabs {
     justify-content: center;
-
-    .k-button {}
   }
 }
 
@@ -345,6 +346,8 @@ export default {
   }
 }
 
+/* Content */
+
 .k-module-content {
   background-color: var(--panel-color-back);
   border-radius: var(--rounded-sm);
@@ -360,6 +363,8 @@ export default {
 .k-module-error {
   /* TODO: error state */
 }
+
+/* Toolbar */
 
 .k-module-toolbar {
   --toolbar-size: 30px;

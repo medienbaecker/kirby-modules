@@ -7,6 +7,9 @@ use Kirby\Content\VersionId;
 
 class ModulesPage extends Page
 {
+  /**
+   * Redirect to parent page
+   */
   public function render(
     array $data = [],
     $contentType = 'html',
@@ -15,6 +18,9 @@ class ModulesPage extends Page
     go($this->parent()->url());
   }
 
+  /**
+   * Prevent search engine indexing
+   */
   public function metaDefaults(): array
   {
     return ['robotsIndex' => false];

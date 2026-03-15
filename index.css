@@ -1,1 +1,186 @@
-.k-module{--module-color-back: light-dark(var(--color-white), var(--color-gray-850));position:relative;background:var(--module-color-back);box-shadow:var(--shadow);border-radius:var(--rounded)}.k-module[data-status=draft]{--module-color-back: color-mix(in srgb, light-dark(var(--color-white), var(--color-gray-850)), transparent 50%);box-shadow:none}.k-module[data-selected=true]{outline:var(--outline)}.k-module[data-disabled=true]{pointer-events:none;opacity:.5}.k-module:is(.k-sortable-ghost,.k-sortable-fallback) .k-module-body{max-height:var(--drawer-header-height);overflow:clip}.k-module.k-sortable-ghost{outline:2px solid var(--color-focus);box-shadow:#11111140 0 5px 10px;cursor:grabbing}.k-module-body[data-collapsed=true] .k-module-content,.k-module-body[data-collapsed=true] .k-drawer-tabs{display:none}.k-module-body:not([data-collapsed=true]){padding-block-end:var(--spacing-3)}.k-module-header{display:grid;grid-template-columns:1fr;height:var(--drawer-header-height)}.k-module-header>*{grid-area:1 / 1}.k-module-title{display:flex;justify-self:start;gap:var(--spacing-2);z-index:1}.k-module-toggle{display:flex;align-items:center;border-radius:var(--rounded);padding-inline:var(--spacing-3);color:var(--color-text-dimmed);z-index:1}.k-module-toggle:hover,.k-module-toggle:focus-visible{--show-arrow: true;color:var(--color-text)}.k-module-icon{display:grid}.k-module-icon>*{grid-area:1 / 1}.k-module-icon>:last-child{visibility:hidden}@container style(--show-arrow: true){.k-module-icon>:first-child{visibility:hidden}.k-module-icon>:last-child{visibility:visible}}.k-module-name{align-self:center;margin-inline:calc(var(--spacing-3)* -1)}.k-module-anchor{display:flex;align-items:center;font-size:var(--text-xs);color:var(--color-text-dimmed);border-radius:var(--rounded);padding-inline:var(--spacing-3);z-index:1}.k-module-anchor:hover,.k-module-anchor:focus-visible{color:var(--color-text)}.k-module-tabs.k-tabs{justify-content:center}.k-module-status{justify-self:end;display:flex;align-items:center;gap:var(--spacing-1);padding-inline:var(--spacing-3);font-size:var(--text-xs);color:var(--color-text-dimmed);border-radius:var(--rounded)}.k-module-status[data-status=listed] span{display:none}.k-module-status:hover,.k-module-status:focus-visible{color:var(--color-text)}.k-module-content{background-color:var(--panel-color-back);border-radius:var(--rounded-sm);padding:var(--spacing-6) var(--spacing-6) var(--spacing-8);margin:0 var(--spacing-3);container:column / inline-size}.k-module-content>.k-grid{gap:var(--spacing-6)}.k-module-toolbar{--toolbar-size: 30px;display:none;position:absolute;inset-block-start:0;inset-inline-end:var(--spacing-3);margin-block-start:calc(-1.75rem + 2px);box-shadow:var(--shadow-xl);border:1px solid light-dark(var(--color-border),var(--color-gray-900))}.k-module[data-selected=true]>.k-module-toolbar{display:flex}.k-module-toolbar>.k-button:not(:last-of-type){border-inline-end:1px solid var(--toolbar-border)}.k-module+.k-module[data-v-cbb9b03b]{margin-block-start:var(--spacing-2)}footer[data-v-cbb9b03b]{display:flex;justify-content:center;margin-block-start:var(--spacing-3)}.k-dialog-body>.k-select-field{margin-block-end:var(--spacing-6)}
+
+.k-module {
+  --module-color-back: light-dark(var(--color-white), var(--color-gray-850));
+
+  position: relative;
+  background: var(--module-color-back);
+  box-shadow: var(--shadow);
+  border-radius: var(--rounded);
+&[data-status="draft"] {
+    --module-color-back: color-mix(in srgb, light-dark(var(--color-white), var(--color-gray-850)), transparent 50%);
+    box-shadow: none;
+}
+&[data-selected="true"] {
+    outline: var(--outline);
+}
+&[data-disabled="true"] {
+    /* TODO: more accessible disabled state? */
+    pointer-events: none;
+    opacity: 0.5;
+}
+&:is(.k-sortable-ghost, .k-sortable-fallback) .k-module-body {
+    max-height: var(--drawer-header-height);
+    overflow: clip;
+}
+&.k-sortable-ghost {
+    outline: 2px solid var(--color-focus);
+    box-shadow: rgba(17, 17, 17, 0.25) 0 5px 10px;
+    cursor: grabbing;
+}
+}
+.k-module-body {
+&[data-collapsed="true"] {
+.k-module-content,
+    .k-drawer-tabs {
+      display: none;
+}
+}
+&:not([data-collapsed="true"]) {
+    padding-block-end: var(--spacing-3);
+}
+}
+
+/* Header */
+.k-module-header {
+  display: grid;
+  grid-template-columns: 1fr;
+  height: var(--drawer-header-height);
+>* {
+    grid-area: 1 / 1;
+}
+}
+
+/* Title */
+.k-module-title {
+  display: flex;
+  justify-self: start;
+  gap: var(--spacing-2);
+  z-index: 1;
+}
+.k-module-toggle {
+  display: flex;
+  align-items: center;
+  border-radius: var(--rounded);
+  padding-inline: var(--spacing-3);
+  color: var(--color-text-dimmed);
+  z-index: 1;
+&:hover,
+  &:focus-visible {
+    --show-arrow: true;
+    color: var(--color-text);
+}
+}
+.k-module-icon {
+  display: grid;
+>* {
+    grid-area: 1 / 1;
+}
+> :last-child {
+    visibility: hidden;
+}
+
+  /* Turning the module icon into arrows on hover/focus */
+@container style(--show-arrow: true) {
+> :first-child {
+      visibility: hidden;
+}
+> :last-child {
+      visibility: visible;
+}
+}
+}
+.k-module-name {
+  align-self: center;
+  margin-inline: calc(var(--spacing-3)* -1);
+}
+.k-module-anchor {
+  display: flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-dimmed);
+  border-radius: var(--rounded);
+  padding-inline: var(--spacing-3);
+  z-index: 1;
+&:hover,
+  &:focus-visible {
+    color: var(--color-text);
+}
+}
+
+/* Tabs */
+.k-module-tabs {
+
+  /* Needs higher specificity because Kirby uses this double class for drawer tabs */
+&.k-tabs {
+    justify-content: center;
+}
+}
+
+/* Status */
+.k-module-status {
+  justify-self: end;
+
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding-inline: var(--spacing-3);
+
+  font-size: var(--text-xs);
+  color: var(--color-text-dimmed);
+  border-radius: var(--rounded);
+
+  /* Hide label for listed state */
+&[data-status="listed"] span {
+    display: none;
+}
+&:hover,
+  &:focus-visible {
+    color: var(--color-text);
+}
+}
+
+/* Content */
+.k-module-content {
+  background-color: var(--panel-color-back);
+  border-radius: var(--rounded-sm);
+  padding: var(--spacing-6) var(--spacing-6) var(--spacing-8);
+  margin: 0 var(--spacing-3);
+  container: column / inline-size;
+>.k-grid {
+    gap: var(--spacing-6);
+}
+}
+.k-module-error {
+  /* TODO: error state */
+}
+
+/* Toolbar */
+.k-module-toolbar {
+  --toolbar-size: 30px;
+  display: none;
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: var(--spacing-3);
+  margin-block-start: calc(-1.75rem + 2px);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid light-dark(var(--color-border), var(--color-gray-900));
+.k-module[data-selected="true"]>& {
+    display: flex;
+}
+&>.k-button:not(:last-of-type) {
+    border-inline-end: 1px solid var(--toolbar-border);
+}
+}
+
+.k-module+.k-module[data-v-7a85869b] {
+  margin-block-start: var(--spacing-2);
+}
+footer[data-v-7a85869b] {
+  display: flex;
+  justify-content: center;
+  margin-block-start: var(--spacing-3);
+}
+
+.k-select-field[data-v-2c6ae430] {
+  margin-block-end: var(--spacing-6);
+}

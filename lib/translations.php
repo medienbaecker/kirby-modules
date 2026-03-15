@@ -26,7 +26,7 @@ return [
     'modules.addAbove' => 'Darüber hinzufügen',
     'modules.addBelow' => 'Darunter hinzufügen',
     'modules.changeAnchor' => 'Anker ändern',
-    'modules.unpublish' => 'Zurückziehen',
+    'modules.unpublish' => 'Entwurf',
     'modules.deleteAll.confirm' => 'Möchtest du wirklich alle Module löschen?',
   ],
 ];

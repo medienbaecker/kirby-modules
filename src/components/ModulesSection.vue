@@ -27,13 +27,24 @@ export default {
   components: {
     "k-module-card": ModuleCard,
   },
+
+  // ---------------------------------------------------------------
+  // Props from Kirby's section system
+  // ---------------------------------------------------------------
+
   props: {
     name: String,
     parent: String,
     timestamp: Number,
   },
+
+  // ---------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------
+
   data() {
     return {
+      // From server (toArray response)
       headline: "",
       modules: [],
       empty: "",
@@ -41,17 +52,26 @@ export default {
       canAdd: true,
       min: null,
       max: null,
+
+      // Client-side tracking maps (keyed by module ID)
       expanded: {},
       fieldData: {},
       changes: {},
       serverPendingIds: [],
-      isLoading: true,
       loadingModules: {},
+
+      // UI state
+      isLoading: true,
       selectedModule: null,
       pendingInsertPosition: null,
       dragOptions: { handle: ".k-sort-handle" },
     };
   },
+
+  // ---------------------------------------------------------------
+  // Computed
+  // ---------------------------------------------------------------
+
   computed: {
     sectionUrl() {
       return this.parent + "/sections/" + this.name;
@@ -110,18 +130,25 @@ export default {
       return this.modules.length > 0 && this.modules.every((m) => !this.expanded[m.id]);
     },
   },
+
+  // ---------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------
+
   watch: {
     timestamp() {
       this.fetch();
     },
   },
   created() {
+    // Ensure the container page exists (section name = container slug)
     const init = this.parent !== "site"
       ? this.$api.post(this.sectionUrl + "/create-container")
       : Promise.resolve();
     init.then(() => this.fetch());
 
-    // Bridge module changes into the parent page's publish/discard flow
+    // Bridge module changes into the parent page's publish/discard flow.
+    // The { api } guard ensures only this section's parent triggers it.
     this._onPublish = ({ api }) => {
       if (api === this.parent) this.applyChanges("publish");
     };
@@ -139,12 +166,21 @@ export default {
     this.$events.off("content.discard", this._onDiscard);
     document.removeEventListener("mousedown", this.onClickOutside);
   },
+
+  // ---------------------------------------------------------------
+  // Methods
+  // ---------------------------------------------------------------
+
   methods: {
-    // --- Data fetching ---
+
+    // --- Data fetching ---------------------------------------------------
+
     async fetch() {
       try {
+        // Snapshot current state for change detection after refresh
         const previousIds = new Set(this.modules.map((m) => m.id));
         const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
+
         const response = await this.$api.get(this.sectionUrl);
         this.headline = response.options.headline;
         this.modules = response.data;
@@ -154,14 +190,14 @@ export default {
         this.min = response.options.min;
         this.max = response.options.max;
 
-        // Invalidate cached fields when template changed (e.g. after "change type")
+        // Discard stale data when a module's type was changed
         for (const module of this.modules) {
           const prev = previousTemplates.get(module.id);
           if (prev && prev !== module.template) {
             this.$delete(this.fieldData, module.id);
             this.$delete(this.changes, module.id);
             module.hasPendingChanges = false;
-            this.$api.post(this.pageUrl(module.id) + "/changes/discard").catch(() => {});
+            this.$api.post(this.pageUrl(module.id) + "/changes/discard").catch(() => { });
           }
         }
 
@@ -178,11 +214,13 @@ export default {
         this.isLoading = false;
       }
     },
+
     restoreExpandState(module, collapsed) {
       if (collapsed.includes(module.id)) {
         this.$set(this.expanded, module.id, false);
         return;
       }
+
       // Fields must load before k-sections can render them
       const needsLoad = module.hasFields &&
         (!this.fieldData[module.id] || module.hasPendingChanges);
@@ -196,8 +234,9 @@ export default {
         this.$set(this.expanded, module.id, true);
       }
     },
-    // Reconcile client-side tracking maps with server state.
-    // Prunes stale entries from all maps and derives dirty state.
+
+    // Prune all tracking maps against current modules and derive dirty state.
+    // Handles deleted modules, type changes, and orphaned server-side _changes.
     reconcileState() {
       const currentIds = new Set(this.modules.map((m) => m.id));
 
@@ -214,6 +253,7 @@ export default {
         if (!currentIds.has(id)) this.$delete(this.loadingModules, id);
       }
 
+      // Server-side _changes not tracked locally (e.g. from a previous session)
       this.serverPendingIds = this.modules
         .filter((m) => m.hasPendingChanges && !this.changes[m.id])
         .map((m) => m.id);
@@ -225,7 +265,8 @@ export default {
         this.undirtyParent();
       }
     },
-    // After create dialog, position the new module at the requested index
+
+    // Insert newly created module at the requested position and focus it
     positionNewModule(previousIds) {
       if (this.pendingInsertPosition == null) return;
 
@@ -250,6 +291,8 @@ export default {
       }
       this.pendingInsertPosition = null;
     },
+
+    // Load form fields + values for inline editing
     async loadFields(module) {
       try {
         const response = await this.$api.get(
@@ -257,7 +300,7 @@ export default {
         );
         this.$set(this.fieldData, module.id, {
           values: response.values,
-          original: JSON.stringify(response.values),
+          original: JSON.stringify(response.values), // Snapshot for revert detection
         });
       } catch (e) {
         this.handleError(e);
@@ -265,7 +308,8 @@ export default {
       }
     },
 
-    // --- Module actions ---
+    // --- Module actions --------------------------------------------------
+
     add(position = -1) {
       this.pendingInsertPosition = position;
       this.$dialog("modules/create", {
@@ -285,7 +329,6 @@ export default {
         await this.$api.post(
           this.sectionUrl + "/duplicate/" + this.encodeId(module.id),
         );
-        // -1 = append to end, but still triggers focus via positionNewModule
         this.pendingInsertPosition = -1;
         this.fetch();
       } catch (e) {
@@ -302,6 +345,8 @@ export default {
         query: { page: this.encodeId(module.id) },
       });
     },
+
+    // Keyboard sorting (ArrowUp/ArrowDown on the sort handle)
     async sortModule(module, direction) {
       const index = this.modules.findIndex((m) => m.id === module.id);
       const target = index + direction;
@@ -317,6 +362,8 @@ export default {
       const el = this.$el.querySelector(`[data-module-id="${module.id}"] .k-sort-handle`);
       if (el) el.focus();
     },
+
+    // Persist sort order to server
     async onSort() {
       const ids = this.modules.map((m) => m.id);
       try {
@@ -326,6 +373,7 @@ export default {
       }
       await this.fetch();
     },
+
     async toggleVisibility(module) {
       const ids = this.modules.map((m) => m.id);
       try {
@@ -343,6 +391,7 @@ export default {
         this.handleError(e);
       }
     },
+
     remove(module) {
       this.$dialog(this.pageUrl(module.id) + "/delete", {
         query: {
@@ -351,15 +400,17 @@ export default {
       });
     },
 
-    // --- Field change tracking ---
-    // Each module is a separate Kirby page with its own content file.
-    // Changes are tracked per-module and bridged to the parent's Save/Discard.
+    // --- Field change tracking -------------------------------------------
+    // Modules are child pages with their own content files.
+    // Changes are saved to each module's _changes version immediately,
+    // then published/discarded when the parent page is saved/discarded.
+
     async onInput(module, values) {
       const data = this.fieldData[module.id];
-      // Compare against original snapshot to detect manual reverts
       const unchanged = data?.original && JSON.stringify(values) === data.original;
 
       if (unchanged) {
+        // User reverted to original — discard the server draft
         this.$delete(this.changes, module.id);
         this.$api.post(this.pageUrl(module.id) + "/changes/discard").catch(() => { });
       } else {
@@ -378,6 +429,8 @@ export default {
         this.undirtyParent();
       }
     },
+
+    // Publish or discard all pending module changes (triggered by parent Save/Discard)
     async applyChanges(action) {
       if (this._isApplying) return;
       this._isApplying = true;
@@ -399,12 +452,14 @@ export default {
           allIds.map((moduleId) =>
             this.$api
               .post(this.pageUrl(moduleId) + "/changes/" + action)
-              .catch(() => {}),
+              .catch(() => { }),
           ),
         );
 
         this.changes = {};
         this.serverPendingIds = [];
+
+        // Reload fields for expanded modules to reflect the new state
         await Promise.all(
           this.modules
             .filter((m) => allIds.includes(m.id) && this.expanded[m.id] && m.hasFields)
@@ -414,21 +469,25 @@ export default {
         this._isApplying = false;
       }
     },
+
     currentValues(moduleId) {
       return this.changes[moduleId]
         || this.fieldData[moduleId]?.values
         || {};
     },
-    // Timestamp string triggers Panel's dirty detection via content diff
+
+    // Dirty/undirty the parent page's Save/Discard buttons.
+    // Key is scoped per section name to support multiple modules sections.
     dirtyParent() {
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: String(Date.now()) });
     },
-    // Setting undefined drops the key from Panel's diff, clearing dirty state
     undirtyParent() {
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: undefined });
     },
 
-    // --- Expand/collapse state ---
+    // --- Expand/collapse -------------------------------------------------
+    // Persisted to localStorage per page + section name.
+
     async toggle(module) {
       if (this.expanded[module.id]) {
         this.$set(this.expanded, module.id, false);
@@ -483,7 +542,8 @@ export default {
       this.saveCollapsedState();
     },
 
-    // --- UI helpers ---
+    // --- UI helpers -------------------------------------------------------
+
     select(module) {
       this.selectedModule = module.id;
     },
@@ -494,7 +554,8 @@ export default {
       this.selectedModule = null;
     },
 
-    // --- Utilities ---
+    // --- Utilities --------------------------------------------------------
+
     handleError(e) {
       this.$panel.notification.error(e.message || this.$t("error"));
     },

@@ -7,10 +7,18 @@ use Kirby\Filesystem\F;
 use Kirby\Toolkit\Str;
 use Kirby\Data\Yaml;
 
+/**
+ * Registers module blueprints, templates, snippets, and models
+ */
 class ModuleRegistry
 {
   private static ?array $cache = null;
 
+  /**
+   * Build the full module registry
+   *
+   * @return array{blueprints: array, templates: array, snippets: array, pageModels: array}
+   */
   public static function create(): array
   {
     if (self::$cache !== null) {
@@ -31,7 +39,6 @@ class ModuleRegistry
     // Register modules in site/blueprints/modules and site/snippets/modules
     $moduleBlueprintsFolder = kirby()->root('blueprints') . '/modules';
     $moduleTemplatesFolder = kirby()->root('snippets') . '/modules';
-
     foreach (Dir::files($moduleBlueprintsFolder) as $file) {
       $filename = F::name($file);
       $blueprintPath = $moduleBlueprintsFolder . '/' . $filename . '.yml';
@@ -39,7 +46,8 @@ class ModuleRegistry
       $registry = static::add($registry, $filename, $blueprintPath, $templatePath);
     }
 
-    // Populate changeTemplate option
+    // Populate changeTemplate option with all module blueprints
+    // to allow changing templates in the panel
     $blueprintNames = array_keys($registry['blueprints']);
     $blueprintNames = array_map(fn($name) => Str::replace($name, 'pages/', ''), $blueprintNames);
 
@@ -62,7 +70,7 @@ class ModuleRegistry
       'options' => [
         'changeSlug' => false,
         'changeStatus' => false,
-        'changeTemplate' => false
+        'changeTemplate' => false,
       ],
       'sections' => [
         'pages' => [
@@ -78,16 +86,22 @@ class ModuleRegistry
     return $registry;
   }
 
+  /**
+   * Register a single module into the registry
+   */
   public static function add(array $registry, string $name, string $blueprintPath, string $snippetPath): array
   {
+    // Prevent duplicates
     if (array_key_exists('pages/module.' . $name, $registry['blueprints'])) {
       return $registry;
     }
 
+    // If no blueprint exists, we can't register the module
     if (!F::exists($blueprintPath)) {
       return $registry;
     }
 
+    // Combine the blueprint yaml with some defaults
     $defaults = [
       'status' => ['draft' => ['text' => false], 'listed' => ['text' => false]],
       'navigation' => ['status' => 'all', 'template' => 'all'],
@@ -124,6 +138,10 @@ class ModuleRegistry
     return $registry;
   }
 
+  /**
+   * Generate a unique slug for a new module based on the template name
+   * e.g. 'text', 'text-2', 'text-3'
+   */
   public static function generateSlug(string $parentId, string $template): ?string
   {
     $parentId = str_replace('+', '/', $parentId);

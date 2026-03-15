@@ -1,6 +1,8 @@
 <?php
 
 return [
+
+  // Redirect container pages to their parent in the Panel
   'panel.route:before' => function ($route, $path, $method) {
     if ($path && str_starts_with($path, 'pages/')) {
       $pageId = str_replace('+', '/', substr($path, 6));
@@ -12,9 +14,12 @@ return [
     }
     return $route;
   },
+
+  // Validate module moves
   'page.move:before' => function ($page, $parent) {
     if (!$page->isModule()) return;
 
+    // Find the modules section whose container matches the move target
     $grandparent = $parent->parent();
     $sections = $grandparent?->blueprint()->sections() ?? [];
 
