@@ -78,12 +78,48 @@ kirby make:module gallery
 
 In your snippet, `$module` is the module page and `$page` is the parent page. Variables from [controllers](https://getkirby.com/docs/guide/templates/controllers) are also available.
 
+Module blueprints support the full Kirby blueprint layout, including [columns](https://getkirby.com/docs/guide/blueprints/layout#columns) and [sections](https://getkirby.com/docs/guide/blueprints/layout#sections):
+
+```yml
+# site/blueprints/modules/images.yml
+title: Images
+icon: images
+columns:
+  - width: 1/2
+    fields:
+      title:
+        label: Title
+        type: text
+      images:
+        label: Images
+        type: files
+  - width: 1/2
+    sections:
+      files: true
+```
+
 Render in your template:
 
 ```php
 // site/templates/default.php
 <?= $page->modules() ?>
 ```
+
+## Anchor Links
+
+Use `$module->slug()` as the element ID in your module snippet:
+
+```php
+<div id="<?= $module->slug() ?>">
+```
+
+The slug is editable in the Panel via the `#anchor` button on each module card or the "Change anchor" button in the toolbar's dropdown.
+
+## Drafts
+
+Module status can be toggled between draft and listed with a single click. Drafts can be freely positioned between listed modules.
+
+Each draft module gets a signed preview URL for authenticated frontend previews without Panel login. A preview button appears in the module's toolbar when the module is a draft.
 
 ## Section Options
 
