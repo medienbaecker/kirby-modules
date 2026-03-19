@@ -205,7 +205,7 @@ export default {
             this.$delete(this.fieldData, module.id);
             this.$delete(this.changes, module.id);
             module.hasPendingChanges = false;
-            this.$api.post(this.pageUrl(module.id) + "/changes/discard").catch(() => { });
+            this.$api.post(this.pageUrl(module.id) + "/changes/discard", null, { silent: true }).catch(() => { });
           }
         }
 
@@ -421,11 +421,11 @@ export default {
       if (unchanged) {
         // User reverted to original — discard the server draft
         this.$delete(this.changes, module.id);
-        this.$api.post(this.pageUrl(module.id) + "/changes/discard").catch(() => { });
+        this.$api.post(this.pageUrl(module.id) + "/changes/discard", null, { silent: true }).catch(() => { });
       } else {
         this.$set(this.changes, module.id, values);
         try {
-          await this.$api.post(this.pageUrl(module.id) + "/changes/save", values);
+          await this.$api.post(this.pageUrl(module.id) + "/changes/save", values, { silent: true });
         } catch (e) {
           this.handleError(e);
         }
