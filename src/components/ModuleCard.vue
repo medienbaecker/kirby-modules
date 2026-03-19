@@ -1,10 +1,13 @@
 <template>
   <div class="k-module" :data-module-id="module.id" :data-status="module.status" :data-selected="selected"
-    :data-disabled="disabled" :tabindex="disabled ? null : 0" @focusin.stop="$emit('select')">
+    :data-disabled="disabled" :tabindex="disabled ? null : 0" role="group" :aria-label="$t('modules.singular') + ' ' + module.moduleName"
+    @focusin.stop="$emit('select')">
     <div class="k-module-body" :data-collapsed="!expanded">
       <header class="k-module-header">
         <div class="k-module-title">
-          <button class="k-module-toggle" @click="$emit('toggle')">
+          <button class="k-module-toggle" :aria-expanded="String(expanded)"
+            :aria-label="$t('modules.singular') + ' ' + module.moduleName"
+            @click="$emit('toggle')">
             <k-icon v-if="loading" type="loader" />
             <span v-else class="k-module-icon">
               <k-icon :type="module.icon" />
@@ -12,12 +15,12 @@
             </span>
           </button>
           <span class="k-module-name">{{ module.moduleName }}</span>
-          <button class="k-module-anchor" @click="$emit('change-slug')">
+          <button class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug" @click="$emit('change-slug')">
             #{{ module.slug }}
           </button>
         </div>
         <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="switchTab" />
-        <button class="k-module-status" :data-status="module.status" @click.stop="$emit('toggle-visibility')">
+        <button class="k-module-status" :data-status="module.status" :aria-label="isDraft ? $t('publish') : $t('modules.unpublish')" @click.stop="$emit('toggle-visibility')">
           <span>{{ isDraft ? $t("page.status.draft") : $t("page.status.listed") }}</span>
           <k-icon :type="isDraft ? 'hidden' : 'preview'" />
         </button>
@@ -335,9 +338,13 @@ export default {
   color: var(--color-text-dimmed);
   border-radius: var(--rounded);
 
-  /* Hide label for listed state */
+  /* Visually hide label for listed state, keep in accessibility tree */
   &[data-status="listed"] span {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
   }
 
   &:hover,

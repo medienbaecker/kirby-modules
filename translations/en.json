@@ -1,5 +1,6 @@
 {
-  "modules": "Modules",
+  "plural": "Modules",
+  "singular": "Module",
   "empty": "No modules yet",
   "move.notallowed": "This module type is not allowed here",
   "create.type": "Type",

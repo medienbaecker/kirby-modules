@@ -61,7 +61,7 @@ return [
     },
 
     'label' => function ($label = null) {
-      return $label ?? I18n::translate('modules');
+      return $label ?? I18n::translate('modules.plural');
     },
 
     'parent' => function ($parent = null) {

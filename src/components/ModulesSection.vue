@@ -15,7 +15,7 @@
         @change-type="changeType(module)" @change-slug="changeSlug(module)" @sort="sortModule(module, $event)" />
     </k-draggable>
     <footer v-if="!isLoading && modules.length && canAdd">
-      <k-button icon="add" size="xs" variant="filled" @click="add()" />
+      <k-button icon="add" size="xs" variant="filled" :title="$t('add')" @click="add()" />
     </footer>
   </k-section>
 </template>
@@ -83,7 +83,7 @@ export default {
     },
     sectionButtons() {
       const buttons = [
-        { icon: "cog", click: () => this.$refs.options?.toggle() },
+        { icon: "cog", title: this.$t("options"), click: () => this.$refs.options?.toggle() },
       ];
       if (this.canAdd) {
         buttons.push({ icon: "add", text: this.$t("add"), click: () => this.add(), responsive: true });
