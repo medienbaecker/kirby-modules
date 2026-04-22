@@ -1,7 +1,6 @@
 {
   "name": "medienbaecker/kirby-modules",
   "description": "Easily add modules to your pages",
-  "version": "5.0.0",
   "license": "proprietary",
   "authors": [
     {
