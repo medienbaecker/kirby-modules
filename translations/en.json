@@ -5,6 +5,7 @@
   "move.notallowed": "This module type is not allowed here",
   "create.type": "Type",
   "create.anchor": "Anchor",
+  "create.error.notemplates": "No module types available.",
   "expandAll": "Expand all",
   "collapseAll": "Collapse all",
   "addAbove": "Add above",

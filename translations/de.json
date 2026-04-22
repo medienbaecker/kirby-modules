@@ -5,6 +5,7 @@
   "move.notallowed": "Dieser Modultyp ist hier nicht erlaubt",
   "create.type": "Typ",
   "create.anchor": "Anker",
+  "create.error.notemplates": "Keine Modultypen verfügbar.",
   "expandAll": "Alle aufklappen",
   "collapseAll": "Alle zuklappen",
   "addAbove": "Darüber hinzufügen",

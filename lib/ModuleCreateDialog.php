@@ -13,6 +13,18 @@ class ModuleCreateDialog
   public static function load(): array
   {
     $request = kirby()->request();
+
+    $hasModuleBlueprints = false;
+    foreach (ModuleRegistry::create()['blueprints'] as $blueprint => $_) {
+      if (str_starts_with($blueprint, 'pages/module.')) {
+        $hasModuleBlueprints = true;
+        break;
+      }
+    }
+    if (!$hasModuleBlueprints) {
+      throw new \Kirby\Exception\NotFoundException(t('modules.create.error.notemplates'));
+    }
+
     $result = (new PageCreateDialog(
       parentId: $request->get('parent'),
       sectionId: $request->get('section'),
