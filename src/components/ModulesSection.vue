@@ -64,6 +64,7 @@ export default {
       isLoading: true,
       selectedModule: null,
       pendingInsertPosition: null,
+      pendingFocusInput: false,
       dragOptions: { handle: ".k-sort-handle" },
     };
   },
@@ -295,6 +296,25 @@ export default {
         this.$nextTick(() => {
           const el = this.$el.querySelector(`[data-module-id="${newModule.id}"]`);
           if (el) el.focus();
+
+          if (this.pendingFocusInput && el) {
+            this.pendingFocusInput = false;
+            // Mirror Kirby's internal drawer/dialog focus priority:
+            // explicit [autofocus] first, then first form control.
+            const selectors = [
+              ".k-module-content :where([autofocus], [data-autofocus])",
+              ".k-module-content :where(input:not([type=hidden]), textarea, select, [contenteditable=true], .input-focus)",
+            ];
+            const deadline = Date.now() + 1000;
+            const tryFocus = () => {
+              for (const selector of selectors) {
+                const input = el.querySelector(selector);
+                if (input) { input.focus(); return; }
+              }
+              if (Date.now() < deadline) setTimeout(tryFocus, 50);
+            };
+            tryFocus();
+          }
         });
       }
       this.pendingInsertPosition = null;
@@ -321,6 +341,7 @@ export default {
     add(position = -1) {
       if (!this.canAdd) return;
       this.pendingInsertPosition = position;
+      this.pendingFocusInput = true;
       this.$dialog("modules/create", {
         query: {
           parent: this.link || this.parent,
@@ -335,6 +356,8 @@ export default {
     },
     async duplicate(module) {
       try {
+        // Clear any stale focus intent from a previously cancelled Add.
+        this.pendingFocusInput = false;
         // Flush any pending client-side edits so they land in the server's
         // _changes/ before the duplicate endpoint copies that directory.
         // Without this, a fast "type then duplicate" produces an empty copy.
