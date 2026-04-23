@@ -1,5 +1,6 @@
 <?php
 
+use Kirby\Filesystem\Dir;
 use Kirby\Form\Form;
 use Kirby\Http\Uri;
 use Kirby\Toolkit\Str;
@@ -233,7 +234,17 @@ return [
         'method'  => 'POST',
         'action'  => function (string $childId) use ($resolveModule) {
           $child = $resolveModule($childId);
-          $duplicate = $child->duplicate();
+          $duplicate = $child->duplicate(null, ['files' => true]);
+
+          // Preserve in-progress inline edits: Kirby's duplicate() skips
+          // subdirectories by default, so the _changes/ version dir isn't
+          // copied. _changes isn't semantically a "child" page, so using
+          // children: true to drag it along would be a misnomer.
+          $changesDir = $child->root() . '/_changes';
+          if (is_dir($changesDir)) {
+            Dir::copy($changesDir, $duplicate->root() . '/_changes');
+          }
+
           kirby()->impersonate('kirby', function () use ($duplicate, $child) {
             $defaultLanguage = kirby()->defaultLanguage()?->code();
             $sort = $child->isDraft()

@@ -335,6 +335,17 @@ export default {
     },
     async duplicate(module) {
       try {
+        // Flush any pending client-side edits so they land in the server's
+        // _changes/ before the duplicate endpoint copies that directory.
+        // Without this, a fast "type then duplicate" produces an empty copy.
+        const pending = this.changes[module.id];
+        if (pending) {
+          await this.$api.post(
+            this.pageUrl(module.id) + "/changes/save",
+            pending,
+            { silent: true },
+          );
+        }
         await this.$api.post(
           this.sectionUrl + "/duplicate/" + this.encodeId(module.id),
         );
