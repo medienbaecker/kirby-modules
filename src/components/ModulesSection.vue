@@ -338,7 +338,8 @@ export default {
         await this.$api.post(
           this.sectionUrl + "/duplicate/" + this.encodeId(module.id),
         );
-        this.pendingInsertPosition = -1;
+        const index = this.modules.findIndex((m) => m.id === module.id);
+        this.pendingInsertPosition = index >= 0 ? index + 1 : -1;
         this.fetch();
       } catch (e) {
         this.handleError(e);
