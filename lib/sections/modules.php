@@ -227,22 +227,20 @@ return [
         }
       ],
 
-      // Duplicate a module (drafts get fractional sort, listed get next num)
+      // Duplicate a module — always stays a draft, sorted right after source
       [
         'pattern' => 'duplicate/(:any)',
         'method'  => 'POST',
         'action'  => function (string $childId) use ($resolveModule) {
           $child = $resolveModule($childId);
           $duplicate = $child->duplicate();
-          if ($child->isDraft()) {
-            kirby()->impersonate('kirby', function () use ($duplicate, $child) {
-              $defaultLanguage = kirby()->defaultLanguage()?->code();
-              $sort = (float) $child->content($defaultLanguage)->moduleSort()->value();
-              $duplicate->update(['moduleSort' => $sort + 0.0001], $defaultLanguage);
-            });
-          } else {
-            $duplicate->changeStatus('listed', $child->num() + 1);
-          }
+          kirby()->impersonate('kirby', function () use ($duplicate, $child) {
+            $defaultLanguage = kirby()->defaultLanguage()?->code();
+            $sort = $child->isDraft()
+              ? (float) $child->content($defaultLanguage)->moduleSort()->value()
+              : (float) $child->num();
+            $duplicate->update(['moduleSort' => $sort + 0.0001], $defaultLanguage);
+          });
           return ['status' => 'ok'];
         }
       ],
