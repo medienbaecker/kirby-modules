@@ -6,6 +6,7 @@ use Kirby\Cms\Page;
 use Kirby\Cms\Pages;
 use Kirby\Cms\Site;
 use Kirby\Content\VersionId;
+use Medienbaecker\Modules\ModuleRegistry;
 
 class ModulePage extends Page
 {
@@ -57,11 +58,22 @@ class ModulePage extends Page
   }
 
   /**
+   * Whether the intended template has a registered blueprint
+   */
+  public function hasTemplate(): bool
+  {
+    return ModuleRegistry::hasBlueprint($this->intendedTemplate()->name());
+  }
+
+  /**
    * Display name from the blueprint title
    */
   public function moduleName(): string
   {
-    return $this->blueprint()->title();
+    if (!$this->hasTemplate()) {
+      return t('modules.missingTemplate');
+    }
+    return (string) $this->blueprint()->title();
   }
 
   /**

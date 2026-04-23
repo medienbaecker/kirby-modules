@@ -156,19 +156,27 @@ return [
         return (float) ($child->num() ?? PHP_INT_MAX);
       }, 'asc');
 
+      // When a blueprint is deleted, its pageModel isn't registered either,
+      // so the page class is the base Page — any ModulePage helper call
+      // falls through Kirby's __call magic to a content field. Ask the
+      // registry directly instead.
       foreach ($children as $child) {
+        $templateName = $child->intendedTemplate()->name();
+        $hasTemplate = ModuleRegistry::hasBlueprint($templateName);
+        $blueprint = $hasTemplate ? $child->blueprint() : null;
 
         $modules[] = [
           'id'                => $child->id(),
           'slug'              => $child->slug(),
           'title'             => $child->title()->value(),
-          'template'          => $child->intendedTemplate()->name(),
-          'moduleName'        => $child->moduleName(),
-          'icon'              => $child->blueprint()->icon() ?? 'box',
+          'template'          => $templateName,
+          'hasTemplate'       => $hasTemplate,
+          'moduleName'        => $blueprint ? (string) $blueprint->title() : I18n::translate('modules.missingTemplate'),
+          'icon'              => $blueprint ? ($blueprint->icon() ?? 'box') : 'alert',
           'status'            => $child->status(),
-          'hasFields'         => count($child->blueprint()->fields()) > 0,
+          'hasFields'         => $blueprint && count($blueprint->fields()) > 0,
           'hasPendingChanges' => $child->version('changes')->exists('*'),
-          'tabs'              => $child->blueprint()->tabs(),
+          'tabs'              => $blueprint ? $blueprint->tabs() : [],
           'link'              => $child->panel()->url(),
           'permissions'       => [
             'update'     => $child->permissions()->can('update'),

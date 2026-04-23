@@ -87,6 +87,15 @@ class ModuleRegistry
   }
 
   /**
+   * Whether a blueprint is registered for the given intended template name
+   * (e.g. 'module.text')
+   */
+  public static function hasBlueprint(string $template): bool
+  {
+    return isset(self::create()['blueprints']['pages/' . $template]);
+  }
+
+  /**
    * Register a single module into the registry
    */
   public static function add(array $registry, string $name, string $blueprintPath, string $snippetPath): array

@@ -26,7 +26,10 @@
         </button>
       </header>
       <div v-if="contentReady" class="k-module-content">
-        <k-sections v-for="tab in module.tabs" v-show="expanded && activeTab === tab.name" :key="tab.name"
+        <k-empty v-if="module.hasTemplate === false" v-show="expanded" icon="alert" layout="cardlets">
+          {{ $t("modules.missingTemplate.info") }}
+        </k-empty>
+        <k-sections v-else v-for="tab in module.tabs" v-show="expanded && activeTab === tab.name" :key="tab.name"
           :parent="pageUrl" :tab="tab" :content="values" @input="$emit('input', $event)" />
       </div>
       <k-empty v-if="hasError" icon="alert" layout="cardlets" class="k-module-error">
@@ -135,7 +138,7 @@ export default {
             "-",
             {
               icon: "template",
-              label: this.$t("field.blocks.changeType"),
+              label: this.$t("modules.changeType"),
               click: () => this.$emit("change-type"),
             },
             {
