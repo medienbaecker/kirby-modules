@@ -156,6 +156,25 @@ sections:
 <?= $page->modules('sidebar') ?>
 ```
 
+## File Pools
+
+By default, a files field in a module sees only that module's own files. That's okay if you want to add a section to the module, too. Most of the times, you want to use the (grand)parent page's file pool however.
+
+The `filePool` method resolves to the right files collection regardless of where it's called:
+
+- On a **module**, returns the page's files.
+- On any other page, the page's own files.
+- On the site, file, or user, that model's own files.
+
+Use it as the `query` of any files field that should follow this rule:
+
+```yml
+type: files
+query: model.filePool
+```
+
+Then reuse the field anywhere — page, module, site, file, or user blueprints — and the picker always points at the right pool.
+
 ## Config Options
 
 ```php
@@ -171,14 +190,15 @@ return [
 
 ## Template Methods
 
-| Method                      | Description                     |
-| --------------------------- | ------------------------------- |
-| `$page->modules()`          | All modules (default container) |
-| `$page->modules('sidebar')` | Modules from named container    |
-| `$page->hasModules()`       | Page has modules                |
-| `$page->isModule()`         | Page is a module                |
-| `$module->moduleId()`       | CSS class (e.g. `module--text`) |
-| `$module->moduleName()`     | Blueprint title                 |
+| Method                      | Description                                                  |
+| --------------------------- | ------------------------------------------------------------ |
+| `$page->modules()`          | All modules (default container)                              |
+| `$page->modules('sidebar')` | Modules from named container                                 |
+| `$page->hasModules()`       | Page has modules                                             |
+| `$page->isModule()`         | Page is a module                                             |
+| `$page->filePool()`         | Files for blueprint queries (host page if module, else self) |
+| `$module->moduleId()`       | CSS class (e.g. `module--text`)                              |
+| `$module->moduleName()`     | Blueprint title                                              |
 
 ## Custom Models
 

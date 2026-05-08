@@ -29,6 +29,13 @@ Kirby::plugin(
       'modules'       => $pageMethods['modules'],
       'renderModules' => $pageMethods['renderModules'],
       'hasModules'    => $pageMethods['hasModules'],
+      'filePool'      => $pageMethods['filePool'],
+    ],
+    'fileMethods'  => [
+      'filePool'      => $pageMethods['filePool'],
+    ],
+    'userMethods'  => [
+      'filePool'      => $pageMethods['filePool'],
     ],
     'areas'        => require __DIR__ . '/lib/areas.php',
     'commands'     => require __DIR__ . '/lib/commands.php',

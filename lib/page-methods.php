@@ -75,5 +75,18 @@ return [
     $siblings = $this->parent()?->childrenAndDrafts() ?? new Pages();
     $count = $siblings->filterBy('intendedTemplate', $this->intendedTemplate()->name())->count();
     return $count > 0 ? $title . ' ' . ($count + 1) : $title;
+  },
+
+  // Files available to media fields, context-aware:
+  // - on a module page, the host content page's files (parent->parent)
+  // - on a file, walk up to its owner first; if owner is a module, host page applies
+  // - on any other page/site/user, that model's own files
+  // Registered on pageMethods, siteMethods, fileMethods, userMethods (see index.php).
+  'filePool' => function () {
+    $owner = $this instanceof \Kirby\Cms\File ? $this->parent() : $this;
+    if ($owner instanceof \Kirby\Cms\Page && $owner->isModule()) {
+      return $owner->parent()?->parent()?->files() ?? $owner->files();
+    }
+    return $owner->files();
   }
 ];
