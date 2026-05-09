@@ -1,13 +1,12 @@
 <template>
   <div class="k-module" :data-module-id="module.id" :data-status="module.status" :data-selected="selected"
-    :data-disabled="disabled" :tabindex="disabled ? null : 0" role="group" :aria-label="$t('modules.singular') + ' ' + module.moduleName"
-    @focusin.stop="$emit('select')">
+    :data-disabled="disabled" :tabindex="disabled ? null : 0" role="group"
+    :aria-label="$t('modules.singular') + ' ' + module.moduleName" @focusin.stop="$emit('select')">
     <div class="k-module-body" :data-collapsed="!expanded">
       <header class="k-module-header">
         <div class="k-module-title">
           <button class="k-module-toggle" :aria-expanded="String(expanded)"
-            :aria-label="$t('modules.singular') + ' ' + module.moduleName"
-            @click="$emit('toggle')">
+            :aria-label="$t('modules.singular') + ' ' + module.moduleName" @click="$emit('toggle')">
             <k-icon v-if="loading" type="loader" />
             <span v-else class="k-module-icon">
               <k-icon :type="module.icon" />
@@ -15,12 +14,16 @@
             </span>
           </button>
           <span class="k-module-name">{{ module.moduleName }}</span>
-          <button class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug" @click="$emit('change-slug')">
-            #{{ module.slug }}
+          <button class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug"
+            @click="$emit('change-slug')">
+            <span class="k-module-anchor-text">
+              #{{ module.slug }}
+            </span>
           </button>
         </div>
         <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="switchTab" />
-        <button class="k-module-status" :data-status="module.status" :aria-label="isDraft ? $t('publish') : $t('modules.unpublish')" @click.stop="$emit('toggle-visibility')">
+        <button class="k-module-status" :data-status="module.status"
+          :aria-label="isDraft ? $t('publish') : $t('modules.unpublish')" @click.stop="$emit('toggle-visibility')">
           <span>{{ isDraft ? $t("page.status.draft") : $t("page.status.listed") }}</span>
           <k-icon :type="isDraft ? 'hidden' : 'preview'" />
         </button>
@@ -198,7 +201,11 @@ export default {
   scroll-margin-block-start: var(--header-sticky-offset);
 
   &[data-status="draft"] {
-    --module-color-back: color-mix(in srgb, light-dark(var(--color-white), var(--color-gray-850)), transparent 50%);
+    --module-color-back: repeating-linear-gradient(45deg,
+        light-dark(var(--color-white), var(--color-gray-850)),
+        light-dark(var(--color-white), var(--color-gray-850)) 1rem,
+        transparent 1rem,
+        transparent 2rem);
     box-shadow: none;
   }
 
@@ -317,6 +324,13 @@ export default {
   }
 }
 
+.k-module-anchor-text {
+  white-space: nowrap;
+  max-inline-size: 7rem;
+  overflow-x: clip;
+  text-overflow: ellipsis;
+}
+
 /* Tabs */
 
 .k-module-tabs {
@@ -330,6 +344,7 @@ export default {
 /* Status */
 
 .k-module-status {
+  z-index: 2;
   justify-self: end;
 
   display: flex;
@@ -364,10 +379,6 @@ export default {
   padding: var(--spacing-6) var(--spacing-6) var(--spacing-8);
   margin: 0 var(--spacing-3);
   container: column / inline-size;
-
-  >.k-grid {
-    gap: var(--spacing-6);
-  }
 }
 
 .k-module-error {
