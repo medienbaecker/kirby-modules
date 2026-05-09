@@ -204,8 +204,8 @@ export default {
     --module-color-back: repeating-linear-gradient(45deg,
         light-dark(var(--color-white), var(--color-gray-850)),
         light-dark(var(--color-white), var(--color-gray-850)) 1rem,
-        transparent 1rem,
-        transparent 2rem);
+        light-dark(color-mix(in srgb, var(--color-white), transparent 50%), color-mix(in srgb, var(--color-gray-850), transparent 25%)) 1rem,
+        light-dark(color-mix(in srgb, var(--color-white), transparent 50%), color-mix(in srgb, var(--color-gray-850), transparent 25%)) 2rem);
     box-shadow: none;
   }
 
