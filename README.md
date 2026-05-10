@@ -171,9 +171,11 @@ Use it as the `query` of any files field that should follow this rule:
 ```yml
 type: files
 query: model.filePool
+uploads:
+  parent: model.filePool.parent
 ```
 
-Then reuse the field anywhere — page, module, site, file, or user blueprints — and the picker always points at the right pool.
+To access the page of the file pool, you can use `model.filePool.parent`, as shown in the `uploads` option.
 
 ## Config Options
 
