@@ -16,6 +16,8 @@
   "missingTemplate.info": "The blueprint for this module type no longer exists. Change the type or delete the module.",
   "unpublish": "Unpublish",
   "deleteAll.confirm": "Do you really want to delete all modules?",
+  "lock.applyFailed": "Some modules couldn't be saved because another user is editing them. The list has been refreshed.",
+  "lock.heldBy": "Locked by {user}",
   "license.info": "Don't have a licence key yet? <a href='{{ url }}' target='_blank'>Buy a licence</a>",
   "license.licensed": "Licensed",
   "license.activate": "Activate licence",

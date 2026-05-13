@@ -1,21 +1,45 @@
 <template>
   <div class="k-module" :data-module-id="module.id" :data-status="module.status" :data-selected="selected"
-    :data-disabled="disabled" :tabindex="disabled ? null : 0" role="group"
+    :data-disabled="disabled" tabindex="0" role="group"
     :aria-label="$t('modules.singular') + ' ' + module.moduleName" @focusin.stop="$emit('select')">
     <div class="k-module-body" :data-collapsed="!expanded">
       <header class="k-module-header">
         <div class="k-module-title">
-          <button class="k-module-toggle" :aria-expanded="String(expanded)"
-            :aria-label="$t('modules.singular') + ' ' + module.moduleName" @click="$emit('toggle')">
+          <button class="k-module-toggle" :class="{ 'k-module-toggle-locked': isLockedByOther }"
+            :aria-expanded="String(expanded)" :title="isLockedByOther ? lockTitle : null"
+            :aria-label="isLockedByOther ? lockTitle : $t('modules.singular') + ' ' + module.moduleName"
+            @click="onToggleClick">
             <k-icon v-if="loading" type="loader" />
+            <k-icon v-else-if="isLockedByOther" type="lock" />
             <span v-else class="k-module-icon">
               <k-icon :type="module.icon" />
               <k-icon :type="expanded ? 'angle-up' : 'angle-down'" />
             </span>
           </button>
+          <k-dropdown-content v-if="isLockedByOther" ref="lockDropdown" class="k-form-controls-dropdown"
+            align-x="start">
+            <p>{{ $t("form.locked") }}</p>
+            <template v-if="lockUser || lockModified">
+              <hr>
+              <dl>
+                <div v-if="lockUser">
+                  <dt><k-icon type="user" /></dt>
+                  <dd>{{ lockUser }}</dd>
+                </div>
+                <div v-if="lockModified">
+                  <dt><k-icon type="clock" /></dt>
+                  <dd>{{ lockModified }}</dd>
+                </div>
+              </dl>
+            </template>
+            <hr>
+            <k-dropdown-item :link="module.link + '/preview/changes'" icon="window" target="_blank">
+              {{ $t("form.preview") }}
+            </k-dropdown-item>
+          </k-dropdown-content>
           <span class="k-module-name">{{ module.moduleName }}</span>
           <button class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug"
-            @click="$emit('change-slug')">
+            :disabled="!permissions.changeSlug" @click="$emit('change-slug')">
             <span class="k-module-anchor-text">
               #{{ module.slug }}
             </span>
@@ -23,7 +47,8 @@
         </div>
         <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="switchTab" />
         <button class="k-module-status" :data-status="module.status"
-          :aria-label="isDraft ? $t('publish') : $t('modules.unpublish')" @click.stop="$emit('toggle-visibility')">
+          :aria-label="isDraft ? $t('publish') : $t('modules.unpublish')"
+          :disabled="!permissions.changeStatus" @click.stop="$emit('toggle-visibility')">
           <span>{{ isDraft ? $t("page.status.draft") : $t("page.status.listed") }}</span>
           <k-icon :type="isDraft ? 'hidden' : 'preview'" />
         </button>
@@ -40,7 +65,7 @@
       </k-empty>
     </div>
 
-    <k-toolbar v-if="selected && !disabled" :buttons="toolbar" data-inline="true" class="k-module-toolbar"
+    <k-toolbar v-if="selected" :buttons="toolbar" data-inline="true" class="k-module-toolbar"
       @mousedown.native.prevent />
   </div>
 </template>
@@ -66,12 +91,30 @@ export default {
     isDraft() {
       return this.module.status === "draft";
     },
-    // Locked by another, no update permission or translate: false
+    isLockedByOther() {
+      return Boolean(this.module.lock?.isLocked);
+    },
+    permissions() {
+      return this.module.permissions || {};
+    },
     disabled() {
-      return (
-        (this.module.lock && this.module.lock.isLocked) ||
-        !(this.module.permissions && this.module.permissions.update)
-      );
+      return !this.permissions.update;
+    },
+    lockUser() {
+      const user = this.module.lock?.user;
+      return user?.name || user?.email || "";
+    },
+    lockTitle() {
+      return this.$t("modules.lock.heldBy", { user: this.lockUser });
+    },
+    lockModified() {
+      const m = this.module.lock?.modified;
+      if (!m) return null;
+      try {
+        return this.$library.dayjs(m).format("YYYY-MM-DD HH:mm:ss");
+      } catch {
+        return m;
+      }
     },
     // Gate rendering until field values are loaded
     contentReady() {
@@ -86,8 +129,8 @@ export default {
       return this.module.tabs.map(({ link, ...tab }) => tab);
     },
 
-    // --- Toolbar buttons (primary) + dots dropdown (full action set) ---
     toolbar() {
+      const p = this.permissions;
       return [
         {
           icon: "edit",
@@ -98,6 +141,7 @@ export default {
           icon: "open",
           title: this.$t("preview"),
           click: () => window.open(this.module.previewUrl, "_blank"),
+          disabled: !p.preview,
         }] : []),
         {
           icon: "add",
@@ -108,12 +152,14 @@ export default {
           icon: "trash",
           title: this.$t("delete"),
           click: () => this.$emit("remove"),
+          disabled: !p.delete,
         },
         // Sort handle: drag target + keyboard ArrowUp/ArrowDown
         {
           icon: "sort",
           title: this.$t("sort"),
           class: "k-sort-handle",
+          disabled: !p.sort,
           key: (e) => {
             if (e.key === "ArrowUp") { e.preventDefault(); this.$emit("sort", -1); }
             if (e.key === "ArrowDown") { e.preventDefault(); this.$emit("sort", 1); }
@@ -131,28 +177,33 @@ export default {
               icon: this.isDraft ? "preview" : "hidden",
               label: this.isDraft ? this.$t("publish") : this.$t("modules.unpublish"),
               click: () => this.$emit("toggle-visibility"),
+              disabled: !p.changeStatus,
             },
             ...(this.module.previewUrl ? [{
               icon: "open",
               label: this.$t("preview"),
               link: this.module.previewUrl,
               target: "_blank",
+              disabled: !p.preview,
             }] : []),
             "-",
             {
               icon: "template",
               label: this.$t("modules.changeType"),
               click: () => this.$emit("change-type"),
+              disabled: !p.changeTemplate,
             },
             {
               icon: "hash",
               label: this.$t("modules.changeAnchor"),
               click: () => this.$emit("change-slug"),
+              disabled: !p.changeSlug,
             },
             {
               icon: "copy",
               label: this.$t("duplicate"),
               click: () => this.$emit("duplicate"),
+              disabled: !p.duplicate,
             },
             "-",
             {
@@ -176,6 +227,7 @@ export default {
               icon: "trash",
               label: this.$t("delete"),
               click: () => this.$emit("remove"),
+              disabled: !p.delete,
             },
           ],
         },
@@ -185,6 +237,13 @@ export default {
   methods: {
     switchTab(tabName) {
       this.currentTab = tabName;
+    },
+    onToggleClick() {
+      if (this.isLockedByOther) {
+        this.$refs.lockDropdown.toggle();
+      } else {
+        this.$emit("toggle");
+      }
     },
   },
 };
@@ -214,9 +273,14 @@ export default {
   }
 
   &[data-disabled="true"] {
-    /* TODO: more accessible disabled state? */
-    pointer-events: none;
-    opacity: 0.5;
+    .k-fields-section {
+      opacity: 0.2;
+      pointer-events: none;
+    }
+
+    .k-module-toggle-locked {
+      color: var(--color-red-700);
+    }
   }
 
   &:is(.k-sortable-ghost, .k-sortable-fallback) .k-module-body {
@@ -318,8 +382,8 @@ export default {
   padding-inline: var(--spacing-3);
   z-index: 1;
 
-  &:hover,
-  &:focus-visible {
+  &:not(:disabled):hover,
+  &:not(:disabled):focus-visible {
     color: var(--color-text);
   }
 }
@@ -365,8 +429,8 @@ export default {
     clip: rect(0, 0, 0, 0);
   }
 
-  &:hover,
-  &:focus-visible {
+  &:not(:disabled):hover,
+  &:not(:disabled):focus-visible {
     color: var(--color-text);
   }
 }

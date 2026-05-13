@@ -1,5 +1,6 @@
 <?php
 
+use Kirby\Content\LockedContentException;
 use Kirby\Filesystem\Dir;
 use Kirby\Form\Form;
 use Kirby\Http\Uri;
@@ -165,6 +166,20 @@ return [
         $hasTemplate = ModuleRegistry::hasBlueprint($templateName);
         $blueprint = $hasTemplate ? $child->blueprint() : null;
 
+        // Kirby's native `sort` is false for drafts (no num). Our sort
+        // endpoint reorders drafts via the moduleSort field, so any user
+        // who can update can also reorder.
+        $permissions = $child->panel()->options(['preview']);
+        $permissions['sort'] = $permissions['update'];
+
+        $lock = $child->lock();
+        $lockData = $lock?->toArray();
+        if ($lockData && $lockData['isLocked'] && $lockUser = $lock->user()) {
+          $lockData['user']['name'] = $lockUser->name()->isNotEmpty()
+            ? $lockUser->name()->value()
+            : $lockUser->email();
+        }
+
         $modules[] = [
           'id'                => $child->id(),
           'slug'              => $child->slug(),
@@ -178,12 +193,8 @@ return [
           'hasPendingChanges' => $child->version('changes')->exists('*'),
           'tabs'              => $blueprint ? $blueprint->tabs() : [],
           'link'              => $child->panel()->url(),
-          'permissions'       => [
-            'update'     => $child->permissions()->can('update'),
-            'delete'     => $child->permissions()->can('delete'),
-            'changeSort' => $child->permissions()->can('sort'),
-          ],
-          'lock' => $child->lock()?->toArray(),
+          'permissions'       => $permissions,
+          'lock'              => $lockData,
 
           // Signed preview URL for drafts (token + _module param)
           'previewUrl' => $child->isDraft()
@@ -212,6 +223,13 @@ return [
       return $child;
     };
 
+    $ensureNotLocked = function ($child) {
+      $lock = $child->lock();
+      if ($lock?->isLocked()) {
+        throw new LockedContentException($lock);
+      }
+    };
+
     return [
       // Load form fields and values for inline editing
       [
@@ -220,7 +238,6 @@ return [
         'action'  => function (string $childId) use ($resolveModule) {
           $child = $resolveModule($childId);
 
-          // Use pending changes if they exist, otherwise published content
           $language = kirby()->language()?->code() ?? 'default';
           if ($child->version('changes')->exists($language)) {
             $values = $child->version('changes')->content($language)->toArray();
@@ -244,12 +261,10 @@ return [
           $child = $resolveModule($childId);
           $duplicate = $child->duplicate(null, ['files' => true]);
 
-          // Preserve in-progress inline edits: Kirby's duplicate() skips
-          // subdirectories by default, so the _changes/ version dir isn't
-          // copied. _changes isn't semantically a "child" page, so using
-          // children: true to drag it along would be a misnomer.
+          // Carry over in-progress inline edits unless they belong to
+          // another user (whose `Lock:` field would otherwise be cloned).
           $changesDir = $child->root() . '/_changes';
-          if (is_dir($changesDir)) {
+          if (is_dir($changesDir) && !$child->lock()?->isLocked()) {
             Dir::copy($changesDir, $duplicate->root() . '/_changes');
           }
 
@@ -270,13 +285,18 @@ return [
         'method'  => 'POST',
         'action'  => function () {
           $ids = $this->requestBody('ids');
+
           $lastListedNum = 0;
           $draftCounter = 0;
           foreach ($ids as $id) {
             if ($page = kirby()->page($id)) {
+              // Advance the counters past locked pages so unlocked ones
+              // slot into the correct positions around them, but skip the
+              // actual write (it would 423 through the lock gate).
+              $locked = $page->lock()?->isLocked();
               if ($page->isDraft()) {
-                // Drafts get fractional sort values (e.g. 3.001, 3.002)
                 $draftCounter++;
+                if ($locked) continue;
                 kirby()->impersonate('kirby', function () use ($page, $lastListedNum, $draftCounter) {
                   $defaultLanguage = kirby()->defaultLanguage()?->code();
                   $page->update(['moduleSort' => $lastListedNum + $draftCounter * 0.001], $defaultLanguage);
@@ -284,6 +304,7 @@ return [
               } else {
                 $lastListedNum++;
                 $draftCounter = 0;
+                if ($locked) continue;
                 $page->changeStatus('listed', $lastListedNum);
               }
             }
@@ -296,9 +317,12 @@ return [
       [
         'pattern' => 'deleteAll',
         'method'  => 'POST',
-        'action'  => function () {
+        'action'  => function () use ($ensureNotLocked) {
           $modulesPage = $this->section()->model()->find($this->section()->name());
           if ($modulesPage) {
+            foreach ($modulesPage->childrenAndDrafts() as $child) {
+              $ensureNotLocked($child);
+            }
             foreach ($modulesPage->childrenAndDrafts() as $child) {
               $child->delete(true);
             }
@@ -311,8 +335,9 @@ return [
       [
         'pattern' => 'toggle-visibility/(:any)',
         'method'  => 'POST',
-        'action'  => function (string $childId) use ($resolveModule) {
+        'action'  => function (string $childId) use ($resolveModule, $ensureNotLocked) {
           $child = $resolveModule($childId);
+          $ensureNotLocked($child);
           kirby()->impersonate('kirby');
 
           if ($child->isDraft()) {

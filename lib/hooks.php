@@ -35,5 +35,14 @@ return [
     if ($allowed && !in_array($page->intendedTemplate()->name(), $allowed)) {
       throw new \Kirby\Exception\PermissionException(t('modules.move.notallowed'));
     }
+  },
+
+  // Kirby's DELETE /api/pages/{id} route doesn't gate on the changes lock.
+  'page.delete:before' => function ($page) {
+    if (!$page->isModule()) return;
+    $lock = $page->lock();
+    if ($lock?->isLocked()) {
+      throw new \Kirby\Content\LockedContentException($lock);
+    }
   }
 ];

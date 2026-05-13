@@ -264,7 +264,7 @@ export default {
 
       // Server-side _changes not tracked locally (e.g. from a previous session)
       this.serverPendingIds = this.modules
-        .filter((m) => m.hasPendingChanges && !this.changes[m.id])
+        .filter((m) => m.hasPendingChanges && !this.changes[m.id] && !m.lock?.isLocked)
         .map((m) => m.id);
       const hasLocalChanges = Object.keys(this.changes).length > 0;
 
@@ -458,11 +458,14 @@ export default {
         this.$delete(this.changes, module.id);
         this.$api.post(this.pageUrl(module.id) + "/changes/discard", null, { silent: true }).catch(() => { });
       } else {
-        this.$set(this.changes, module.id, values);
         try {
           await this.$api.post(this.pageUrl(module.id) + "/changes/save", values, { silent: true });
+          // Commit local state only after the server accepts; otherwise a
+          // 423 leaves the parent dirty with nothing the user can publish.
+          this.$set(this.changes, module.id, values);
         } catch (e) {
           this.handleError(e);
+          return;
         }
       }
 
@@ -492,23 +495,54 @@ export default {
           return;
         }
 
-        await Promise.all(
+        const results = await Promise.allSettled(
           allIds.map((moduleId) =>
-            this.$api
-              .post(this.pageUrl(moduleId) + "/changes/" + action)
-              .catch(() => { }),
+            this.$api.post(this.pageUrl(moduleId) + "/changes/" + action),
           ),
         );
 
-        this.changes = {};
-        this.serverPendingIds = [];
+        const succeeded = [];
+        const lockFailed = [];
+        const otherFailed = [];
+        results.forEach((result, i) => {
+          const id = allIds[i];
+          if (result.status === "fulfilled") succeeded.push(id);
+          else if (result.reason?.details?.isLocked) lockFailed.push(id);
+          else otherFailed.push({ id, reason: result.reason });
+        });
 
-        // Reload fields for expanded modules to reflect the new state
-        await Promise.all(
-          this.modules
-            .filter((m) => allIds.includes(m.id) && this.expanded[m.id] && m.hasFields)
-            .map((m) => this.loadFields(m)),
+        for (const id of succeeded) this.$delete(this.changes, id);
+        this.serverPendingIds = this.serverPendingIds.filter(
+          (id) => !succeeded.includes(id),
         );
+
+        if (lockFailed.length > 0) {
+          this.$panel.notification.error(this.$t("modules.lock.applyFailed"));
+        }
+        for (const { id, reason } of otherFailed) {
+          const name = this.modules.find((m) => m.id === id)?.moduleName || id;
+          this.$panel.notification.error({
+            message: `${name}: ${reason?.message || this.$t("error")}`,
+            details: reason?.details,
+          });
+        }
+
+        if (lockFailed.length > 0 || otherFailed.length > 0) {
+          await this.fetch();
+          const firstFailed = lockFailed[0] || otherFailed[0]?.id;
+          if (firstFailed) this.revealModule(firstFailed);
+        } else {
+          // Reload fields for expanded modules to reflect the new state
+          await Promise.all(
+            this.modules
+              .filter((m) => succeeded.includes(m.id) && this.expanded[m.id] && m.hasFields)
+              .map((m) => this.loadFields(m)),
+          );
+
+          if (Object.keys(this.changes).length === 0 && this.serverPendingIds.length === 0) {
+            this.undirtyParent();
+          }
+        }
       } finally {
         this._isApplying = false;
       }
@@ -591,6 +625,15 @@ export default {
     select(module) {
       this.selectedModule = module.id;
     },
+    async revealModule(id) {
+      const module = this.modules.find((m) => m.id === id);
+      if (!module) return;
+      if (!this.expanded[id]) await this.toggle(module);
+      await this.$nextTick();
+      const el = this.$el.querySelector(`[data-module-id="${id}"]`);
+      el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      el?.focus();
+    },
     onClickOutside(e) {
       const clickedModule = e.target.closest(".k-module");
       if (clickedModule && this.$el.contains(clickedModule)) return;
@@ -605,7 +648,11 @@ export default {
       return api?.replace(/^\//, "") === this.parent.replace(/^\//, "");
     },
     handleError(e) {
-      this.$panel.notification.error(e.message || this.$t("error"));
+      if (e?.details?.isLocked) {
+        this.fetch();
+        return;
+      }
+      this.$panel.notification.error(e?.message || this.$t("error"));
     },
     encodeId(id) {
       return id.replace(/\//g, "+");
