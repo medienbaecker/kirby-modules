@@ -318,12 +318,13 @@ export default {
 .k-module-header {
   display: grid;
   grid-template-columns:
-    minmax(var(--side-width, 0px), auto) minmax(0, 1fr) minmax(var(--side-width, 0px), auto);
+    [title] minmax(var(--side-width, 0px), auto) [tabs] minmax(0, 1fr) [visibility] minmax(var(--side-width, 0px), auto);
   gap: var(--spacing-2);
   height: var(--drawer-header-height);
 }
 
 .k-module-title {
+  grid-column: title;
   display: flex;
   justify-self: start;
   gap: var(--spacing-2);
@@ -401,6 +402,7 @@ export default {
 }
 
 .k-module-tabs {
+  grid-column: tabs;
   min-width: 0;
 
   /* Double class needed for specificity over Kirby's drawer-tabs default. */
@@ -410,6 +412,7 @@ export default {
 }
 
 .k-module-visibility {
+  grid-column: visibility;
   z-index: 2;
   justify-self: end;
 
