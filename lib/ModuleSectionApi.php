@@ -203,8 +203,9 @@ class ModuleSectionApi
 
   // Mirror to _changes too — Version::publish overwrites latest with the
   // changes content, so a pending publish would otherwise undo the toggle.
-  private static function writeHidden(Page $child, ?string $value, string $language): Page
+  private static function writeHidden(Page $child, ?string $value, ?string $language): Page
   {
+    $language ??= 'default';
     // Re-assign $child: update() moves the previous instance to immutable storage.
     $child = $child->update(['hidden' => $value], $language);
 
