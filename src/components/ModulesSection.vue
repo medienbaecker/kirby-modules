@@ -28,23 +28,14 @@ export default {
     "k-module-card": ModuleCard,
   },
 
-  // ---------------------------------------------------------------
-  // Props from Kirby's section system
-  // ---------------------------------------------------------------
-
   props: {
     name: String,
     parent: String,
     timestamp: Number,
   },
 
-  // ---------------------------------------------------------------
-  // State
-  // ---------------------------------------------------------------
-
   data() {
     return {
-      // From server (toArray response)
       headline: "",
       modules: [],
       empty: "",
@@ -53,14 +44,12 @@ export default {
       min: null,
       max: null,
 
-      // Client-side tracking maps (keyed by module ID)
       expanded: {},
       fieldData: {},
       changes: {},
       serverPendingIds: [],
       loadingModules: {},
 
-      // UI state
       isLoading: true,
       selectedModule: null,
       pendingInsertPosition: null,
@@ -68,10 +57,6 @@ export default {
       dragOptions: { handle: ".k-sort-handle" },
     };
   },
-
-  // ---------------------------------------------------------------
-  // Computed
-  // ---------------------------------------------------------------
 
   computed: {
     sectionUrl() {
@@ -132,20 +117,16 @@ export default {
     },
   },
 
-  // ---------------------------------------------------------------
-  // Lifecycle
-  // ---------------------------------------------------------------
-
   watch: {
     timestamp() {
       this.fetch();
     },
   },
   created() {
-    // Track content language for cache invalidation on language switch
+    // Captured for cache invalidation on language switch in fetch().
     this._language = this.$panel.language?.code;
 
-    // Ensure the container page exists (section name = container slug)
+    // Section name = container slug; create it on first mount if missing.
     this.$api.post(this.sectionUrl + "/create-container").then(() => this.fetch());
 
     // Bridge module changes into the parent page's publish/discard flow.
@@ -168,17 +149,10 @@ export default {
     document.removeEventListener("mousedown", this.onClickOutside);
   },
 
-  // ---------------------------------------------------------------
-  // Methods
-  // ---------------------------------------------------------------
-
   methods: {
-
-    // --- Data fetching ---------------------------------------------------
 
     async fetch() {
       try {
-        // Clear field cache when content language changes
         const lang = this.$panel.language?.code;
         if (this._language !== undefined && this._language !== lang) {
           this.fieldData = {};
@@ -186,7 +160,6 @@ export default {
         }
         this._language = lang;
 
-        // Snapshot current state for change detection after refresh
         const previousIds = new Set(this.modules.map((m) => m.id));
         const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
 
@@ -199,7 +172,6 @@ export default {
         this.min = response.options.min;
         this.max = response.options.max;
 
-        // Discard stale data when a module's type was changed
         for (const module of this.modules) {
           const prev = previousTemplates.get(module.id);
           if (prev && prev !== module.template) {
@@ -244,8 +216,6 @@ export default {
       }
     },
 
-    // Prune all tracking maps against current modules and derive dirty state.
-    // Handles deleted modules, type changes, and orphaned server-side _changes.
     reconcileState() {
       const currentIds = new Set(this.modules.map((m) => m.id));
 
@@ -275,7 +245,6 @@ export default {
       }
     },
 
-    // Insert newly created module at the requested position and focus it
     positionNewModule(previousIds) {
       if (this.pendingInsertPosition == null) return;
 
@@ -320,7 +289,6 @@ export default {
       this.pendingInsertPosition = null;
     },
 
-    // Load form fields + values for inline editing
     async loadFields(module) {
       try {
         const response = await this.$api.get(
@@ -328,15 +296,13 @@ export default {
         );
         this.$set(this.fieldData, module.id, {
           values: response.values,
-          original: JSON.stringify(response.values), // Snapshot for revert detection
+          original: JSON.stringify(response.values),
         });
       } catch (e) {
         this.handleError(e);
         this.$set(this.fieldData, module.id, { error: true });
       }
     },
-
-    // --- Module actions --------------------------------------------------
 
     add(position = -1) {
       if (!this.canAdd) return;
@@ -390,7 +356,6 @@ export default {
       });
     },
 
-    // Keyboard sorting (ArrowUp/ArrowDown on the sort handle)
     async sortModule(module, direction) {
       const index = this.modules.findIndex((m) => m.id === module.id);
       const target = index + direction;
@@ -407,7 +372,6 @@ export default {
       if (el) el.focus();
     },
 
-    // Persist sort order to server
     async onSort() {
       const ids = this.modules.map((m) => m.id);
       try {
@@ -419,13 +383,10 @@ export default {
     },
 
     async toggleVisibility(module) {
-      const ids = this.modules.map((m) => m.id);
       try {
         await this.$api.post(
           this.sectionUrl + "/toggle-visibility/" + this.encodeId(module.id),
         );
-        // Re-send sort order — Kirby re-sorts by status after visibility change
-        await this.$api.post(this.sectionUrl + "/sort", { ids });
         await this.fetch();
         this.$nextTick(() => {
           const el = this.$el.querySelector(`[data-module-id="${module.id}"]`);
@@ -444,17 +405,13 @@ export default {
       });
     },
 
-    // --- Field change tracking -------------------------------------------
-    // Modules are child pages with their own content files.
-    // Changes are saved to each module's _changes version immediately,
+    // Module changes are saved to each module's _changes version immediately,
     // then published/discarded when the parent page is saved/discarded.
-
     async onInput(module, values) {
       const data = this.fieldData[module.id];
       const unchanged = data?.original && JSON.stringify(values) === data.original;
 
       if (unchanged) {
-        // User reverted to original — discard the server draft
         this.$delete(this.changes, module.id);
         this.$api.post(this.pageUrl(module.id) + "/changes/discard", null, { silent: true }).catch(() => { });
       } else {
@@ -477,7 +434,7 @@ export default {
       }
     },
 
-    // Publish or discard all pending module changes (triggered by parent Save/Discard)
+    // Triggered by parent page Save/Discard.
     async applyChanges(action) {
       if (this._isApplying) return;
       this._isApplying = true;
@@ -532,7 +489,6 @@ export default {
           const firstFailed = lockFailed[0] || otherFailed[0]?.id;
           if (firstFailed) this.revealModule(firstFailed);
         } else {
-          // Reload fields for expanded modules to reflect the new state
           await Promise.all(
             this.modules
               .filter((m) => succeeded.includes(m.id) && this.expanded[m.id] && m.hasFields)
@@ -554,8 +510,7 @@ export default {
         || {};
     },
 
-    // Dirty/undirty the parent page's Save/Discard buttons.
-    // Key is scoped per section name to support multiple modules sections.
+    // Section-scoped key — multiple modules sections on one page dirty independently.
     dirtyParent() {
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: String(Date.now()) });
     },
@@ -563,9 +518,7 @@ export default {
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: undefined });
     },
 
-    // --- Expand/collapse -------------------------------------------------
-    // Persisted to localStorage per page + section name.
-
+    // Collapsed state persists in localStorage per page + section name.
     async toggle(module) {
       if (this.expanded[module.id]) {
         this.$set(this.expanded, module.id, false);
@@ -620,8 +573,6 @@ export default {
       this.saveCollapsedState();
     },
 
-    // --- UI helpers -------------------------------------------------------
-
     select(module) {
       this.selectedModule = module.id;
     },
@@ -640,8 +591,6 @@ export default {
       if (e.target.closest(".k-dialog, .k-drawer")) return;
       this.selectedModule = null;
     },
-
-    // --- Utilities --------------------------------------------------------
 
     // SiteView passes parent="site" (no slash) but content events use "/site"
     isParentApi(api) {

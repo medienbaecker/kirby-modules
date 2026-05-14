@@ -2,12 +2,9 @@
 
 namespace Medienbaecker\Modules;
 
+use Kirby\Cms\Find;
 use Kirby\Panel\PageCreateDialog;
 
-/**
- * Custom create dialog that adds a template picker
- * and reframes the slug field as an optional anchor
- */
 class ModuleCreateDialog
 {
   public static function load(): array
@@ -35,10 +32,13 @@ class ModuleCreateDialog
       uuid: $request->get('uuid'),
     ))->load();
 
-    // Use custom Vue component with template picker
     $result['component'] = 'k-module-create-dialog';
 
-    // Turn slug into an optional anchor field with # prefix
+    $status = option('medienbaecker.modules.autopublish', false) === true
+      ? t('modules.visible')
+      : t('modules.hidden');
+    $result['props']['submitButton'] = tt('page.create', ['status' => $status]);
+
     $slug = ModuleRegistry::generateSlug(
       $request->get('parent') ?? '',
       $result['props']['template'] ?? ''
@@ -59,7 +59,6 @@ class ModuleCreateDialog
   {
     $input = kirby()->request()->body()->toArray();
 
-    // Auto-generate slug if left empty
     if (empty($input['slug'])) {
       $input['slug'] = ModuleRegistry::generateSlug(
         $input['parent'] ?? '',
@@ -67,11 +66,24 @@ class ModuleCreateDialog
       );
     }
 
-    return (new PageCreateDialog(
+    $response = (new PageCreateDialog(
       parentId: $input['parent'] ?? null,
       sectionId: $input['section'] ?? null,
       template: $input['template'] ?? null,
       viewId: $input['view'] ?? null,
     ))->submit($input);
+
+    if (option('medienbaecker.modules.autopublish', false) !== true) {
+      $parent = Find::parent($input['parent'] ?? 'site');
+      $page = $parent->find($input['slug']);
+      if ($page) {
+        kirby()->impersonate(
+          'kirby',
+          fn() => $page->update(['hidden' => 'true'], kirby()->defaultLanguage()?->code())
+        );
+      }
+    }
+
+    return $response;
   }
 }

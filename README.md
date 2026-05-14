@@ -13,7 +13,7 @@ Kirby Modules is a commercial plugin. You can use it for free on local environme
 ## Features
 
 - Edit module fields inline on the parent page with a blocks-like UI
-- Draft previews for individual modules
+- Signed previews for hidden modules
 - Great performance with large numbers of modules
 - Robust multilanguage behaviour
 - Automatic container page creation, separating modules from regular subpages
@@ -115,11 +115,11 @@ Use `$module->slug()` as the element ID in your module snippet:
 
 The slug is editable in the Panel via the `#anchor` button on each module card or the "Change anchor" button in the toolbar's dropdown.
 
-## Drafts
+## Visibility
 
-Module status can be toggled between draft and listed with a single click. Drafts can be freely positioned between listed modules.
+Each module's visibility can be toggled with a single click on its card. Hidden modules stay in place — they keep their sort position and any inline edits — but the frontend skips over them when iterating `$page->modules()`. The card shows a striped background while a module is hidden.
 
-Each draft module gets a signed preview URL for authenticated frontend previews without Panel login. A preview button appears in the module's toolbar when the module is a draft.
+Hidden modules get a signed preview URL (token + `_module` query param) so authors can verify them on the live URL without Panel login. The preview button appears in the card's toolbar only while the module is hidden — visible modules render via their parent's URL.
 
 ## Section Options
 
@@ -162,7 +162,7 @@ By default, a files field in a module sees only that module's own files. That's 
 
 The `filePool` method resolves to the right files collection regardless of where it's called:
 
-- On a **module**, returns the page's files.
+- On a **module**, returns the host page's files (the module's grandparent — the page that owns the modules container).
 - On any other page, the page's own files.
 - On the site, file, or user, that model's own files.
 
@@ -182,8 +182,8 @@ To access the page of the file pool, you can use `model.filePool.parent`, as sho
 ```php
 // site/config/config.php
 return [
-  // Auto-publish new modules (default: draft)
-  'medienbaecker.modules.create.status' => 'listed',
+  // Auto-publish new modules (default: false → created hidden). Set true to create visible.
+  'medienbaecker.modules.autopublish' => true,
 
   // Redirect to module page after creation (default: false)
   'medienbaecker.modules.create.redirect' => true,

@@ -5,42 +5,103 @@ namespace Medienbaecker\Modules;
 use Kirby\Cms\Page;
 use Kirby\Cms\Pages;
 use Kirby\Cms\Site;
+use Kirby\Content\Field;
 use Kirby\Content\VersionId;
+use Kirby\Http\Uri;
 use Medienbaecker\Modules\ModuleRegistry;
 
 class ModulePage extends Page
 {
-  /**
-   * Redirect to parent page with preview params instead of rendering
-   */
+  public function previewUrl(VersionId|string $versionId = 'latest'): string|null
+  {
+    $language = kirby()->defaultLanguage()?->code();
+    if (!$this->content($language)->hidden()->toBool()) {
+      return parent::previewUrl($versionId);
+    }
+
+    if ($this->permissions()->can('preview') !== true) {
+      return null;
+    }
+
+    $isChanges = $versionId instanceof VersionId
+      ? $versionId->is('changes')
+      : $versionId === 'changes';
+
+    $query = [
+      '_token'  => $this->version($versionId)->previewToken(),
+      '_module' => $this->slug(),
+    ];
+    if ($isChanges) {
+      $query['_version'] = 'changes';
+    }
+
+    return (new Uri($this->page()->url(), [
+      'query'    => $query,
+      'fragment' => $this->slug(),
+    ]))->toString();
+  }
+
   public function render(
     array $data = [],
     $contentType = 'html',
     VersionId|string|null $versionId = null
   ): string {
     $parentUrl = $this->page()->url();
+    $query = [];
 
-    if ($this->isDraft()) {
-      $parentUrl .= '?_module=' . $this->slug();
-      if ($token = get('_token')) {
-        $parentUrl .= '&_token=' . $token;
-      }
+    $language = kirby()->defaultLanguage()?->code();
+    $hidden = $this->content($language)->hidden()->toBool();
+    $token = (string) get('_token');
+    $version = (string) get('_version');
+
+    if ($hidden) {
+      $query['_module'] = $this->slug();
+      if ($token !== '') $query['_token'] = $token;
+    }
+
+    if ($version === 'changes' && $token !== '') {
+      $query['_module'] = $this->slug();
+      $query['_token']  = $token;
+      $query['_version'] = $version;
+    }
+
+    if (!empty($query)) {
+      $parentUrl .= '?' . http_build_query($query);
     }
 
     go($parentUrl . '#' . $this->slug());
   }
 
-  /**
-   * Render the module's snippet to HTML
-   */
   public function toHtml(array $params = []): string
   {
     $name = str_replace('module.', '', $this->intendedTemplate()->name());
-    return snippet('modules/' . $name, [
-      'page' => $this->parents()->first() ?? $this->site(),
-      'module' => $this,
-      ...$params
-    ], true);
+
+    // Force the changes version during a verified preview so authors see
+    // pending edits before publish.
+    $previousRender = VersionId::$render;
+    if ($this->isChangesPreviewRequest()) {
+      VersionId::$render = VersionId::changes();
+    }
+
+    try {
+      return snippet('modules/' . $name, [
+        'page' => $this->parents()->first() ?? $this->site(),
+        'module' => $this,
+        ...$params
+      ], true);
+    } finally {
+      VersionId::$render = $previousRender;
+    }
+  }
+
+  private function isChangesPreviewRequest(): bool
+  {
+    if (get('_module') !== $this->slug()) return false;
+    if (get('_version') !== 'changes') return false;
+    $token = (string) get('_token');
+    if ($token === '') return false;
+    $expected = $this->version('changes')->previewToken();
+    return hash_equals($expected, $token);
   }
 
   public function renderModule(array $params = []): void
@@ -48,26 +109,21 @@ class ModulePage extends Page
     echo $this->toHtml($params);
   }
 
-  /**
-   * The actual parent page (skips the modules container)
-   * and falls back to site for global modules
-   */
   public function page(): Page|Site
   {
-    return $this->parent()->parent() ?? $this->site();
+    return $this->parent()->parentModel();
   }
 
-  /**
-   * Whether the intended template has a registered blueprint
-   */
   public function hasTemplate(): bool
   {
     return ModuleRegistry::hasBlueprint($this->intendedTemplate()->name());
   }
 
-  /**
-   * Display name from the blueprint title
-   */
+  public function title(): Field
+  {
+    return new Field($this, 'title', $this->moduleName());
+  }
+
   public function moduleName(): string
   {
     if (!$this->hasTemplate()) {
@@ -76,26 +132,17 @@ class ModulePage extends Page
     return (string) $this->blueprint()->title();
   }
 
-  /**
-   * CSS-safe BEM identifier from template name (e.g. module--text)
-   */
   public function moduleId(): string
   {
-    return str_replace('.', '--', $this->intendedTemplate());
+    return str_replace('.', '--', $this->intendedTemplate()->name());
   }
 
-  /**
-   * Ancestor chain without the modules container
-   */
   public function parents(): Pages
   {
     $parents = parent::parents();
     return $parents->filter('intendedTemplate', '!=', 'modules');
   }
 
-  /**
-   * Prevent search engine indexing
-   */
   public function metaDefaults(): array
   {
     return ['robotsIndex' => false];

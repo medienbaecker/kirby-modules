@@ -1,13 +1,25 @@
 <?php
 
+use Kirby\Cms\Page;
 use Kirby\Exception\InvalidArgumentException;
+use Kirby\Exception\NotFoundException;
+use Kirby\Toolkit\I18n;
 use Medienbaecker\Modules\ModuleCreateDialog;
 use Medienbaecker\Modules\ModuleChangeTypeDialog;
 use Medienbaecker\Modules\ModuleChangeSlugDialog;
+use Medienbaecker\Modules\ModuleSectionApi;
 use Medienbaecker\Modules\ModulesLicense;
 
+$resolveModule = function (string $id): Page {
+  $page = kirby()->page(str_replace('+', '/', $id));
+  if (!$page || !$page->isModule()) {
+    throw new NotFoundException('Module not found');
+  }
+  return $page;
+};
+
 return [
-  'modules' => function () {
+  'modules' => function () use ($resolveModule) {
     return [
       'dialogs' => [
         'modules/create' => [
@@ -24,8 +36,73 @@ return [
           'pattern' => 'modules/change-slug',
           'load' => fn() => ModuleChangeSlugDialog::load(),
           'submit' => fn() => ModuleChangeSlugDialog::submit(),
-        ]
-      ]
+        ],
+        'modules/visibility' => [
+          'pattern' => 'pages/(:any)/visibility',
+          'load' => function (string $id) use ($resolveModule) {
+            $page = $resolveModule($id);
+            $language = kirby()->defaultLanguage()?->code();
+            $hidden = $page->content($language)->hidden()->toBool();
+
+            return [
+              'component' => 'k-form-dialog',
+              'props' => [
+                'fields' => [
+                  'visibility' => [
+                    'label'    => I18n::translate('modules.visibility'),
+                    'type'     => 'radio',
+                    'required' => true,
+                    'options'  => [
+                      ['value' => 'visible', 'text' => I18n::translate('modules.visible')],
+                      ['value' => 'hidden', 'text' => I18n::translate('modules.hidden')],
+                    ],
+                  ],
+                ],
+                'submitButton' => I18n::translate('change'),
+                'value' => [
+                  'visibility' => $hidden ? 'hidden' : 'visible',
+                ],
+              ],
+            ];
+          },
+          'submit' => function (string $id) use ($resolveModule) {
+            $page = $resolveModule($id);
+            $next = kirby()->request()->get('visibility') === 'hidden';
+            $language = kirby()->defaultLanguage()?->code();
+            $current = $page->content($language)->hidden()->toBool();
+
+            if ($next !== $current) {
+              ModuleSectionApi::flipHidden($page);
+            }
+
+            return ['event' => 'page.update'];
+          },
+        ],
+      ],
+      'buttons' => [
+        'modules.visibility' => function (Page $page) {
+          if (!$page->isModule()) return null;
+
+          $language = kirby()->defaultLanguage()?->code();
+          $hidden = $page->content($language)->hidden()->toBool();
+          $disabled = $page->permissions()->cannot('update');
+
+          $label = $hidden ? I18n::translate('modules.hidden') : I18n::translate('modules.visible');
+          $title = I18n::translate('modules.visibility') . ': ' . $label;
+          if ($disabled) {
+            $title .= ' (' . I18n::translate('disabled') . ')';
+          }
+
+          return [
+            'dialog'   => $page->panel()->url(true) . '/visibility',
+            'disabled' => $disabled,
+            'icon'     => $hidden ? 'hidden' : 'preview',
+            'text'     => $label,
+            'theme'    => $hidden ? 'negative-icon' : 'positive-icon',
+            'title'    => $title,
+          ];
+        },
+      ],
     ];
   },
   'system' => function () {

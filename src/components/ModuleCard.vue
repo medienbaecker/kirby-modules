@@ -1,10 +1,10 @@
 <template>
-  <div class="k-module" :data-module-id="module.id" :data-status="module.status" :data-selected="selected"
-    :data-disabled="disabled" tabindex="0" role="group"
-    :aria-label="$t('modules.singular') + ' ' + module.moduleName" @focusin.stop="$emit('select')">
+  <div class="k-module" :data-module-id="module.id" :data-hidden="module.hidden" :data-selected="selected"
+    :data-disabled="disabled" tabindex="0" role="group" :aria-label="$t('modules.singular') + ' ' + module.moduleName"
+    @focusin.stop="$emit('select')">
     <div class="k-module-body" :data-collapsed="!expanded">
-      <header class="k-module-header">
-        <div class="k-module-title">
+      <header class="k-module-header" :style="{ '--side-width': sideWidth + 'px' }">
+        <div ref="title" class="k-module-title">
           <button class="k-module-toggle" :class="{ 'k-module-toggle-locked': isLockedByOther }"
             :aria-expanded="String(expanded)" :title="isLockedByOther ? lockTitle : null"
             :aria-label="isLockedByOther ? lockTitle : $t('modules.singular') + ' ' + module.moduleName"
@@ -46,11 +46,11 @@
           </button>
         </div>
         <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="switchTab" />
-        <button class="k-module-status" :data-status="module.status"
-          :aria-label="isDraft ? $t('publish') : $t('modules.unpublish')"
-          :disabled="!permissions.changeStatus" @click.stop="$emit('toggle-visibility')">
-          <span>{{ isDraft ? $t("page.status.draft") : $t("page.status.listed") }}</span>
-          <k-icon :type="isDraft ? 'hidden' : 'preview'" />
+        <button ref="visibility" class="k-module-visibility" :data-hidden="module.hidden"
+          :aria-label="module.hidden ? $t('publish') : $t('modules.unpublish')" :disabled="!permissions.update"
+          @click.stop="$emit('toggle-visibility')">
+          <span>{{ module.hidden ? $t('modules.hidden') : $t('modules.visible') }}</span>
+          <k-icon :type="module.hidden ? 'hidden' : 'preview'" />
         </button>
       </header>
       <div v-if="contentReady" class="k-module-content">
@@ -72,7 +72,6 @@
 
 <script>
 export default {
-  // All state comes from props, all actions emit events
   props: {
     module: Object,
     expanded: Boolean,
@@ -85,12 +84,26 @@ export default {
   data() {
     return {
       currentTab: null,
+      sideWidth: 0,
     };
   },
+  mounted() {
+    const header = this.$el.querySelector(".k-module-header");
+    this.sideObserver = new ResizeObserver(() => {
+      const max = Math.max(this.$refs.title.offsetWidth, this.$refs.visibility.offsetWidth);
+      // Fall back to asymmetric (tabs centered between siblings) when the
+      // symmetric layout wouldn't leave reasonable room for tabs.
+      const minTabs = 50;
+      this.sideWidth = (2 * max + minTabs <= header.offsetWidth) ? max : 0;
+    });
+    this.sideObserver.observe(this.$refs.title);
+    this.sideObserver.observe(this.$refs.visibility);
+    this.sideObserver.observe(header);
+  },
+  beforeDestroy() {
+    this.sideObserver?.disconnect();
+  },
   computed: {
-    isDraft() {
-      return this.module.status === "draft";
-    },
     isLockedByOther() {
       return Boolean(this.module.lock?.isLocked);
     },
@@ -109,14 +122,8 @@ export default {
     },
     lockModified() {
       const m = this.module.lock?.modified;
-      if (!m) return null;
-      try {
-        return this.$library.dayjs(m).format("YYYY-MM-DD HH:mm:ss");
-      } catch {
-        return m;
-      }
+      return m ? this.$library.dayjs(m).format("YYYY-MM-DD HH:mm:ss") : null;
     },
-    // Gate rendering until field values are loaded
     contentReady() {
       if (!this.module.hasFields) return true;
       return !!this.values && Object.keys(this.values).length > 0;
@@ -124,7 +131,6 @@ export default {
     activeTab() {
       return this.currentTab || (this.module.tabs[0] && this.module.tabs[0].name);
     },
-    // Strip link prop that k-drawer-tabs doesn't need
     tabs() {
       return this.module.tabs.map(({ link, ...tab }) => tab);
     },
@@ -154,7 +160,6 @@ export default {
           click: () => this.$emit("remove"),
           disabled: !p.delete,
         },
-        // Sort handle: drag target + keyboard ArrowUp/ArrowDown
         {
           icon: "sort",
           title: this.$t("sort"),
@@ -174,10 +179,10 @@ export default {
               click: () => this.$go(this.module.link),
             },
             {
-              icon: this.isDraft ? "preview" : "hidden",
-              label: this.isDraft ? this.$t("publish") : this.$t("modules.unpublish"),
+              icon: this.module.hidden ? "preview" : "hidden",
+              label: this.module.hidden ? this.$t("publish") : this.$t("modules.unpublish"),
               click: () => this.$emit("toggle-visibility"),
-              disabled: !p.changeStatus,
+              disabled: !p.update,
             },
             ...(this.module.previewUrl ? [{
               icon: "open",
@@ -253,18 +258,19 @@ export default {
 .k-module {
   --module-color-back: light-dark(var(--color-white), var(--color-gray-850));
 
+  container: module / inline-size;
   position: relative;
   background: var(--module-color-back);
   box-shadow: var(--shadow);
   border-radius: var(--rounded);
   scroll-margin-block-start: var(--header-sticky-offset);
 
-  &[data-status="draft"] {
+  &[data-hidden="true"] {
     --module-color-back: repeating-linear-gradient(45deg,
         light-dark(var(--color-white), var(--color-gray-850)),
         light-dark(var(--color-white), var(--color-gray-850)) 1rem,
-        light-dark(color-mix(in srgb, var(--color-white), transparent 50%), color-mix(in srgb, var(--color-gray-850), transparent 25%)) 1rem,
-        light-dark(color-mix(in srgb, var(--color-white), transparent 50%), color-mix(in srgb, var(--color-gray-850), transparent 25%)) 2rem);
+        light-dark(color-mix(in srgb, var(--color-white), transparent 50%), color-mix(in srgb, var(--color-gray-850), transparent 50%)) 1rem,
+        light-dark(color-mix(in srgb, var(--color-white), transparent 50%), color-mix(in srgb, var(--color-gray-850), transparent 50%)) 2rem);
     box-shadow: none;
   }
 
@@ -309,19 +315,13 @@ export default {
   }
 }
 
-/* Header */
-
 .k-module-header {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns:
+    minmax(var(--side-width, 0px), auto) minmax(0, 1fr) minmax(var(--side-width, 0px), auto);
+  gap: var(--spacing-2);
   height: var(--drawer-header-height);
-
-  >* {
-    grid-area: 1 / 1;
-  }
 }
-
-/* Title */
 
 .k-module-title {
   display: flex;
@@ -356,7 +356,6 @@ export default {
     visibility: hidden;
   }
 
-  /* Turning the module icon into arrows on hover/focus */
   @container style(--show-arrow: true) {
     > :first-child {
       visibility: hidden;
@@ -395,19 +394,22 @@ export default {
   text-overflow: ellipsis;
 }
 
-/* Tabs */
+@container module (max-width: 600px) {
+  .k-module-anchor {
+    display: none;
+  }
+}
 
 .k-module-tabs {
+  min-width: 0;
 
-  /* Needs higher specificity because Kirby uses this double class for drawer tabs */
+  /* Double class needed for specificity over Kirby's drawer-tabs default. */
   &.k-tabs {
     justify-content: center;
   }
 }
 
-/* Status */
-
-.k-module-status {
+.k-module-visibility {
   z-index: 2;
   justify-self: end;
 
@@ -420,22 +422,11 @@ export default {
   color: var(--color-text-dimmed);
   border-radius: var(--rounded);
 
-  /* Visually hide label for listed state, keep in accessibility tree */
-  &[data-status="listed"] span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-  }
-
   &:not(:disabled):hover,
   &:not(:disabled):focus-visible {
     color: var(--color-text);
   }
 }
-
-/* Content */
 
 .k-module-content {
   background-color: var(--panel-color-back);
@@ -448,8 +439,6 @@ export default {
 .k-module-error {
   /* TODO: error state */
 }
-
-/* Toolbar */
 
 .k-module-toolbar {
   --toolbar-size: 30px;

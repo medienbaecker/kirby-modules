@@ -31,12 +31,8 @@ Kirby::plugin(
       'hasModules'    => $pageMethods['hasModules'],
       'filePool'      => $pageMethods['filePool'],
     ],
-    'fileMethods'  => [
-      'filePool'      => $pageMethods['filePool'],
-    ],
-    'userMethods'  => [
-      'filePool'      => $pageMethods['filePool'],
-    ],
+    'fileMethods'  => ['filePool' => $pageMethods['filePool']],
+    'userMethods'  => ['filePool' => $pageMethods['filePool']],
     'areas'        => require __DIR__ . '/lib/areas.php',
     'commands'     => require __DIR__ . '/lib/commands.php',
     'translations' => A::keyBy(
