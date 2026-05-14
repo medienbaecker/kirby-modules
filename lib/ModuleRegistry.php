@@ -98,13 +98,10 @@ class ModuleRegistry
 
     if (!array_key_exists('create', $blueprintArray)) {
       $blueprintArray['create'] = [
-        'title'  => '{{ page.blueprint.title }}',
-        'status' => 'listed',
+        'title'    => '{{ page.blueprint.title }}',
+        'status'   => 'listed',
+        'redirect' => false,
       ];
-
-      if (option('medienbaecker.modules.create.redirect') !== true) {
-        $blueprintArray['create']['redirect'] = false;
-      }
     }
 
     if (Str::startsWith($name, 'module.') === false) {

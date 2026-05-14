@@ -184,9 +184,6 @@ To access the page of the file pool, you can use `model.filePool.parent`, as sho
 return [
   // Auto-publish new modules (default: false → created hidden). Set true to create visible.
   'medienbaecker.modules.autopublish' => true,
-
-  // Redirect to module page after creation (default: false)
-  'medienbaecker.modules.create.redirect' => true,
 ];
 ```
 
