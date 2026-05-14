@@ -2,16 +2,14 @@
 
 namespace Medienbaecker\Modules;
 
-/**
- * Dialog for changing a module's slug/anchor
- */
+use Kirby\Cms\Page;
+use Kirby\Exception\NotFoundException;
+
 class ModuleChangeSlugDialog
 {
   public static function load(): array
   {
-    $pageId = kirby()->request()->get('page');
-    $page = kirby()->page(str_replace('+', '/', $pageId));
-    if (!$page) throw new \Kirby\Exception\NotFoundException('Module not found');
+    $page = self::resolveModule();
 
     return [
       'component' => 'k-form-dialog',
@@ -26,7 +24,7 @@ class ModuleChangeSlugDialog
           ]
         ],
         'value' => [
-          'page' => $pageId,
+          'page' => (string) kirby()->request()->get('page'),
           'slug' => $page->slug(),
         ],
         'submitButton' => t('change'),
@@ -36,15 +34,18 @@ class ModuleChangeSlugDialog
 
   public static function submit(): bool
   {
-    $input = kirby()->request()->body()->toArray();
-    $pageId = kirby()->request()->get('page');
-    $page = kirby()->page(str_replace('+', '/', $pageId));
-    if (!$page) throw new \Kirby\Exception\NotFoundException('Module not found');
-
-    kirby()->impersonate('kirby', function () use ($page, $input) {
-      $page->changeSlug($input['slug']);
-    });
-
+    $page = self::resolveModule();
+    $page->changeSlug(kirby()->request()->body()->get('slug'));
     return true;
+  }
+
+  private static function resolveModule(): Page
+  {
+    $id = (string) kirby()->request()->get('page');
+    $page = kirby()->page(str_replace('+', '/', $id));
+    if (!$page || !$page->isModule()) {
+      throw new NotFoundException('Module not found');
+    }
+    return $page;
   }
 }

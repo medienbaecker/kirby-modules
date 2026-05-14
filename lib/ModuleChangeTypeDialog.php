@@ -2,16 +2,15 @@
 
 namespace Medienbaecker\Modules;
 
-/**
- * Dialog for changing a module's template type
- */
+use Kirby\Cms\Page;
+use Kirby\Exception\InvalidArgumentException;
+use Kirby\Exception\NotFoundException;
+
 class ModuleChangeTypeDialog
 {
   public static function load(): array
   {
-    $pageId = kirby()->request()->get('page');
-    $page = kirby()->page(str_replace('+', '/', $pageId));
-    if (!$page) throw new \Kirby\Exception\NotFoundException('Module not found');
+    $page = self::resolveModule();
 
     // When the module's blueprint is missing, its page falls back to
     // pages/default which has no changeTemplate option — so $page->blueprints()
@@ -59,7 +58,7 @@ class ModuleChangeTypeDialog
         ],
         'value' => [
           // Page ID round-trips through form value (query params aren't sent on submit)
-          'page' => $pageId,
+          'page' => (string) kirby()->request()->get('page'),
           'template' => $currentName
         ],
         'submitButton' => t('change'),
@@ -69,21 +68,18 @@ class ModuleChangeTypeDialog
 
   public static function submit(): bool
   {
-    $input = kirby()->request()->body()->toArray();
-    $pageId = kirby()->request()->get('page');
-    $page = kirby()->page(str_replace('+', '/', $pageId));
-    if (!$page) throw new \Kirby\Exception\NotFoundException('Module not found');
-    $target = $input['template'];
+    $page = self::resolveModule();
+    $target = self::validateTarget(
+      (string) kirby()->request()->body()->get('template')
+    );
 
-    // Happy path: let Kirby's native permissions and rules apply.
     if (count($page->blueprints()) > 0) {
       $page->changeTemplate($target);
       return true;
     }
 
-    // Missing-blueprint fallback: PageRules::changeTemplate would reject
-    // the change because $page->blueprints() is empty. Rename content files
-    // directly (requires impersonation to bypass storage permissions).
+    // Missing-blueprint fallback: PageRules::changeTemplate would reject the
+    // change because $page->blueprints() is empty. Rename files directly.
     kirby()->impersonate('kirby', fn() => static::renameTemplateFiles(
       $page->root(),
       $page->intendedTemplate()->name(),
@@ -92,10 +88,27 @@ class ModuleChangeTypeDialog
     return true;
   }
 
-  /**
-   * Rename `module.<from>[.<lang>].txt` → `module.<to>[.<lang>].txt`
-   * across a page root and its _changes/ subdir.
-   */
+  private static function resolveModule(): Page
+  {
+    $id = (string) kirby()->request()->get('page');
+    $page = kirby()->page(str_replace('+', '/', $id));
+    if (!$page || !$page->isModule()) {
+      throw new NotFoundException('Module not found');
+    }
+    return $page;
+  }
+
+  // Guards the fallback rename path against path-traversal-style template names.
+  private static function validateTarget(string $target): string
+  {
+    if (!ModuleRegistry::hasBlueprint($target)) {
+      throw new InvalidArgumentException('Invalid module type');
+    }
+    return $target;
+  }
+
+  // Rename `module.<from>[.<lang>].txt` → `module.<to>[.<lang>].txt`
+  // across a page root and its _changes/ subdir.
   private static function renameTemplateFiles(string $root, string $from, string $to): void
   {
     $pattern = '#^' . preg_quote($from) . '(\..+)?\.txt$#';
