@@ -125,9 +125,9 @@ class ModuleSectionApi
 
     // Kirby's default slug appends a locale suffix (-copy / -kopie / …) and
     // collides on the second duplicate.
-    $slug = ModuleRegistry::generateSlug(
+    $slug = ModuleRegistry::duplicateSlug(
       $child->parent()->id(),
-      $child->intendedTemplate()->name()
+      $child->slug()
     );
     $duplicate = $child->duplicate($slug, ['files' => true]);
 

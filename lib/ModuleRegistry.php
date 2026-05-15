@@ -123,6 +123,18 @@ class ModuleRegistry
   // e.g. 'text', 'text-2', 'text-3'
   public static function generateSlug(string $parentId, string $template): ?string
   {
+    return self::buildSlug($parentId, Str::slug(str_replace('module.', '', $template)));
+  }
+
+  // Base on the source slug so #anchor duplicates as #anchor-2. The trailing
+  // -N is stripped first so #anchor-2 yields #anchor-3, not #anchor-2-2.
+  public static function duplicateSlug(string $parentId, string $sourceSlug): ?string
+  {
+    return self::buildSlug($parentId, preg_replace('/-\d+$/', '', $sourceSlug));
+  }
+
+  private static function buildSlug(string $parentId, string $slug): ?string
+  {
     $parentId = str_replace('+', '/', $parentId);
     $parentId = preg_replace('#^pages/#', '', $parentId);
 
@@ -130,16 +142,12 @@ class ModuleRegistry
       return null;
     }
 
-    $shortName = str_replace('module.', '', $template);
-    $slug = Str::slug($shortName);
     $siblings = $parent->children();
-
     if ($siblings->findBy('slug', $slug)) {
       $i = 2;
       while ($siblings->findBy('slug', $slug . '-' . $i)) $i++;
       $slug = $slug . '-' . $i;
     }
-
     return $slug;
   }
 }
