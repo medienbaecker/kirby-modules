@@ -19,7 +19,7 @@ return [
   'mixins' => ['headline', 'parent', 'sort', 'empty', 'min', 'max'],
 
   'props' => [
-    'default' => fn(string $default = null) => $default,
+    'default' => fn(?string $default = null) => $default,
     'templatesIgnore' => fn(array $templatesIgnore = []) => $templatesIgnore,
 
     'templates' => function ($templates = null) use ($allBlueprints) {
