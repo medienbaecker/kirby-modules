@@ -1,6 +1,15 @@
 <?php
 
+// Composer-installed autoloader if available; otherwise use a simple
+// PSR-4 fallback so the plugin works when bundled without composer.
 @include_once __DIR__ . '/vendor/autoload.php';
+
+spl_autoload_register(function ($class) {
+  $prefix = 'Medienbaecker\\Modules\\';
+  if (strncmp($prefix, $class, strlen($prefix)) !== 0) return;
+  $file = __DIR__ . '/lib/' . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
+  if (is_file($file)) require $file;
+});
 
 use Kirby\Cms\App as Kirby;
 use Kirby\Data\Json;
