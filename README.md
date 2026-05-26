@@ -26,7 +26,7 @@ Kirby Modules is a commercial plugin. You can use it for free on local environme
 composer require medienbaecker/kirby-modules
 ```
 
-Or download this repository and put it into `site/plugins/kirby-modules`.
+Or download this repository and put it into `site/plugins/modules`.
 
 ## What's a Module?
 
@@ -42,6 +42,8 @@ Page
 ```
 
 ## Quick Start
+
+> Prefer to see everything wired up? The [moduleskit](https://github.com/medienbaecker/modules-example) is a small, ready-to-run example site.
 
 Add a ([or multiple](#multiple-sections)) modules section to your page blueprint:
 
