@@ -34,6 +34,11 @@ class ModuleCreateDialog
 
     $result['component'] = 'k-module-create-dialog';
 
+    $result['props']['blueprints'] = array_map(
+      fn(array $blueprint) => [...$blueprint, ...ModuleRegistry::typeVisuals($blueprint['name'])],
+      $result['props']['blueprints']
+    );
+
     $status = option('medienbaecker.modules.autopublish', false) === true
       ? t('modules.visible')
       : t('modules.hidden');

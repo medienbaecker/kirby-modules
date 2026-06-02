@@ -50,7 +50,10 @@ class ModuleSectionItem
   private static function previewUrl(Page $child): ?string
   {
     $language = kirby()->defaultLanguage()?->code();
-    if (!$child->content($language)->hidden()->toBool()) return null;
-    return $child->previewUrl();
+    if ($child->content($language)->hidden()->toBool()) {
+      return $child->previewUrl();
+    }
+    $host = $child->parent()?->parentModel();
+    return $host ? $host->url() . '#' . $child->slug() : null;
   }
 }

@@ -1,10 +1,9 @@
 <template>
-  <k-form-dialog ref="dialog" v-bind="$props" class="k-module-create-dialog" @cancel="$emit('cancel')"
+  <k-form-dialog ref="dialog" size="large" v-bind="$props" class="k-module-create-dialog" @cancel="$emit('cancel')"
     @submit="$emit('submit', value)">
-    <k-select-field v-if="templates.length > 1" :empty="false" :label="$t('modules.create.type')" :options="templates"
-      :required="true" :value="template" @input="pick($event)" />
     <k-dialog-fields :fields="fields" :value="value" @input="$emit('input', $event)"
       @submit="$emit('submit', $event)" />
+    <k-module-type-grid v-if="blueprints.length > 1" :types="blueprints" :selected="template" @select="pick" />
   </k-form-dialog>
 </template>
 
@@ -15,7 +14,7 @@ export default {
 </script>
 
 <style scoped>
-.k-select-field {
-  margin-block-end: var(--spacing-6);
+.k-module-type-field {
+  margin-block-start: var(--spacing-4);
 }
 </style>

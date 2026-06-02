@@ -6,7 +6,7 @@
       {{ empty }}
     </k-empty>
     <k-draggable v-else :list="modules" :options="dragOptions" @sort="onSort" class="k-modules-list">
-      <k-module-card v-for="module in modules" :key="module.id" :module="module"
+      <k-module-card v-for="module in modules" :key="module.id + ':' + module.template" :module="module"
         :expanded="expanded[module.id] === true" :loading="!!loadingModules[module.id]"
         :selected="selectedModule === module.id" :values="currentValues(module.id)" :page-url="pageUrl(module.id)"
         :has-error="!!(fieldData[module.id] && fieldData[module.id].error)" @toggle="toggle(module)"
@@ -348,6 +348,16 @@ export default {
     changeType(module) {
       this.$dialog("modules/change-type", {
         query: { page: this.encodeId(module.id) },
+        on: {
+          // Clear cached fields before refetch so the old k-sections unmounts
+          // instead of fetching the old template's section against the new one.
+          success: () => {
+            this.$delete(this.fieldData, module.id);
+            this.$delete(this.changes, module.id);
+            this.$panel.dialog.close();
+            this.fetch();
+          },
+        },
       });
     },
     changeSlug(module) {

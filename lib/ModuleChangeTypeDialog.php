@@ -12,11 +12,11 @@ class ModuleChangeTypeDialog
   {
     $page = self::resolveModule();
 
-    // When the module's blueprint is missing, its page falls back to
-    // pages/default which has no changeTemplate option — so $page->blueprints()
-    // returns empty. Use the registry directly in that case so users can
-    // still recover by switching to a real module type.
-    $blueprints = $page->blueprints();
+    // Source the list from the module's owning `modules` section so the order
+    // and allowed types match the create dialog exactly (same section, same
+    // `default`/`templates`/`templatesIgnore`). Fall back to the page's
+    // changeTemplate option, then the registry, for edge/recovery cases.
+    $blueprints = self::ownerSectionBlueprints($page) ?? $page->blueprints();
     if (empty($blueprints)) {
       foreach (ModuleRegistry::create()['blueprints'] as $name => $props) {
         if (!str_starts_with($name, 'pages/module.')) continue;
@@ -27,35 +27,34 @@ class ModuleChangeTypeDialog
       }
     }
 
-    $options = [];
-    foreach ($blueprints as $bp) {
-      $options[] = ['text' => $bp['title'], 'value' => $bp['name']];
+    $types = [];
+    foreach ($blueprints as $blueprint) {
+      $types[] = [
+        'name'  => $blueprint['name'],
+        'title' => $blueprint['title'],
+        ...ModuleRegistry::typeVisuals($blueprint['name']),
+      ];
     }
 
-    // If the current template isn't in the allowed list (e.g. blueprint was
-    // deleted), prepend it as a disabled option so the Select has a valid
-    // current value and can be opened.
+    // If the current type isn't in the list (blueprint deleted, or the section
+    // doesn't allow it), prepend it as a disabled card so the grid still shows
+    // what the module currently is and the dialog has a valid current value.
     $currentName = $page->intendedTemplate()->name();
-    if (!in_array($currentName, array_column($options, 'value'), true)) {
-      array_unshift($options, [
-        'text'     => t('modules.missingTemplate') . ' (' . $currentName . ')',
-        'value'    => $currentName,
+    if (!in_array($currentName, array_column($types, 'name'), true)) {
+      $currentProps = ModuleRegistry::create()['blueprints']['pages/' . $currentName] ?? null;
+      array_unshift($types, [
+        'name'     => $currentName,
+        'title'    => $currentProps['title'] ?? t('modules.missingTemplate') . ' (' . $currentName . ')',
+        ...ModuleRegistry::typeVisuals($currentName),
+        'icon'     => $currentProps['icon'] ?? 'alert',
         'disabled' => true,
       ]);
     }
 
     return [
-      'component' => 'k-form-dialog',
+      'component' => 'k-module-change-type-dialog',
       'props' => [
-        'fields' => [
-          'template' => [
-            'type' => 'select',
-            'label' => t('modules.create.type'),
-            'options' => $options,
-            'required' => true,
-            'empty' => false,
-          ]
-        ],
+        'blueprints' => $types,
         'value' => [
           // Page ID round-trips through form value (query params aren't sent on submit)
           'page' => (string) kirby()->request()->get('page'),
@@ -70,6 +69,7 @@ class ModuleChangeTypeDialog
   {
     $page = self::resolveModule();
     $target = self::validateTarget(
+      $page,
       (string) kirby()->request()->body()->get('template')
     );
 
@@ -88,6 +88,25 @@ class ModuleChangeTypeDialog
     return true;
   }
 
+  // A module's container slug equals its owning section's name on the host
+  // page (see hooks.php). Reuse that section's blueprints() so change-type and
+  // create produce an identical list. Fetch the one section by name rather than
+  // iterating sections() — the latter also instantiates the host's other
+  // sections (e.g. files), which can error outside a normal request.
+  private static function ownerSectionBlueprints(Page $page): ?array
+  {
+    $container = $page->parent();
+    $host = $container?->parentModel();
+    if (!$host) {
+      return null;
+    }
+    $section = $host->blueprint()->section($container->slug());
+    if ($section && $section->type() === 'modules') {
+      return $section->blueprints();
+    }
+    return null;
+  }
+
   private static function resolveModule(): Page
   {
     $id = (string) kirby()->request()->get('page');
@@ -98,10 +117,15 @@ class ModuleChangeTypeDialog
     return $page;
   }
 
-  // Guards the fallback rename path against path-traversal-style template names.
-  private static function validateTarget(string $target): string
+  // Restricts the target to a real module blueprint and, when the owning
+  // section resolves, to the types that section allows.
+  private static function validateTarget(Page $page, string $target): string
   {
     if (!ModuleRegistry::hasBlueprint($target)) {
+      throw new InvalidArgumentException('Invalid module type');
+    }
+    $allowed = self::ownerSectionBlueprints($page);
+    if ($allowed !== null && !in_array($target, array_column($allowed, 'name'), true)) {
       throw new InvalidArgumentException('Invalid module type');
     }
     return $target;

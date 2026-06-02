@@ -10,6 +10,7 @@ use Kirby\Data\Yaml;
 class ModuleRegistry
 {
   private static ?array $cache = null;
+  private static ?array $previews = null;
 
   public static function create(): array
   {
@@ -76,6 +77,40 @@ class ModuleRegistry
   public static function hasBlueprint(string $template): bool
   {
     return isset(self::create()['blueprints']['pages/' . $template]);
+  }
+
+  // Maps a module's short name to a preview image URL by scanning
+  // assets/module-previews (e.g. text.png → module type 'text').
+  public static function previewImages(): array
+  {
+    if (self::$previews !== null) {
+      return self::$previews;
+    }
+
+    $kirby = kirby();
+    $path = $kirby->root('assets') . '/module-previews';
+    if (!is_dir($path)) {
+      return self::$previews = [];
+    }
+
+    $relative = str_replace($kirby->root('index') . '/', '', $kirby->root('assets'));
+    $previews = [];
+    foreach (Dir::files($path) as $file) {
+      $asset = asset($relative . '/module-previews/' . $file);
+      $previews[$asset->name()] = $asset->url();
+    }
+    return self::$previews = $previews;
+  }
+
+  // Preview image URL + icon for a module template (e.g. 'module.text'),
+  // used to decorate the type cards in the create/change-type dialogs.
+  public static function typeVisuals(string $template): array
+  {
+    $shortName = str_replace('module.', '', $template);
+    return [
+      'preview' => self::previewImages()[$shortName] ?? null,
+      'icon'    => self::create()['blueprints']['pages/' . $template]['icon'] ?? 'box',
+    ];
   }
 
   public static function add(array $registry, string $name, string $blueprintPath, string $snippetPath): array
