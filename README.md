@@ -117,6 +117,12 @@ Use `$module->slug()` as the element ID in your module snippet:
 
 The slug is editable in the Panel via the `#anchor` button on each module card or the "Change anchor" button in the toolbar's dropdown.
 
+## Preview images
+
+Add preview images to make the create and "Change type" dialogs show a visual grid instead of a dropdown. Drop images into `assets/module-previews/`, named after the module – for example `text.png` for `text.yml`/`text.php`. Any image format works; a 16:9 ratio looks best.
+
+Types without a matching image fall back to their blueprint `icon`. If no type has a preview image, the dialogs keep the plain dropdown — so this is fully opt-in.
+
 ## Visibility
 
 Each module's visibility can be toggled with a single click on its card. Hidden modules stay in place — they keep their sort position and any inline edits — but the frontend skips over them when iterating `$page->modules()`. The card shows a striped background while a module is hidden.
