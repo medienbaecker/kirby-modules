@@ -447,6 +447,7 @@ export default {
   --toolbar-size: 30px;
   display: none;
   position: absolute;
+  z-index: 3;
   inset-block-start: 0;
   inset-inline-end: var(--spacing-3);
   margin-block-start: calc(-1.75rem + 2px);
