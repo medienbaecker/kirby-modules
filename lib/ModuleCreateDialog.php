@@ -91,7 +91,7 @@ class ModuleCreateDialog extends PageCreateDialog
 
   private function hasModuleBlueprints(): bool
   {
-    foreach (ModuleRegistry::create()['blueprints'] as $name => $props) {
+    foreach (ModuleRegistry::load()['blueprints'] as $name => $props) {
       if (str_starts_with($name, 'pages/module.')) {
         return true;
       }

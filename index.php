@@ -18,7 +18,7 @@ use Kirby\Filesystem\F;
 use Kirby\Toolkit\A;
 use Medienbaecker\Modules\ModuleRegistry;
 
-$moduleRegistry = ModuleRegistry::create();
+$moduleRegistry = ModuleRegistry::load();
 $pageMethods = require __DIR__ . '/lib/page-methods.php';
 
 Kirby::plugin(

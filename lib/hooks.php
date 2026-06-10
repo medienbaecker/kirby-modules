@@ -1,15 +1,20 @@
 <?php
 
+use Kirby\Content\LockedContentException;
+use Kirby\Exception\PermissionException;
+use Kirby\Panel\Panel;
+
 return [
 
+  // Modules container pages have no Panel view of their own; jump to the
+  // host page instead.
   'panel.route:before' => function ($route, $path, $method) {
-    if ($path && str_starts_with($path, 'pages/')) {
-      $pageId = str_replace('+', '/', substr($path, 6));
-      if ($page = kirby()->page($pageId)) {
-        if ($page->intendedTemplate()->name() === 'modules') {
-          \Kirby\Panel\Panel::go($page->parentModel()->panel()->url());
-        }
-      }
+    if (!$path || !str_starts_with($path, 'pages/')) {
+      return $route;
+    }
+    $page = kirby()->page(str_replace('+', '/', substr($path, 6)));
+    if ($page?->intendedTemplate()->name() === 'modules') {
+      Panel::go($page->parentModel()->panel()->url());
     }
     return $route;
   },
@@ -27,12 +32,12 @@ return [
     }
 
     if (!$targetSection) {
-      throw new \Kirby\Exception\PermissionException(t('modules.move.notallowed'));
+      throw new PermissionException(t('modules.move.notallowed'));
     }
 
     $allowed = $targetSection->templates();
     if ($allowed && !in_array($page->intendedTemplate()->name(), $allowed)) {
-      throw new \Kirby\Exception\PermissionException(t('modules.move.notallowed'));
+      throw new PermissionException(t('modules.move.notallowed'));
     }
   },
 
@@ -41,7 +46,7 @@ return [
     if (!$page->isModule()) return;
     $lock = $page->lock();
     if ($lock?->isLocked()) {
-      throw new \Kirby\Content\LockedContentException($lock);
+      throw new LockedContentException($lock);
     }
   }
 ];

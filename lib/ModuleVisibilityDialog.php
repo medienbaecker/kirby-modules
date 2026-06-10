@@ -35,7 +35,7 @@ class ModuleVisibilityDialog extends ModuleDialog
     $hidden = kirby()->request()->get('visibility') === 'hidden';
 
     if ($hidden !== $this->module->isHidden()) {
-      ModuleSectionApi::flipHidden($this->module);
+      ModuleSectionRoutes::flipHidden($this->module);
     }
 
     return ['event' => 'page.update'];

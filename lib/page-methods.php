@@ -12,7 +12,7 @@ return [
       : [$containerOrParams, $params];
 
     foreach ($this->modules($container) as $module) {
-      echo $module->renderModule($params);
+      $module->renderModule($params);
     }
   },
 

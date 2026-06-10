@@ -12,7 +12,7 @@ class ModuleRegistry
   private static ?array $cache = null;
   private static ?array $previews = null;
 
-  public static function create(): array
+  public static function load(): array
   {
     if (self::$cache !== null) {
       return self::$cache;
@@ -38,17 +38,18 @@ class ModuleRegistry
     }
 
     // Default changeTemplate to all module blueprints unless one is declared.
-    $blueprintNames = array_keys($registry['blueprints']);
-    $blueprintNames = array_map(fn($name) => Str::replace($name, 'pages/', ''), $blueprintNames);
+    $blueprintNames = array_map(
+      fn($name) => str_replace('pages/', '', $name),
+      array_keys($registry['blueprints'])
+    );
 
     foreach ($registry['blueprints'] as &$blueprint) {
-      if (
-        !isset($blueprint['options']) ||
-        (is_array($blueprint['options']) && !isset($blueprint['options']['changeTemplate']))
-      ) {
+      $options = $blueprint['options'] ?? [];
+      if (is_array($options) && !isset($options['changeTemplate'])) {
         $blueprint['options']['changeTemplate'] = $blueprintNames;
       }
     }
+    unset($blueprint);
 
     $registry['blueprints']['pages/modules'] = [
       'title' => 'Modules',
@@ -76,7 +77,7 @@ class ModuleRegistry
 
   public static function hasBlueprint(string $template): bool
   {
-    return isset(self::create()['blueprints']['pages/' . $template]);
+    return isset(self::load()['blueprints']['pages/' . $template]);
   }
 
   // Maps a module's short name to a preview image URL by scanning
@@ -109,17 +110,17 @@ class ModuleRegistry
     $shortName = str_replace('module.', '', $template);
     return [
       'preview' => self::previewImages()[$shortName] ?? null,
-      'icon'    => self::create()['blueprints']['pages/' . $template]['icon'] ?? 'box',
+      'icon'    => self::load()['blueprints']['pages/' . $template]['icon'] ?? 'box',
     ];
   }
 
   public static function add(array $registry, string $name, string $blueprintPath, string $snippetPath): array
   {
-    if (array_key_exists('pages/module.' . $name, $registry['blueprints'])) {
-      return $registry;
+    if (!Str::startsWith($name, 'module.')) {
+      $name = 'module.' . $name;
     }
 
-    if (!F::exists($blueprintPath)) {
+    if (isset($registry['blueprints']['pages/' . $name]) || !F::exists($blueprintPath)) {
       return $registry;
     }
 
@@ -137,10 +138,6 @@ class ModuleRegistry
         'status'   => 'listed',
         'redirect' => false,
       ];
-    }
-
-    if (Str::startsWith($name, 'module.') === false) {
-      $name = 'module.' . $name;
     }
 
     $shortName = str_replace('module.', '', $name);

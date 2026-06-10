@@ -14,7 +14,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
     // changeTemplate option, then the registry, for edge/recovery cases.
     $blueprints = $this->ownerSectionBlueprints() ?? $this->module->blueprints();
     if (empty($blueprints)) {
-      foreach (ModuleRegistry::create()['blueprints'] as $name => $props) {
+      foreach (ModuleRegistry::load()['blueprints'] as $name => $props) {
         if (!str_starts_with($name, 'pages/module.')) continue;
         $blueprints[] = [
           'name'  => str_replace('pages/', '', $name),
@@ -37,7 +37,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
     // what the module currently is and the dialog has a valid current value.
     $currentName = $this->module->intendedTemplate()->name();
     if (!in_array($currentName, array_column($types, 'name'), true)) {
-      $currentProps = ModuleRegistry::create()['blueprints']['pages/' . $currentName] ?? null;
+      $currentProps = ModuleRegistry::load()['blueprints']['pages/' . $currentName] ?? null;
       array_unshift($types, [
         'name'     => $currentName,
         'title'    => $currentProps['title'] ?? t('modules.missingTemplate') . ' (' . $currentName . ')',

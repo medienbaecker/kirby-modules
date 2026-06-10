@@ -12,139 +12,139 @@ use Kirby\Plugin\Plugin;
 
 class ModulesLicense extends License
 {
-	private const POLAR_ORG_ID = '4fc1c5b3-25c7-4a31-a11e-badb102b500a';
-	private const POLAR_API = 'https://api.polar.sh/v1/customer-portal/license-keys/validate';
-	public const BUY_URL = 'https://medienbaecker.com/plugins/modules';
-	public const PORTAL_URL = 'https://polar.sh/medienbaecker/portal';
-	private const DIALOG = 'modules/activate';
-	private const CACHE_MINUTES = 60 * 24;
+  private const POLAR_ORG_ID = '4fc1c5b3-25c7-4a31-a11e-badb102b500a';
+  private const POLAR_API = 'https://api.polar.sh/v1/customer-portal/license-keys/validate';
+  public const BUY_URL = 'https://medienbaecker.com/plugins/modules';
+  public const PORTAL_URL = 'https://polar.sh/medienbaecker/portal';
+  private const DIALOG = 'modules/activate';
+  private const CACHE_MINUTES = 60 * 24;
 
-	public function __construct(Plugin $plugin)
-	{
-		$status = $this->detectStatus();
+  public function __construct(Plugin $plugin)
+  {
+    parent::__construct(
+      plugin: $plugin,
+      name: 'Modules License',
+      link: null,
+      status: $this->detectStatus(),
+    );
+  }
 
-		parent::__construct(
-			plugin: $plugin,
-			name: 'Modules License',
-			link: null,
-			status: $status,
-		);
-	}
+  private function detectStatus(): LicenseStatus
+  {
+    $key = self::readKey();
 
-	private function detectStatus(): LicenseStatus
-	{
-		$key = $this->readKey();
+    if (empty($key)) {
+      return App::instance()->system()->isLocal()
+        ? self::makeStatus('demo')
+        : self::makeStatus('missing');
+    }
 
-		if (empty($key)) {
-			return App::instance()->system()->isLocal()
-				? static::makeStatus('demo')
-				: static::makeStatus('missing');
-		}
+    $cache = App::instance()->cache('medienbaecker.modules');
+    $cacheKey = 'license.' . md5($key);
+    $cached = $cache->get($cacheKey);
 
-		$cache = App::instance()->cache('medienbaecker.modules');
-		$cacheKey = 'license.' . md5($key);
-		$cached = $cache->get($cacheKey);
+    if ($cached !== null) {
+      return self::makeStatus($cached === 'granted' ? 'active' : 'invalid');
+    }
 
-		if ($cached !== null) {
-			return static::makeStatus($cached === 'granted' ? 'active' : 'invalid');
-		}
+    $granted = self::validateKey($key);
+    $cache->set($cacheKey, $granted ? 'granted' : 'invalid', self::CACHE_MINUTES);
 
-		$granted = static::validateKey($key);
-		$cache->set($cacheKey, $granted ? 'granted' : 'invalid', static::CACHE_MINUTES);
+    return self::makeStatus($granted ? 'active' : 'invalid');
+  }
 
-		return static::makeStatus($granted ? 'active' : 'invalid');
-	}
+  public static function remove(): void
+  {
+    F::remove(self::licenseFile());
+    App::instance()->cache('medienbaecker.modules')->flush();
+  }
 
-	public static function remove(): void
-	{
-		F::remove(static::licenseFile());
-		App::instance()->cache('medienbaecker.modules')->flush();
-	}
+  public static function activate(string $key): bool
+  {
+    if (!self::validateKey($key)) {
+      return false;
+    }
 
-	public static function activate(string $key): bool
-	{
-		if (!static::validateKey($key)) {
-			return false;
-		}
+    Json::write(self::licenseFile(), ['key' => $key]);
 
-		Json::write(static::licenseFile(), ['key' => $key]);
+    $cache = App::instance()->cache('medienbaecker.modules');
+    $cache->set('license.' . md5($key), 'granted', self::CACHE_MINUTES);
 
-		$cache = App::instance()->cache('medienbaecker.modules');
-		$cache->set('license.' . md5($key), 'granted', static::CACHE_MINUTES);
+    return true;
+  }
 
-		return true;
-	}
+  private static function validateKey(string $key): bool
+  {
+    try {
+      $response = Remote::post(self::POLAR_API, [
+        'headers' => ['Content-Type' => 'application/json'],
+        'data' => Json::encode([
+          'key' => $key,
+          'organization_id' => self::POLAR_ORG_ID,
+        ])
+      ]);
 
-	private static function validateKey(string $key): bool
-	{
-		try {
-			$response = Remote::post(static::POLAR_API, [
-				'headers' => ['Content-Type' => 'application/json'],
-				'data' => Json::encode([
-					'key' => $key,
-					'organization_id' => static::POLAR_ORG_ID,
-				])
-			]);
+      return $response->code() === 200
+        && ($response->json()['status'] ?? null) === 'granted';
+    } catch (\Exception) {
+      // API unreachable — treat as valid to avoid blocking
+      return true;
+    }
+  }
 
-			return $response->code() === 200
-				&& ($response->json()['status'] ?? null) === 'granted';
-		} catch (\Exception) {
-			// API unreachable — treat as valid to avoid blocking
-			return true;
-		}
-	}
+  // Icons and themes mirror Kirby\Cms\LicenseStatus for the matching cases;
+  // only the labels and dialog are plugin-specific.
+  private static function makeStatus(string $value): LicenseStatus
+  {
+    return match ($value) {
+      'active' => new LicenseStatus(
+        value: 'active',
+        icon: 'check',
+        label: t('modules.license.licensed'),
+        theme: 'positive',
+        dialog: self::DIALOG
+      ),
+      'missing' => new LicenseStatus(
+        value: 'missing',
+        icon: 'key',
+        label: t('modules.license.activate'),
+        theme: 'love',
+        dialog: self::DIALOG
+      ),
+      'demo' => new LicenseStatus(
+        value: 'demo',
+        icon: 'preview',
+        label: t('modules.license.demo'),
+        theme: 'notice',
+        dialog: self::DIALOG
+      ),
+      default => new LicenseStatus(
+        value: 'invalid',
+        icon: 'alert',
+        label: t('modules.license.invalid'),
+        theme: 'negative',
+        dialog: self::DIALOG
+      ),
+    };
+  }
 
-	private static function makeStatus(string $value): LicenseStatus
-	{
-		return match ($value) {
-			'active' => new LicenseStatus(
-				value: 'active',
-				icon: 'check',
-				label: t('modules.license.licensed'),
-				theme: 'positive',
-				dialog: static::DIALOG
-			),
-			'missing' => new LicenseStatus(
-				value: 'missing',
-				icon: 'key',
-				label: t('modules.license.activate'),
-				theme: 'love',
-				dialog: static::DIALOG
-			),
-			'demo' => new LicenseStatus(
-				value: 'demo',
-				icon: 'preview',
-				label: t('modules.license.demo'),
-				theme: 'notice',
-				dialog: static::DIALOG
-			),
-			default => new LicenseStatus(
-				value: 'invalid',
-				icon: 'alert',
-				label: t('modules.license.invalid'),
-				theme: 'negative',
-				dialog: static::DIALOG
-			),
-		};
-	}
+  public static function readKey(): string|null
+  {
+    $file = self::licenseFile();
 
-	public static function readKey(): string|null
-	{
-		$file = static::licenseFile();
+    if (!F::exists($file)) {
+      return null;
+    }
 
-		if (!F::exists($file)) {
-			return null;
-		}
+    try {
+      return Json::read($file)['key'] ?? null;
+    } catch (\Exception) {
+      return null;
+    }
+  }
 
-		try {
-			return Json::read($file)['key'] ?? null;
-		} catch (\Exception) {
-			return null;
-		}
-	}
-
-	public static function licenseFile(): string
-	{
-		return dirname(App::instance()->root('license')) . '/.modules_license';
-	}
+  public static function licenseFile(): string
+  {
+    return dirname(App::instance()->root('license')) . '/.modules_license';
+  }
 }

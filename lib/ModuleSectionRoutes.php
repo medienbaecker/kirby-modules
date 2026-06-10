@@ -4,72 +4,78 @@ namespace Medienbaecker\Modules;
 
 use Kirby\Cms\ModelWithContent;
 use Kirby\Cms\Page;
+use Kirby\Cms\Section;
 use Kirby\Content\LockedContentException;
 use Kirby\Exception\NotFoundException;
 use Kirby\Filesystem\Dir;
 use Kirby\Form\Form;
 
-class ModuleSectionApi
+class ModuleSectionRoutes
 {
+  // Kirby executes route actions with Closure::call($apiInstance), which
+  // rebinds both $this and self:: — so the actions reference this class by
+  // name and reach the section through the Api instance.
   public static function routes(): array
   {
-    // Closures get Closure::call($apiInstance), rebinding `self::` to Kirby's
-    // Api class — capture the class name as a string instead.
-    $api = self::class;
-
     return [
       [
         'pattern' => 'fields/(:any)',
         'method'  => 'GET',
-        'action'  => function (string $childId) use ($api) {
-          $section = $this->section();
-          return $api::loadFields($section->model()->find($section->name()), $childId);
+        'action'  => function (string $childId) {
+          $container = ModuleSectionRoutes::container($this->section());
+          return ModuleSectionRoutes::loadFields($container, $childId);
         },
       ],
       [
         'pattern' => 'duplicate/(:any)',
         'method'  => 'POST',
-        'action'  => function (string $childId) use ($api) {
-          $section = $this->section();
-          return $api::duplicate($section->model()->find($section->name()), $childId);
+        'action'  => function (string $childId) {
+          $container = ModuleSectionRoutes::container($this->section());
+          return ModuleSectionRoutes::duplicate($container, $childId);
         },
       ],
       [
         'pattern' => 'sort',
         'method'  => 'POST',
-        'action'  => function () use ($api) {
-          $section = $this->section();
-          $api::sort($section->model()->find($section->name()), $this->requestBody('ids'));
+        'action'  => function () {
+          $container = ModuleSectionRoutes::container($this->section());
+          ModuleSectionRoutes::sort($container, $this->requestBody('ids'));
           return ['status' => 'ok'];
         },
       ],
       [
         'pattern' => 'deleteAll',
         'method'  => 'POST',
-        'action'  => function () use ($api) {
-          $section = $this->section();
-          $api::deleteAll($section->model()->find($section->name()));
+        'action'  => function () {
+          $container = ModuleSectionRoutes::container($this->section());
+          ModuleSectionRoutes::deleteAll($container);
           return ['status' => 'ok'];
         },
       ],
       [
         'pattern' => 'toggle-visibility/(:any)',
         'method'  => 'POST',
-        'action'  => function (string $childId) use ($api) {
-          $section = $this->section();
-          return $api::toggleVisibility($section->model()->find($section->name()), $childId);
+        'action'  => function (string $childId) {
+          $container = ModuleSectionRoutes::container($this->section());
+          return ModuleSectionRoutes::toggleVisibility($container, $childId);
         },
       ],
       [
         'pattern' => 'create-container',
         'method'  => 'POST',
-        'action'  => function () use ($api) {
+        'action'  => function () {
           $section = $this->section();
-          $api::createContainer($section->model(), $section->name(), $section->headline());
+          ModuleSectionRoutes::createContainer($section->model(), $section->name(), $section->headline());
           return ['status' => 'ok'];
         },
       ],
     ];
+  }
+
+  // A section's container page shares the section's name as its slug.
+  public static function container(Section $section): ?Page
+  {
+    return $section->model()->find($section->name());
   }
 
   public static function resolveModule(string $childId): Page

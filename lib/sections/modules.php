@@ -4,13 +4,13 @@ use Kirby\Cms\Blueprint;
 use Kirby\Cms\Site;
 use Kirby\Toolkit\I18n;
 use Medienbaecker\Modules\ModuleRegistry;
-use Medienbaecker\Modules\ModuleSectionApi;
+use Medienbaecker\Modules\ModuleSectionRoutes;
 use Medienbaecker\Modules\ModuleSectionItem;
 
 $allBlueprints = array_values(array_map(
   fn(string $name) => substr($name, strlen('pages/')),
   array_filter(
-    array_keys(ModuleRegistry::create()['blueprints']),
+    array_keys(ModuleRegistry::load()['blueprints']),
     fn(string $name) => str_starts_with($name, 'pages/module.')
   )
 ));
@@ -21,6 +21,10 @@ return [
   'props' => [
     'default' => fn(?string $default = null) => $default,
     'templatesIgnore' => fn(array $templatesIgnore = []) => $templatesIgnore,
+
+    // The sort mixin reads $this->query, which core's pages section defines
+    // as a prop (no mixin does) — declare it so the dependency is explicit.
+    'query' => fn() => null,
 
     'templates' => function ($templates = null) use ($allBlueprints) {
       $blueprints = $templates ?? $allBlueprints;
@@ -79,6 +83,9 @@ return [
     'total' => fn() => count($this->modules ?? []),
     'add'   => fn() => !$this->isFull(),
 
+    // Verbatim copy of core's pages section errors computed (sections can't
+    // inherit from each other) — keep in sync with
+    // kirby/config/sections/pages.php on Kirby updates.
     'errors' => function () {
       $errors = [];
 
@@ -121,7 +128,7 @@ return [
   ],
 
   'api' => function () {
-    return ModuleSectionApi::routes();
+    return ModuleSectionRoutes::routes();
   },
 
   'toArray' => function () {
