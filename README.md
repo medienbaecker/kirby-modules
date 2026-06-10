@@ -118,6 +118,8 @@ The anchor is always visible on the module card (e.g. `#text`) and can be change
 
 Add preview images to make the create and change-type dialogs show a visual grid instead of a dropdown. Drop images into `assets/module-previews/`, named after the module, for example `text.png` for the `text` module. Any image format works; a 16:9 ratio looks best.
 
+<img width="2582" height="1604" alt="Screenshot of the module create dialog with an anchor field and 5 module types, 4 with preview images" src=".github/create.webp" />
+
 Types without a matching image fall back to their blueprint `icon`. If no type has a preview image, the dialogs keep the plain dropdown.
 
 ## Section Options
