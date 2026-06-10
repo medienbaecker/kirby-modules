@@ -141,7 +141,7 @@ class ModuleSectionApi
     // A hidden source always duplicates as hidden; autopublish only decides
     // what happens when the source was visible.
     $language = kirby()->defaultLanguage()?->code();
-    $hidden = $child->content($language)->hidden()->toBool()
+    $hidden = $child->isHidden()
       || option('medienbaecker.modules.autopublish', false) !== true;
     // Re-assign $duplicate after each call: changeStatus and update move the
     // previous instance to immutable storage.
@@ -195,9 +195,8 @@ class ModuleSectionApi
   public static function flipHidden(Page $child): bool
   {
     self::ensureNotLocked($child);
-    $language = kirby()->defaultLanguage()?->code();
-    $hidden = $child->content($language)->hidden()->toBool();
-    self::writeHidden($child, $hidden ? null : 'true', $language);
+    $hidden = $child->isHidden();
+    self::writeHidden($child, $hidden ? null : 'true', kirby()->defaultLanguage()?->code());
     return !$hidden;
   }
 

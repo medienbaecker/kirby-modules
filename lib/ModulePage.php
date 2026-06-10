@@ -14,8 +14,7 @@ class ModulePage extends Page
 {
   public function previewUrl(VersionId|string $versionId = 'latest'): string|null
   {
-    $language = kirby()->defaultLanguage()?->code();
-    if (!$this->content($language)->hidden()->toBool()) {
+    if (!$this->isHidden()) {
       return parent::previewUrl($versionId);
     }
 
@@ -49,8 +48,7 @@ class ModulePage extends Page
     $parentUrl = $this->page()->url();
     $query = [];
 
-    $language = kirby()->defaultLanguage()?->code();
-    $hidden = $this->content($language)->hidden()->toBool();
+    $hidden = $this->isHidden();
     $token = (string) get('_token');
     $version = (string) get('_version');
 

@@ -42,9 +42,8 @@ return [
       if (!kirby()->user() && !$tokenValid) $previewSlug = null;
     }
 
-    $language = kirby()->defaultLanguage()?->code();
     foreach ($modulesContainer->children() as $module) {
-      if ($module->content($language)->hidden()->toBool() && $module->slug() !== $previewSlug) continue;
+      if ($module->isHidden() && $module->slug() !== $previewSlug) continue;
       $modules->append($module);
     }
     return $modules;
@@ -52,6 +51,13 @@ return [
 
   'isModule' => function () {
     return str_starts_with($this->intendedTemplate()->name(), 'module.');
+  },
+
+  // Hidden state lives on the default language only — content(null) would
+  // read the current Panel language instead.
+  'isHidden' => function () {
+    $language = kirby()->defaultLanguage()?->code();
+    return $this->content($language)->hidden()->toBool();
   },
 
   'filePool' => function () {

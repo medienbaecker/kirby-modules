@@ -12,7 +12,6 @@ class ModuleSectionItem
     $templateName = $child->intendedTemplate()->name();
     $hasTemplate = ModuleRegistry::hasBlueprint($templateName);
     $blueprint = $hasTemplate ? $child->blueprint() : null;
-    $language = kirby()->defaultLanguage()?->code();
 
     return [
       'id'                => $child->id(),
@@ -21,7 +20,7 @@ class ModuleSectionItem
       'hasTemplate'       => $hasTemplate,
       'moduleName'        => $blueprint ? (string) $blueprint->title() : I18n::translate('modules.missingTemplate'),
       'icon'              => $blueprint ? ($blueprint->icon() ?? 'box') : 'alert',
-      'hidden'            => $child->content($language)->hidden()->toBool(),
+      'hidden'            => $child->isHidden(),
       'hasFields'         => $blueprint && !empty($blueprint->fields()),
       'hasPendingChanges' => $child->version('changes')->exists('*'),
       'tabs'              => $blueprint ? $blueprint->tabs() : [],
@@ -49,8 +48,7 @@ class ModuleSectionItem
 
   private static function previewUrl(Page $child): ?string
   {
-    $language = kirby()->defaultLanguage()?->code();
-    if ($child->content($language)->hidden()->toBool()) {
+    if ($child->isHidden()) {
       return $child->previewUrl();
     }
     $host = $child->parent()?->parentModel();
