@@ -1,7 +1,7 @@
 <template>
   <k-dialog class="k-modules-license-dialog" size="large" :cancel-button="cancelButton" :submit-button="submitButton"
     :visible="true" @cancel="$emit('cancel')">
-    <k-bar style="margin-bottom: var(--spacing-2)">
+    <k-bar class="k-modules-license-header">
       <h2 class="k-headline">
         Kirby Modules
       </h2>
@@ -10,7 +10,7 @@
     </k-bar>
 
     <div class="k-table">
-      <table style="table-layout: auto">
+      <table class="k-modules-license-table">
         <tbody>
           <tr v-if="license.code">
             <th data-mobile="true">{{ $t("license.code") }}</th>
@@ -50,14 +50,12 @@ export default {
 </script>
 
 <style>
-.k-modules-license-status {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
+.k-modules-license-header {
+  margin-block-end: var(--spacing-2);
 }
 
-.k-modules-license-dialog .k-modules-license-status {
-  --icon-color: var(--theme-color-700);
+.k-modules-license-table {
+  table-layout: auto;
 }
 
 .k-modules-license-thanks {

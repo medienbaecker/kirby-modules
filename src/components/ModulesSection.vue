@@ -178,7 +178,7 @@ export default {
             this.$delete(this.fieldData, module.id);
             this.$delete(this.changes, module.id);
             module.hasPendingChanges = false;
-            this.$api.post(this.pageUrl(module.id) + "/changes/discard", null, { silent: true }).catch(() => { });
+            this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }).catch(() => { });
           }
         }
 
@@ -218,31 +218,20 @@ export default {
 
     reconcileState() {
       const currentIds = new Set(this.modules.map((m) => m.id));
+      const trackingMaps = [this.changes, this.fieldData, this.expanded, this.loadingModules];
 
-      for (const id of Object.keys(this.changes)) {
-        if (!currentIds.has(id)) this.$delete(this.changes, id);
-      }
-      for (const id of Object.keys(this.fieldData)) {
-        if (!currentIds.has(id)) this.$delete(this.fieldData, id);
-      }
-      for (const id of Object.keys(this.expanded)) {
-        if (!currentIds.has(id)) this.$delete(this.expanded, id);
-      }
-      for (const id of Object.keys(this.loadingModules)) {
-        if (!currentIds.has(id)) this.$delete(this.loadingModules, id);
+      for (const map of trackingMaps) {
+        for (const id of Object.keys(map)) {
+          if (!currentIds.has(id)) this.$delete(map, id);
+        }
       }
 
       // Server-side _changes not tracked locally (e.g. from a previous session)
       this.serverPendingIds = this.modules
         .filter((m) => m.hasPendingChanges && !this.changes[m.id] && !m.lock?.isLocked)
         .map((m) => m.id);
-      const hasLocalChanges = Object.keys(this.changes).length > 0;
 
-      if (this.serverPendingIds.length > 0 || hasLocalChanges) {
-        this.dirtyParent();
-      } else {
-        this.undirtyParent();
-      }
+      this.syncDirtyState();
     },
 
     positionNewModule(previousIds) {
@@ -268,25 +257,30 @@ export default {
 
           if (this.pendingFocusInput && el) {
             this.pendingFocusInput = false;
-            // Mirror Kirby's internal drawer/dialog focus priority:
-            // explicit [autofocus] first, then first form control.
-            const selectors = [
-              ".k-module-content :where([autofocus], [data-autofocus])",
-              ".k-module-content :where(input:not([type=hidden]), textarea, select, [contenteditable=true], .input-focus)",
-            ];
-            const deadline = Date.now() + 1000;
-            const tryFocus = () => {
-              for (const selector of selectors) {
-                const input = el.querySelector(selector);
-                if (input) { input.focus(); return; }
-              }
-              if (Date.now() < deadline) setTimeout(tryFocus, 50);
-            };
-            tryFocus();
+            this.focusFirstInput(el);
           }
         });
       }
       this.pendingInsertPosition = null;
+    },
+
+    // Mirror Kirby's internal drawer/dialog focus priority: explicit
+    // [autofocus] first, then first form control. Polls because the
+    // module's fields load asynchronously.
+    focusFirstInput(el) {
+      const selectors = [
+        ".k-module-content :where([autofocus], [data-autofocus])",
+        ".k-module-content :where(input:not([type=hidden]), textarea, select, [contenteditable=true], .input-focus)",
+      ];
+      const deadline = Date.now() + 1000;
+      const tryFocus = () => {
+        for (const selector of selectors) {
+          const input = el.querySelector(selector);
+          if (input) { input.focus(); return; }
+        }
+        if (Date.now() < deadline) setTimeout(tryFocus, 50);
+      };
+      tryFocus();
     },
 
     async loadFields(module) {
@@ -420,7 +414,7 @@ export default {
 
       if (unchanged) {
         this.$delete(this.changes, module.id);
-        this.$api.post(this.pageUrl(module.id) + "/changes/discard", null, { silent: true }).catch(() => { });
+        this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }).catch(() => { });
       } else {
         try {
           await this.$api.post(this.pageUrl(module.id) + "/changes/save", values, { silent: true });
@@ -433,12 +427,7 @@ export default {
         }
       }
 
-      const hasLocalChanges = Object.keys(this.changes).length > 0;
-      if (this.serverPendingIds.length > 0 || hasLocalChanges) {
-        this.dirtyParent();
-      } else {
-        this.undirtyParent();
-      }
+      this.syncDirtyState();
     },
 
     // Triggered by parent page Save/Discard.
@@ -524,6 +513,15 @@ export default {
     undirtyParent() {
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: undefined });
     },
+    syncDirtyState() {
+      const hasChanges =
+        this.serverPendingIds.length > 0 || Object.keys(this.changes).length > 0;
+      if (hasChanges) {
+        this.dirtyParent();
+      } else {
+        this.undirtyParent();
+      }
+    },
 
     // Collapsed state persists in localStorage per page + section name.
     async toggle(module) {
@@ -608,7 +606,8 @@ export default {
         this.fetch();
         return;
       }
-      this.$panel.notification.error(e?.message || this.$t("error"));
+      // notification.error unwraps Error/RequestError objects itself
+      this.$panel.notification.error(e || this.$t("error"));
     },
     encodeId(id) {
       return id.replace(/\//g, "+");

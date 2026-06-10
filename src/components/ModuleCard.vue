@@ -278,22 +278,6 @@ export default {
     outline: var(--outline);
   }
 
-  &[data-disabled="true"] {
-    .k-fields-section {
-      opacity: 0.2;
-      pointer-events: none;
-    }
-
-    .k-module-toggle-locked {
-      color: var(--color-red-700);
-    }
-  }
-
-  &:is(.k-sortable-ghost, .k-sortable-fallback) .k-module-body {
-    max-height: var(--drawer-header-height);
-    overflow: clip;
-  }
-
   &.k-sortable-ghost {
     outline: 2px solid var(--color-focus);
     box-shadow: rgba(17, 17, 17, 0.25) 0 5px 10px;
@@ -301,18 +285,27 @@ export default {
   }
 }
 
-.k-module-body {
-  &[data-collapsed="true"] {
+.k-module[data-disabled="true"] .k-fields-section {
+  opacity: 0.2;
+  pointer-events: none;
+}
 
-    .k-module-content,
-    .k-drawer-tabs {
-      display: none;
-    }
-  }
+.k-module[data-disabled="true"] .k-module-toggle-locked {
+  color: var(--color-red-700);
+}
 
-  &:not([data-collapsed="true"]) {
-    padding-block-end: var(--spacing-3);
-  }
+.k-module:is(.k-sortable-ghost, .k-sortable-fallback) .k-module-body {
+  max-height: var(--drawer-header-height);
+  overflow: clip;
+}
+
+.k-module-body:not([data-collapsed="true"]) {
+  padding-block-end: var(--spacing-3);
+}
+
+.k-module-body[data-collapsed="true"] .k-module-content,
+.k-module-body[data-collapsed="true"] .k-drawer-tabs {
+  display: none;
 }
 
 .k-module-header {
@@ -348,23 +341,23 @@ export default {
 
 .k-module-icon {
   display: grid;
+}
 
-  >* {
-    grid-area: 1 / 1;
-  }
+.k-module-icon > * {
+  grid-area: 1 / 1;
+}
 
-  > :last-child {
+.k-module-icon > :last-child {
+  visibility: hidden;
+}
+
+@container style(--show-arrow: true) {
+  .k-module-icon > :first-child {
     visibility: hidden;
   }
 
-  @container style(--show-arrow: true) {
-    > :first-child {
-      visibility: hidden;
-    }
-
-    > :last-child {
-      visibility: visible;
-    }
+  .k-module-icon > :last-child {
+    visibility: visible;
   }
 }
 
@@ -439,10 +432,6 @@ export default {
   container: column / inline-size;
 }
 
-.k-module-error {
-  /* TODO: error state */
-}
-
 .k-module-toolbar {
   --toolbar-size: 30px;
   display: none;
@@ -453,13 +442,13 @@ export default {
   margin-block-start: calc(-1.75rem + 2px);
   box-shadow: var(--shadow-xl);
   border: 1px solid light-dark(var(--color-border), var(--color-gray-900));
+}
 
-  .k-module[data-selected="true"]>& {
-    display: flex;
-  }
+.k-module[data-selected="true"] > .k-module-toolbar {
+  display: flex;
+}
 
-  &>.k-button:not(:last-of-type) {
-    border-inline-end: 1px solid var(--toolbar-border);
-  }
+.k-module-toolbar > .k-button:not(:last-of-type) {
+  border-inline-end: 1px solid var(--toolbar-border);
 }
 </style>
