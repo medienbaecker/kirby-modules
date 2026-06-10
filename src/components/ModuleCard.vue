@@ -38,6 +38,7 @@
             </k-dropdown-item>
           </k-dropdown-content>
           <span class="k-module-name">{{ module.moduleName }}</span>
+          <span v-if="module.isVirtual" class="k-module-virtual">{{ $t('modules.virtual') }}</span>
           <button class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug"
             :disabled="!permissions.changeSlug" @click="$emit('change-slug')">
             <span class="k-module-anchor-text">
@@ -142,6 +143,7 @@ export default {
           icon: "edit",
           title: this.$t("edit"),
           click: () => this.$go(this.module.link),
+          disabled: !this.module.link,
         },
         ...(this.module.previewUrl ? [{
           icon: "open",
@@ -177,6 +179,7 @@ export default {
               icon: "edit",
               label: this.$t("edit"),
               click: () => this.$go(this.module.link),
+              disabled: !this.module.link,
             },
             {
               icon: this.module.hidden ? "preview" : "hidden",
@@ -364,6 +367,13 @@ export default {
 .k-module-name {
   align-self: center;
   margin-inline: calc(var(--spacing-3)* -1);
+}
+
+.k-module-virtual {
+  align-self: center;
+  margin-inline-start: var(--spacing-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-dimmed);
 }
 
 .k-module-anchor {

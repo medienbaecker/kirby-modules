@@ -81,7 +81,8 @@ return [
   ],
 
   'computed' => [
-    'total' => fn() => count($this->modules ?? []),
+    // Virtual modules don't count towards min/max — they can't be added or removed.
+    'total' => fn() => count(array_filter($this->modules ?? [], fn($module) => !$module['isVirtual'])),
     'add'   => fn() => !$this->isFull(),
 
     // Verbatim copy of core's pages section errors computed (sections can't
@@ -122,8 +123,6 @@ return [
 
       $modules = [];
       foreach ($modulesPage->children() as $child) {
-        // Virtual modules (no content folder) render on the frontend only
-        if (!$child->exists()) continue;
         $modules[] = ModuleSectionItem::for($child);
       }
       return $modules;
