@@ -114,11 +114,16 @@ class ModuleRegistry
     ];
   }
 
+  // 'text' and 'module.text' are interchangeable in all plugin options;
+  // this returns the full template name.
+  public static function qualify(string $name): string
+  {
+    return Str::startsWith($name, 'module.') ? $name : 'module.' . $name;
+  }
+
   public static function add(array $registry, string $name, string $blueprintPath, string $snippetPath): array
   {
-    if (!Str::startsWith($name, 'module.')) {
-      $name = 'module.' . $name;
-    }
+    $name = self::qualify($name);
 
     if (isset($registry['blueprints']['pages/' . $name]) || !F::exists($blueprintPath)) {
       return $registry;

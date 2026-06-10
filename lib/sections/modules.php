@@ -26,19 +26,20 @@ return [
     // as a prop (no mixin does) — declare it so the dependency is explicit.
     'query' => fn() => null,
 
+    // Both short ('text') and full ('module.text') names are accepted here,
+    // in templatesIgnore and in default.
     'templates' => function ($templates = null) use ($allBlueprints) {
-      $blueprints = $templates ?? $allBlueprints;
+      $blueprints = $templates
+        ? array_map(fn($name) => ModuleRegistry::qualify($name), $templates)
+        : $allBlueprints;
 
       if ($this->templatesIgnore) {
-        $blueprints = array_values(array_filter($blueprints, function ($name) {
-          $short = preg_replace('/^module\./', '', $name);
-          return !in_array($short, $this->templatesIgnore, true)
-            && !in_array($name, $this->templatesIgnore, true);
-        }));
+        $ignore = array_map(fn($name) => ModuleRegistry::qualify($name), $this->templatesIgnore);
+        $blueprints = array_values(array_diff($blueprints, $ignore));
       }
 
       if ($this->default) {
-        $name = 'module.' . $this->default;
+        $name = ModuleRegistry::qualify($this->default);
         if (in_array($name, $blueprints, true)) {
           $blueprints = array_values(array_unique(array_merge([$name], $blueprints)));
         }
