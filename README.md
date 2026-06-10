@@ -22,7 +22,7 @@ Or download this repository and put it into `site/plugins/modules`.
 
 ## Quick Start
 
-> Prefer to see everything wired up? The [moduleskit](https://github.com/medienbaecker/modules-example) is a small, ready-to-run example site.
+> Prefer to see everything wired up? The [moduleskit](https://github.com/medienbaecker/moduleskit) is a small, ready-to-run example site.
 
 **1. Add a modules section** to a page blueprint:
 
