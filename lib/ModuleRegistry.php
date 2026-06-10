@@ -2,10 +2,10 @@
 
 namespace Medienbaecker\Modules;
 
+use Kirby\Data\Data;
 use Kirby\Filesystem\Dir;
 use Kirby\Filesystem\F;
 use Kirby\Toolkit\Str;
-use Kirby\Data\Yaml;
 
 class ModuleRegistry
 {
@@ -129,7 +129,7 @@ class ModuleRegistry
       'icon' => 'box',
       'buttons' => ['open', 'preview', '-', 'settings', 'languages', 'modules.visibility'],
     ];
-    $blueprintArray = array_merge($defaults, Yaml::read($blueprintPath));
+    $blueprintArray = array_merge($defaults, Data::read($blueprintPath));
 
     if (!array_key_exists('create', $blueprintArray)) {
       $blueprintArray['create'] = [
@@ -178,10 +178,8 @@ class ModuleRegistry
     }
 
     $siblings = $parent->children();
-    if ($siblings->findBy('slug', $slug)) {
-      $i = 2;
-      while ($siblings->findBy('slug', $slug . '-' . $i)) $i++;
-      $slug = $slug . '-' . $i;
+    while ($siblings->findBy('slug', $slug)) {
+      $slug = Str::increment($slug, '-', 2);
     }
     return $slug;
   }

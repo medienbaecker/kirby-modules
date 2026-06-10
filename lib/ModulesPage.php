@@ -11,7 +11,7 @@ class ModulesPage extends Page
     array $data = [],
     $contentType = 'html',
     VersionId|string|null $versionId = null
-  ): string {
+  ): never {
     go($this->parentModel()->url());
   }
 

@@ -135,12 +135,13 @@ class ModuleChangeTypeDialog
   // across a page root and its _changes/ subdir.
   private static function renameTemplateFiles(string $root, string $from, string $to): void
   {
-    $pattern = '#^' . preg_quote($from) . '(\..+)?\.txt$#';
+    $extension = '.' . kirby()->contentExtension();
+    $pattern = '#^' . preg_quote($from) . '(\..+)?' . preg_quote($extension) . '$#';
     foreach ([$root, $root . '/_changes'] as $dir) {
       if (!is_dir($dir)) continue;
       foreach (scandir($dir) as $file) {
         if (preg_match($pattern, $file, $m)) {
-          rename($dir . '/' . $file, $dir . '/' . $to . ($m[1] ?? '') . '.txt');
+          rename($dir . '/' . $file, $dir . '/' . $to . ($m[1] ?? '') . $extension);
         }
       }
     }
