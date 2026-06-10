@@ -10,6 +10,7 @@
     }
   ],
   "type": "kirby-plugin",
+  "version": "5.2.1",
   "keywords": [
     "kirby",
     "kirby-cms",
