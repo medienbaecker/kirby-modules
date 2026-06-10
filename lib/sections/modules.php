@@ -121,6 +121,8 @@ return [
 
       $modules = [];
       foreach ($modulesPage->children() as $child) {
+        // Virtual modules (no content folder) render on the frontend only
+        if (!$child->exists()) continue;
         $modules[] = ModuleSectionItem::for($child);
       }
       return $modules;
