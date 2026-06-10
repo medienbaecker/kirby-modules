@@ -235,40 +235,31 @@ class ModuletextPage extends Medienbaecker\Modules\ModulePage {
 
 ### Virtual modules
 
-Sometimes a module shouldn't be editable content but come from code, for example a contact card picked by matching logic. `Module::factory()` mirrors Kirby's `Block::factory()`: it creates a module on the fly and renders it with its regular snippet.
+`Module::factory()` mirrors Kirby's `Block::factory()`: it creates a module from code and renders it with its regular snippet.
 
 ```php
-// site/templates/job.php
 use Medienbaecker\Modules\Module;
 
-$contact = page('contacts')
-  ->children()
-  ->listed()
-  ->filterBy('department', $page->department())
-  ->first();
-
-if ($contact) {
-  echo Module::factory([
-    'type' => 'contact',
-    'content' => [
-      'contact' => $contact->uuid()->value()
-    ]
-  ])->toHtml();
-}
+echo Module::factory([
+  'type' => 'text',
+  'content' => [
+    'textarea' => 'Hello from code'
+  ]
+])->toHtml();
 ```
 
-`Modules::factory()` is the plural equivalent (like `Blocks::factory()`) and returns a collection that renders when echoed:
+`Modules::factory()` is the plural equivalent (like `Blocks::factory()`) and renders when echoed:
 
 ```php
 use Medienbaecker\Modules\Modules;
 
 echo Modules::factory([
-  ['type' => 'text', 'content' => ['textarea' => 'Hello']],
-  ['type' => 'gallery', 'content' => ['images' => $page->images()->toYaml()]],
+  ['type' => 'text', 'content' => ['textarea' => 'One']],
+  ['type' => 'text', 'content' => ['textarea' => 'Two']],
 ]);
 ```
 
-Inside the snippets, `$module` works as usual and `$page` is the current page (pass `parent` to change that). Virtual modules are render-only: they don't appear in the Panel.
+Inside the snippets, `$module` works as usual and `$page` is the current page. Virtual modules are render-only: they don't appear in the Panel.
 
 ### Config options
 
