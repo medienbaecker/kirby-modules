@@ -81,7 +81,20 @@ return [
   ],
 
   'computed' => [
-    'total' => fn() => count($this->modules ?? []),
+    // Computed props evaluate in definition order; `modules` must come
+    // first because `total` (and through it `add` and `errors`) reads it.
+    'modules' => function () {
+      $modulesPage = $this->model()->find($this->name);
+      if (!$modulesPage) return [];
+
+      $modules = [];
+      foreach ($modulesPage->children() as $child) {
+        $modules[] = ModuleSectionItem::for($child);
+      }
+      return $modules;
+    },
+
+    'total' => fn() => count($this->modules),
     'add'   => fn() => !$this->isFull(),
 
     // Verbatim copy of core's pages section errors computed (sections can't
@@ -114,17 +127,6 @@ return [
           'message' => $errors,
         ]
       ];
-    },
-
-    'modules' => function () {
-      $modulesPage = $this->model()->find($this->name);
-      if (!$modulesPage) return [];
-
-      $modules = [];
-      foreach ($modulesPage->children() as $child) {
-        $modules[] = ModuleSectionItem::for($child);
-      }
-      return $modules;
     },
   ],
 
