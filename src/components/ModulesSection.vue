@@ -346,8 +346,7 @@ export default {
       }
     },
     changeType(module) {
-      this.$dialog("modules/change-type", {
-        query: { page: this.encodeId(module.id) },
+      this.$dialog("modules/change-type/" + this.encodeId(module.id), {
         on: {
           // Clear cached fields before refetch so the old k-sections unmounts
           // instead of fetching the old template's section against the new one.
@@ -361,9 +360,7 @@ export default {
       });
     },
     changeSlug(module) {
-      this.$dialog("modules/change-slug", {
-        query: { page: this.encodeId(module.id) },
-      });
+      this.$dialog("modules/change-slug/" + this.encodeId(module.id));
     },
 
     async sortModule(module, direction) {

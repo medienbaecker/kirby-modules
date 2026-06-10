@@ -2,15 +2,10 @@
 
 namespace Medienbaecker\Modules;
 
-use Kirby\Cms\Page;
-use Kirby\Exception\NotFoundException;
-
-class ModuleChangeSlugDialog
+class ModuleChangeSlugDialog extends ModuleDialog
 {
-  public static function load(): array
+  public function load(): array
   {
-    $page = self::resolveModule();
-
     return [
       'component' => 'k-form-dialog',
       'props' => [
@@ -24,28 +19,16 @@ class ModuleChangeSlugDialog
           ]
         ],
         'value' => [
-          'page' => (string) kirby()->request()->get('page'),
-          'slug' => $page->slug(),
+          'slug' => $this->module->slug(),
         ],
         'submitButton' => t('change'),
       ]
     ];
   }
 
-  public static function submit(): bool
+  public function submit(): bool
   {
-    $page = self::resolveModule();
-    $page->changeSlug(kirby()->request()->body()->get('slug'));
+    $this->module->changeSlug(kirby()->request()->body()->get('slug'));
     return true;
-  }
-
-  private static function resolveModule(): Page
-  {
-    $id = (string) kirby()->request()->get('page');
-    $page = kirby()->page(str_replace('+', '/', $id));
-    if (!$page || !$page->isModule()) {
-      throw new NotFoundException('Module not found');
-    }
-    return $page;
   }
 }

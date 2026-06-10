@@ -2,21 +2,17 @@
 
 namespace Medienbaecker\Modules;
 
-use Kirby\Cms\Page;
 use Kirby\Exception\InvalidArgumentException;
-use Kirby\Exception\NotFoundException;
 
-class ModuleChangeTypeDialog
+class ModuleChangeTypeDialog extends ModuleDialog
 {
-  public static function load(): array
+  public function load(): array
   {
-    $page = self::resolveModule();
-
     // Source the list from the module's owning `modules` section so the order
     // and allowed types match the create dialog exactly (same section, same
     // `default`/`templates`/`templatesIgnore`). Fall back to the page's
     // changeTemplate option, then the registry, for edge/recovery cases.
-    $blueprints = self::ownerSectionBlueprints($page) ?? $page->blueprints();
+    $blueprints = $this->ownerSectionBlueprints() ?? $this->module->blueprints();
     if (empty($blueprints)) {
       foreach (ModuleRegistry::create()['blueprints'] as $name => $props) {
         if (!str_starts_with($name, 'pages/module.')) continue;
@@ -39,7 +35,7 @@ class ModuleChangeTypeDialog
     // If the current type isn't in the list (blueprint deleted, or the section
     // doesn't allow it), prepend it as a disabled card so the grid still shows
     // what the module currently is and the dialog has a valid current value.
-    $currentName = $page->intendedTemplate()->name();
+    $currentName = $this->module->intendedTemplate()->name();
     if (!in_array($currentName, array_column($types, 'name'), true)) {
       $currentProps = ModuleRegistry::create()['blueprints']['pages/' . $currentName] ?? null;
       array_unshift($types, [
@@ -56,8 +52,6 @@ class ModuleChangeTypeDialog
       'props' => [
         'blueprints' => $types,
         'value' => [
-          // Page ID round-trips through form value (query params aren't sent on submit)
-          'page' => (string) kirby()->request()->get('page'),
           'template' => $currentName
         ],
         'submitButton' => t('change'),
@@ -65,24 +59,22 @@ class ModuleChangeTypeDialog
     ];
   }
 
-  public static function submit(): bool
+  public function submit(): bool
   {
-    $page = self::resolveModule();
-    $target = self::validateTarget(
-      $page,
+    $target = $this->validateTarget(
       (string) kirby()->request()->body()->get('template')
     );
 
-    if (count($page->blueprints()) > 0) {
-      $page->changeTemplate($target);
+    if (count($this->module->blueprints()) > 0) {
+      $this->module->changeTemplate($target);
       return true;
     }
 
     // Missing-blueprint fallback: PageRules::changeTemplate would reject the
-    // change because $page->blueprints() is empty. Rename files directly.
-    kirby()->impersonate('kirby', fn() => static::renameTemplateFiles(
-      $page->root(),
-      $page->intendedTemplate()->name(),
+    // change because $this->module->blueprints() is empty. Rename files directly.
+    kirby()->impersonate('kirby', fn() => self::renameTemplateFiles(
+      $this->module->root(),
+      $this->module->intendedTemplate()->name(),
       $target
     ));
     return true;
@@ -93,9 +85,9 @@ class ModuleChangeTypeDialog
   // create produce an identical list. Fetch the one section by name rather than
   // iterating sections() — the latter also instantiates the host's other
   // sections (e.g. files), which can error outside a normal request.
-  private static function ownerSectionBlueprints(Page $page): ?array
+  private function ownerSectionBlueprints(): ?array
   {
-    $container = $page->parent();
+    $container = $this->module->parent();
     $host = $container?->parentModel();
     if (!$host) {
       return null;
@@ -107,24 +99,14 @@ class ModuleChangeTypeDialog
     return null;
   }
 
-  private static function resolveModule(): Page
-  {
-    $id = (string) kirby()->request()->get('page');
-    $page = kirby()->page(str_replace('+', '/', $id));
-    if (!$page || !$page->isModule()) {
-      throw new NotFoundException('Module not found');
-    }
-    return $page;
-  }
-
   // Restricts the target to a real module blueprint and, when the owning
   // section resolves, to the types that section allows.
-  private static function validateTarget(Page $page, string $target): string
+  private function validateTarget(string $target): string
   {
     if (!ModuleRegistry::hasBlueprint($target)) {
       throw new InvalidArgumentException('Invalid module type');
     }
-    $allowed = self::ownerSectionBlueprints($page);
+    $allowed = $this->ownerSectionBlueprints();
     if ($allowed !== null && !in_array($target, array_column($allowed, 'name'), true)) {
       throw new InvalidArgumentException('Invalid module type');
     }

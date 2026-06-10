@@ -2,137 +2,66 @@
 
 use Kirby\Cms\Page;
 use Kirby\Exception\InvalidArgumentException;
-use Kirby\Exception\NotFoundException;
-use Kirby\Toolkit\I18n;
-use Medienbaecker\Modules\ModuleCreateDialog;
-use Medienbaecker\Modules\ModuleChangeTypeDialog;
 use Medienbaecker\Modules\ModuleChangeSlugDialog;
-use Medienbaecker\Modules\ModuleSectionApi;
+use Medienbaecker\Modules\ModuleChangeTypeDialog;
+use Medienbaecker\Modules\ModuleCreateDialog;
 use Medienbaecker\Modules\ModulesLicense;
-
-$resolveModule = function (string $id): Page {
-  $page = kirby()->page(str_replace('+', '/', $id));
-  if (!$page || !$page->isModule()) {
-    throw new NotFoundException('Module not found');
-  }
-  return $page;
-};
+use Medienbaecker\Modules\ModuleVisibilityButton;
+use Medienbaecker\Modules\ModuleVisibilityDialog;
 
 return [
-  'modules' => function () use ($resolveModule) {
+  'modules' => function ($kirby) {
     return [
       'dialogs' => [
         'modules/create' => [
-          'pattern' => 'modules/create',
-          'load' => fn() => ModuleCreateDialog::load(),
-          'submit' => fn() => ModuleCreateDialog::submit(),
+          'controller' => ModuleCreateDialog::class,
         ],
         'modules/change-type' => [
-          'pattern' => 'modules/change-type',
-          'load' => fn() => ModuleChangeTypeDialog::load(),
-          'submit' => fn() => ModuleChangeTypeDialog::submit(),
+          'pattern' => 'modules/change-type/(:any)',
+          'controller' => ModuleChangeTypeDialog::class,
         ],
         'modules/change-slug' => [
-          'pattern' => 'modules/change-slug',
-          'load' => fn() => ModuleChangeSlugDialog::load(),
-          'submit' => fn() => ModuleChangeSlugDialog::submit(),
+          'pattern' => 'modules/change-slug/(:any)',
+          'controller' => ModuleChangeSlugDialog::class,
         ],
         'modules/visibility' => [
           'pattern' => 'pages/(:any)/visibility',
-          'load' => function (string $id) use ($resolveModule) {
-            $page = $resolveModule($id);
-            $language = kirby()->defaultLanguage()?->code();
-            $hidden = $page->content($language)->hidden()->toBool();
-
-            return [
-              'component' => 'k-form-dialog',
-              'props' => [
-                'fields' => [
-                  'visibility' => [
-                    'label'    => I18n::translate('modules.visibility'),
-                    'type'     => 'radio',
-                    'required' => true,
-                    'options'  => [
-                      ['value' => 'visible', 'text' => I18n::translate('modules.visible')],
-                      ['value' => 'hidden', 'text' => I18n::translate('modules.hidden')],
-                    ],
-                  ],
-                ],
-                'submitButton' => I18n::translate('change'),
-                'value' => [
-                  'visibility' => $hidden ? 'hidden' : 'visible',
-                ],
-              ],
-            ];
-          },
-          'submit' => function (string $id) use ($resolveModule) {
-            $page = $resolveModule($id);
-            $next = kirby()->request()->get('visibility') === 'hidden';
-            $language = kirby()->defaultLanguage()?->code();
-            $current = $page->content($language)->hidden()->toBool();
-
-            if ($next !== $current) {
-              ModuleSectionApi::flipHidden($page);
-            }
-
-            return ['event' => 'page.update'];
-          },
+          'controller' => ModuleVisibilityDialog::class,
         ],
       ],
       'buttons' => [
-        'modules.visibility' => function (Page $page) {
-          if (!$page->isModule()) return null;
-
-          $language = kirby()->defaultLanguage()?->code();
-          $hidden = $page->content($language)->hidden()->toBool();
-          $disabled = $page->permissions()->cannot('update');
-
-          $label = $hidden ? I18n::translate('modules.hidden') : I18n::translate('modules.visible');
-          $title = I18n::translate('modules.visibility') . ': ' . $label;
-          if ($disabled) {
-            $title .= ' (' . I18n::translate('disabled') . ')';
-          }
-
-          return [
-            'dialog'   => $page->panel()->url(true) . '/visibility',
-            'disabled' => $disabled,
-            'icon'     => $hidden ? 'hidden' : 'preview',
-            'text'     => $label,
-            'theme'    => $hidden ? 'negative-icon' : 'positive-icon',
-            'title'    => $title,
-          ];
-        },
+        'modules.visibility' => fn(Page $page) => $page->isModule()
+          ? new ModuleVisibilityButton($page)
+          : null,
       ],
     ];
   },
-  'system' => function () {
+  'system' => function ($kirby) {
     return [
       'dialogs' => [
         'modules/remove-license' => [
-          'load' => function () {
-            return [
-              'component' => 'k-remove-dialog',
-              'props' => [
-                'text' => t('modules.license.remove.text'),
-                'submitButton' => [
-                  'icon' => 'trash',
-                  'text' => t('modules.license.remove.submit'),
-                  'theme' => 'negative'
-                ]
+          'load' => fn() => [
+            'component' => 'k-remove-dialog',
+            'props' => [
+              'text' => t('modules.license.remove.text'),
+              'submitButton' => [
+                'icon' => 'trash',
+                'text' => t('modules.license.remove.submit'),
+                'theme' => 'negative'
               ]
-            ];
-          },
+            ]
+          ],
           'submit' => function () {
             ModulesLicense::remove();
             return ['redirect' => 'system'];
           }
         ],
         'modules/activate' => [
-          'load' => function () {
+          'load' => function () use ($kirby) {
             $key = ModulesLicense::readKey();
 
             if ($key) {
-              $version = kirby()->plugin('medienbaecker/modules')->version();
+              $version = $kirby->plugin('medienbaecker/modules')->version();
               return [
                 'component' => 'k-modules-license-dialog',
                 'props' => [
@@ -176,8 +105,8 @@ return [
               ]
             ];
           },
-          'submit' => function () {
-            $key = kirby()->request()->get('key');
+          'submit' => function () use ($kirby) {
+            $key = $kirby->request()->get('key');
 
             if (empty($key)) {
               throw new InvalidArgumentException(t('modules.license.error.empty'));

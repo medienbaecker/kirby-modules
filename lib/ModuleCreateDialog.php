@@ -2,27 +2,19 @@
 
 namespace Medienbaecker\Modules;
 
-use Kirby\Cms\Find;
+use Kirby\Exception\NotFoundException;
 use Kirby\Panel\PageCreateDialog;
 
-class ModuleCreateDialog
+class ModuleCreateDialog extends PageCreateDialog
 {
-  public static function load(): array
+  // Dialog routes call for() with the route arguments (none here); the
+  // dialog parameters travel as request data, exactly like the core
+  // page.create dialog.
+  public static function for(): static
   {
     $request = kirby()->request();
 
-    $hasModuleBlueprints = false;
-    foreach (ModuleRegistry::create()['blueprints'] as $blueprint => $_) {
-      if (str_starts_with($blueprint, 'pages/module.')) {
-        $hasModuleBlueprints = true;
-        break;
-      }
-    }
-    if (!$hasModuleBlueprints) {
-      throw new \Kirby\Exception\NotFoundException(t('modules.create.error.notemplates'));
-    }
-
-    $result = (new PageCreateDialog(
+    return new static(
       parentId: $request->get('parent'),
       sectionId: $request->get('section'),
       template: $request->get('template'),
@@ -30,14 +22,25 @@ class ModuleCreateDialog
       slug: $request->get('slug'),
       title: $request->get('title'),
       uuid: $request->get('uuid'),
-    ))->load();
-
-    $result['component'] = 'k-module-create-dialog';
-
-    $result['props']['blueprints'] = array_map(
-      fn(array $blueprint) => [...$blueprint, ...ModuleRegistry::typeVisuals($blueprint['name'])],
-      $result['props']['blueprints']
     );
+  }
+
+  public function blueprints(): array
+  {
+    return array_map(
+      fn(array $blueprint) => [...$blueprint, ...ModuleRegistry::typeVisuals($blueprint['name'])],
+      parent::blueprints()
+    );
+  }
+
+  public function load(): array
+  {
+    if (!$this->hasModuleBlueprints()) {
+      throw new NotFoundException(t('modules.create.error.notemplates'));
+    }
+
+    $result = parent::load();
+    $result['component'] = 'k-module-create-dialog';
 
     $status = option('medienbaecker.modules.autopublish', false) === true
       ? t('modules.visible')
@@ -45,7 +48,7 @@ class ModuleCreateDialog
     $result['props']['submitButton'] = tt('page.create', ['status' => $status]);
 
     $slug = ModuleRegistry::generateSlug(
-      $request->get('parent') ?? '',
+      $this->parentId,
       $result['props']['template'] ?? ''
     );
     if ($slug) {
@@ -60,9 +63,9 @@ class ModuleCreateDialog
     return $result;
   }
 
-  public static function submit(): array
+  public function submit(array|null $input = null): array
   {
-    $input = kirby()->request()->body()->toArray();
+    $input ??= kirby()->request()->body()->toArray();
 
     if (empty($input['slug'])) {
       $input['slug'] = ModuleRegistry::generateSlug(
@@ -71,16 +74,10 @@ class ModuleCreateDialog
       );
     }
 
-    $response = (new PageCreateDialog(
-      parentId: $input['parent'] ?? null,
-      sectionId: $input['section'] ?? null,
-      template: $input['template'] ?? null,
-      viewId: $input['view'] ?? null,
-    ))->submit($input);
+    $response = parent::submit($input);
 
     if (option('medienbaecker.modules.autopublish', false) !== true) {
-      $parent = Find::parent($input['parent'] ?? 'site');
-      $page = $parent->find($input['slug']);
+      $page = $this->parent->find($input['slug']);
       if ($page) {
         kirby()->impersonate(
           'kirby',
@@ -90,5 +87,15 @@ class ModuleCreateDialog
     }
 
     return $response;
+  }
+
+  private function hasModuleBlueprints(): bool
+  {
+    foreach (ModuleRegistry::create()['blueprints'] as $name => $props) {
+      if (str_starts_with($name, 'pages/module.')) {
+        return true;
+      }
+    }
+    return false;
   }
 }
