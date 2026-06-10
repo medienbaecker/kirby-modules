@@ -3,42 +3,38 @@
 namespace Medienbaecker\Modules;
 
 use Kirby\Cms\Page;
-use Kirby\Cms\Pages;
-use Kirby\Exception\InvalidArgumentException;
+use Kirby\Toolkit\Str;
 
 class Modules
 {
-  // Creates virtual module pages from definitions keyed by slug:
+  // Creates several modules from code, mirroring Kirby's Blocks::factory:
   //
-  //   Modules::factory([
-  //     'banner' => [
-  //       'template' => 'text',
-  //       'content'  => ['textarea' => 'Hello'],
-  //     ],
-  //   ], $container);
+  //   echo Modules::factory([
+  //     ['type' => 'text', 'content' => ['textarea' => 'Hello']],
+  //     ['type' => 'gallery', 'content' => ['images' => $images]],
+  //   ])->toHtml();
   //
-  // Template names may be short ('text') or full ('module.text'). A stable
-  // uuid is derived from the container and slug unless the content provides
-  // one, so UUIDs don't get regenerated on every request.
-  public static function factory(array $modules, Page $parent): Pages
+  // String keys become slugs. Duplicate slugs within the batch get a
+  // numeric suffix (text, text-2, …) so no module silently drops out.
+  public static function factory(array $modules, ?Page $parent = null): ModulesCollection
   {
-    $props = [];
-    foreach ($modules as $slug => $module) {
-      if (empty($module['template'])) {
-        throw new InvalidArgumentException('Virtual module "' . $slug . '" needs a template');
+    $collection = new ModulesCollection();
+
+    foreach ($modules as $key => $props) {
+      if (is_string($key)) {
+        $props['slug'] ??= $key;
+      }
+      $props['parent'] ??= $parent;
+
+      $module = Module::factory($props);
+
+      while ($collection->get($module->id())) {
+        $module = $module->clone(['slug' => Str::increment($module->slug(), '-', 2)]);
       }
 
-      $content = $module['content'] ?? [];
-      $content['uuid'] ??= 'virtual-' . str_replace('/', '-', $parent->id()) . '-' . $slug;
-
-      $props[] = [
-        ...$module,
-        'slug'     => $slug,
-        'template' => ModuleRegistry::qualify($module['template']),
-        'content'  => $content,
-      ];
+      $collection->append($module);
     }
 
-    return Pages::factory($props, $parent);
+    return $collection;
   }
 }

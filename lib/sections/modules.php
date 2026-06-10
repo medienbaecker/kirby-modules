@@ -81,8 +81,7 @@ return [
   ],
 
   'computed' => [
-    // Virtual modules don't count towards min/max — they can't be added or removed.
-    'total' => fn() => count(array_filter($this->modules ?? [], fn($module) => !$module['isVirtual'])),
+    'total' => fn() => count($this->modules ?? []),
     'add'   => fn() => !$this->isFull(),
 
     // Verbatim copy of core's pages section errors computed (sections can't

@@ -374,8 +374,7 @@ export default {
     },
 
     async onSort() {
-      // Virtual modules can't be sorted — their order comes from children()
-      const ids = this.modules.filter((m) => !m.isVirtual).map((m) => m.id);
+      const ids = this.modules.map((m) => m.id);
       try {
         await this.$api.post(this.sectionUrl + "/sort", { ids });
       } catch (e) {

@@ -235,30 +235,40 @@ class ModuletextPage extends Medienbaecker\Modules\ModulePage {
 
 ### Virtual modules
 
-Modules can also be defined in code, for example a fixed banner that every page of a certain template should render. Override the container model and merge them in with `Modules::factory()`:
+Sometimes a module shouldn't be editable content but come from code, for example a contact card picked by matching logic. `Module::factory()` mirrors Kirby's `Block::factory()`: it creates a module on the fly and renders it with its regular snippet.
 
 ```php
-// site/models/modules.php
-use Kirby\Cms\Pages;
-use Medienbaecker\Modules\Modules;
+// site/templates/job.php
+use Medienbaecker\Modules\Module;
 
-class ModulesPage extends Medienbaecker\Modules\ModulesPage
-{
-  public function children(): Pages
-  {
-    return $this->children ??= parent::children()->merge(Modules::factory([
-      'banner' => [
-        'template' => 'text',
-        'content'  => ['textarea' => 'Hello from code'],
-      ],
-    ], $this));
-  }
+$contact = page('contacts')
+  ->children()
+  ->listed()
+  ->filterBy('department', $page->department())
+  ->first();
+
+if ($contact) {
+  echo Module::factory([
+    'type' => 'contact',
+    'content' => [
+      'contact' => $contact->uuid()->value()
+    ]
+  ])->toHtml();
 }
 ```
 
-Virtual modules render on the frontend like any other module, including the `hidden` field, and appear in the Panel as read-only cards marked "Virtual". Since their content lives in code, they can't be edited, sorted or deleted there.
+`Modules::factory()` is the plural equivalent (like `Blocks::factory()`) and returns a collection that renders when echoed:
 
-Under the hood these are [Kirby's virtual pages](https://getkirby.com/docs/guide/virtual-content). If you need full control, override `children()` with `Pages::factory()` directly.
+```php
+use Medienbaecker\Modules\Modules;
+
+echo Modules::factory([
+  ['type' => 'text', 'content' => ['textarea' => 'Hello']],
+  ['type' => 'gallery', 'content' => ['images' => $page->images()->toYaml()]],
+]);
+```
+
+Inside the snippets, `$module` works as usual and `$page` is the current page (pass `parent` to change that). Virtual modules are render-only: they don't appear in the Panel.
 
 ### Config options
 

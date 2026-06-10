@@ -13,24 +13,19 @@ class ModuleSectionItem
     $hasTemplate = ModuleRegistry::hasBlueprint($templateName);
     $blueprint = $hasTemplate ? $child->blueprint() : null;
 
-    // Virtual modules (no content folder) are read-only: edits wouldn't
-    // persist, so they get no Panel link and no write permissions.
-    $isVirtual = $child->exists() === false;
-
     return [
       'id'                => $child->id(),
       'slug'              => $child->slug(),
       'template'          => $templateName,
       'hasTemplate'       => $hasTemplate,
-      'isVirtual'         => $isVirtual,
       'moduleName'        => $blueprint ? (string) $blueprint->title() : I18n::translate('modules.missingTemplate'),
       'icon'              => $blueprint ? ($blueprint->icon() ?? 'box') : 'alert',
       'hidden'            => $child->isHidden(),
       'hasFields'         => $blueprint && !empty($blueprint->fields()),
       'hasPendingChanges' => $child->version('changes')->exists('*'),
       'tabs'              => $blueprint ? $blueprint->tabs() : [],
-      'link'              => $isVirtual ? null : $child->panel()->url(),
-      'permissions'       => $isVirtual ? ['preview' => true] : $child->panel()->options(['preview']),
+      'link'              => $child->panel()->url(),
+      'permissions'       => $child->panel()->options(['preview']),
       'lock'              => self::lock($child),
       'previewUrl'        => self::previewUrl($child),
     ];
