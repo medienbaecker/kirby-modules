@@ -203,6 +203,7 @@ return [
 | `$page->modules('sidebar')` | Modules from named container                                 |
 | `$page->hasModules()`       | Page has modules                                             |
 | `$page->isModule()`         | Page is a module                                             |
+| `$module->isHidden()`       | Module is hidden (always reads the default language)         |
 | `$page->filePool()`         | Files for blueprint queries (host page if module, else self) |
 | `$module->moduleId()`       | CSS class (e.g. `module--text`)                              |
 | `$module->moduleName()`     | Blueprint title                                              |
