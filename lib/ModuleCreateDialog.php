@@ -65,6 +65,10 @@ class ModuleCreateDialog extends PageCreateDialog
 
   public function submit(array|null $input = null): array
   {
+    if ($this->parent instanceof \Kirby\Cms\Page && $this->parent->isModuleContainer()) {
+      HostLock::ensureUnlocked($this->parent->parentModel());
+    }
+
     $input ??= kirby()->request()->body()->toArray();
 
     if (empty($input['slug'])) {

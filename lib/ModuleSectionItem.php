@@ -26,24 +26,11 @@ class ModuleSectionItem
       'tabs'              => $blueprint ? $blueprint->tabs() : [],
       'link'              => $child->panel()->url(),
       'permissions'       => $child->panel()->options(['preview']),
-      'lock'              => self::lock($child),
+      // The host page lock covers the UI; this only guards adoption
+      // in reconcileState() while no mirror exists yet.
+      'isLocked'          => $child->lock()?->isLocked() ?? false,
       'previewUrl'        => self::previewUrl($child),
     ];
-  }
-
-  public static function lock(Page $child): ?array
-  {
-    $lock = $child->lock();
-    $data = $lock?->toArray();
-    if (!$data || !$data['isLocked']) {
-      return $data;
-    }
-
-    $user = $lock->user();
-    $data['user']['name'] = $user?->name()->isNotEmpty()
-      ? $user->name()->value()
-      : $user?->email();
-    return $data;
   }
 
   private static function previewUrl(Page $child): ?string

@@ -88,11 +88,14 @@ class ModuleSectionRoutes
     return $child;
   }
 
-  public static function ensureNotLocked(Page $child): void
+  public static function ensureModuleAndHostUnlocked(Page $child): void
   {
     $lock = $child->lock();
     if ($lock?->isLocked()) {
       throw new LockedContentException($lock);
+    }
+    if ($host = HostLock::hostOf($child)) {
+      HostLock::ensureUnlocked($host);
     }
   }
 
@@ -129,6 +132,7 @@ class ModuleSectionRoutes
   {
     $child = self::resolveModule($childId);
     self::assertChildOf($child, $container);
+    HostLock::ensureUnlocked($container->parentModel());
 
     // Kirby's default slug appends a locale suffix (-copy / -kopie / …) and
     // collides on the second duplicate.
@@ -157,12 +161,16 @@ class ModuleSectionRoutes
       $duplicate = self::writeHidden($duplicate, $hidden ? 'true' : null, $language);
     });
 
+    // The copied _changes directory may add pending changes to the host.
+    HostLock::sync($container->parentModel());
+
     return ['status' => 'ok'];
   }
 
   public static function sort(?Page $container, array $ids): void
   {
     if (!$container) return;
+    HostLock::ensureUnlocked($container->parentModel());
 
     kirby()->impersonate('kirby', function () use ($ids, $container) {
       $num = 1;
@@ -183,7 +191,7 @@ class ModuleSectionRoutes
     $ids = $container->children()->keys();
     foreach ($ids as $id) {
       $child = kirby()->page($id);
-      if ($child) self::ensureNotLocked($child);
+      if ($child) self::ensureModuleAndHostUnlocked($child);
     }
     foreach ($ids as $id) {
       $child = kirby()->page($id);
@@ -201,7 +209,7 @@ class ModuleSectionRoutes
 
   public static function flipHidden(Page $child): bool
   {
-    self::ensureNotLocked($child);
+    self::ensureModuleAndHostUnlocked($child);
     $hidden = $child->isHidden();
     self::writeHidden($child, $hidden ? null : 'true', kirby()->defaultLanguage()?->code());
     return !$hidden;

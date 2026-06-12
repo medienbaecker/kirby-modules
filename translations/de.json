@@ -20,7 +20,6 @@
   "visibility": "Sichtbarkeit",
   "deleteAll.confirm": "Möchtest du wirklich alle Module löschen?",
   "lock.applyFailed": "Einige Module konnten nicht gespeichert werden, weil eine andere Person sie gerade bearbeitet. Die Liste wurde aktualisiert.",
-  "lock.heldBy": "Gesperrt von {user}",
   "license.info": "Noch keinen Lizenzschlüssel? <a href='{{ url }}' target='_blank'>Lizenz kaufen</a>",
   "license.licensed": "Lizenziert",
   "license.activate": "Lizenz aktivieren",

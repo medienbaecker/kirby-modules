@@ -1,5 +1,6 @@
 <template>
-  <k-section :headline="headline" :buttons="sectionButtons" :required="Boolean(min)" :invalid="isInvalid">
+  <k-section class="k-modules-section" :headline="headline" :buttons="sectionButtons" :required="Boolean(min)"
+    :invalid="isInvalid">
     <k-dropdown-content ref="options" :options="dropdownOptions" align-x="end" />
     <k-loader v-if="isLoading" />
     <k-empty v-else-if="!modules.length" icon="box" @click="add()">
@@ -23,6 +24,24 @@
 <script>
 import ModuleCard from "./ModuleCard.vue";
 
+// The dirty marker (see dirtyParent) must never reach the server:
+// unknown fields in a save/publish payload pass through into the
+// content file. This wraps panel.content.request() once.
+function keepDirtyMarkersOutOfPayloads(panel) {
+  const content = panel.content;
+  if (!content || typeof content.request !== "function" || content.request._stripsMarkers) {
+    return;
+  }
+  const original = content.request.bind(content);
+  content.request = (method, values = {}, env = {}) => {
+    const clean = Object.fromEntries(
+      Object.entries(values).filter(([key]) => !key.startsWith("_modulesChanged_")),
+    );
+    return original(method, clean, env);
+  };
+  content.request._stripsMarkers = true;
+}
+
 export default {
   components: {
     "k-module-card": ModuleCard,
@@ -32,6 +51,8 @@ export default {
     name: String,
     parent: String,
     timestamp: Number,
+    // The host page's lock state, passed by k-sections
+    lock: Object,
   },
 
   data() {
@@ -67,7 +88,11 @@ export default {
       if (this.max && this.modules.length > this.max) return true;
       return false;
     },
+    isHostLocked() {
+      return this.lock?.isLocked === true;
+    },
     sectionButtons() {
+      if (this.isHostLocked) return [];
       const buttons = [
         { icon: "cog", title: this.$t("options"), click: () => this.$refs.options?.toggle() },
       ];
@@ -123,6 +148,8 @@ export default {
     },
   },
   created() {
+    keepDirtyMarkersOutOfPayloads(this.$panel);
+
     // Captured for cache invalidation on language switch in fetch().
     this._language = this.$panel.language?.code;
 
@@ -226,9 +253,16 @@ export default {
         }
       }
 
+      // Don't adopt another user's changes while they hold the page lock
+      if (this.isHostLocked) {
+        this.serverPendingIds = [];
+        this.undirtyParent();
+        return;
+      }
+
       // Server-side _changes not tracked locally (e.g. from a previous session)
       this.serverPendingIds = this.modules
-        .filter((m) => m.hasPendingChanges && !this.changes[m.id] && !m.lock?.isLocked)
+        .filter((m) => m.hasPendingChanges && !this.changes[m.id] && !m.isLocked)
         .map((m) => m.id);
 
       this.syncDirtyState();
@@ -299,7 +333,7 @@ export default {
     },
 
     add(position = -1) {
-      if (!this.canAdd) return;
+      if (!this.canAdd || this.isHostLocked) return;
       this.pendingInsertPosition = position;
       this.pendingFocusInput = true;
       this.$dialog("modules/create", {
@@ -323,10 +357,8 @@ export default {
         // Without this, a fast "type then duplicate" produces an empty copy.
         const pending = this.changes[module.id];
         if (pending) {
-          await this.$api.post(
-            this.pageUrl(module.id) + "/changes/save",
-            pending,
-            { silent: true },
+          await this.queueChanges(module.id, () =>
+            this.$api.post(this.pageUrl(module.id) + "/changes/save", pending, { silent: true }),
           );
         }
         await this.$api.post(
@@ -406,6 +438,15 @@ export default {
       });
     },
 
+    // Per-module promise chain: concurrent saves could land out of
+    // order, and a publish could beat an in-flight save to the disk.
+    queueChanges(moduleId, request) {
+      const chains = (this._changesChains ??= {});
+      const next = (chains[moduleId] || Promise.resolve()).then(request, request);
+      chains[moduleId] = next.catch(() => { });
+      return next;
+    },
+
     // Module changes are saved to each module's _changes version immediately,
     // then published/discarded when the parent page is saved/discarded.
     async onInput(module, values) {
@@ -414,10 +455,14 @@ export default {
 
       if (unchanged) {
         this.$delete(this.changes, module.id);
-        this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }).catch(() => { });
+        this.queueChanges(module.id, () =>
+          this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }),
+        ).catch(() => { });
       } else {
         try {
-          await this.$api.post(this.pageUrl(module.id) + "/changes/save", values, { silent: true });
+          await this.queueChanges(module.id, () =>
+            this.$api.post(this.pageUrl(module.id) + "/changes/save", values, { silent: true }),
+          );
           // Commit local state only after the server accepts; otherwise a
           // 423 leaves the parent dirty with nothing the user can publish.
           this.$set(this.changes, module.id, values);
@@ -450,7 +495,9 @@ export default {
 
         const results = await Promise.allSettled(
           allIds.map((moduleId) =>
-            this.$api.post(this.pageUrl(moduleId) + "/changes/" + action),
+            this.queueChanges(moduleId, () =>
+              this.$api.post(this.pageUrl(moduleId) + "/changes/" + action),
+            ),
           ),
         );
 
@@ -506,7 +553,8 @@ export default {
         || {};
     },
 
-    // Section-scoped key — multiple modules sections on one page dirty independently.
+    // Section-scoped key — multiple modules sections dirty independently.
+    // Never persisted: keepDirtyMarkersOutOfPayloads() strips it.
     dirtyParent() {
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: String(Date.now()) });
     },
@@ -603,7 +651,9 @@ export default {
     },
     handleError(e) {
       if (e?.details?.isLocked) {
-        this.fetch();
+        // Reload like core's lock alert: brings in the lock prop, so
+        // the section dims instead of silently reverting the edit
+        this.$panel.view.reload();
         return;
       }
       // notification.error unwraps Error/RequestError objects itself
@@ -620,6 +670,12 @@ export default {
 </script>
 
 <style scoped>
+/* Same dimming core applies to fields sections on a locked page */
+[data-locked="true"] .k-modules-section {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
 .k-module+.k-module {
   margin-block-start: var(--spacing-2);
 }

@@ -5,38 +5,14 @@
     <div class="k-module-body" :data-collapsed="!expanded">
       <header class="k-module-header" :style="{ '--side-width': sideWidth + 'px' }">
         <div ref="title" class="k-module-title">
-          <button class="k-module-toggle" :class="{ 'k-module-toggle-locked': isLockedByOther }"
-            :aria-expanded="String(expanded)" :title="isLockedByOther ? lockTitle : null"
-            :aria-label="isLockedByOther ? lockTitle : $t('modules.singular') + ' ' + module.moduleName"
-            @click="onToggleClick">
+          <button class="k-module-toggle" :aria-expanded="String(expanded)"
+            :aria-label="$t('modules.singular') + ' ' + module.moduleName" @click="$emit('toggle')">
             <k-icon v-if="loading" type="loader" />
-            <k-icon v-else-if="isLockedByOther" type="lock" />
             <span v-else class="k-module-icon">
               <k-icon :type="module.icon" />
               <k-icon :type="expanded ? 'angle-up' : 'angle-down'" />
             </span>
           </button>
-          <k-dropdown-content v-if="isLockedByOther" ref="lockDropdown" class="k-form-controls-dropdown"
-            align-x="start">
-            <p>{{ $t("form.locked") }}</p>
-            <template v-if="lockUser || lockModified">
-              <hr>
-              <dl>
-                <div v-if="lockUser">
-                  <dt><k-icon type="user" /></dt>
-                  <dd>{{ lockUser }}</dd>
-                </div>
-                <div v-if="lockModified">
-                  <dt><k-icon type="clock" /></dt>
-                  <dd>{{ lockModified }}</dd>
-                </div>
-              </dl>
-            </template>
-            <hr>
-            <k-dropdown-item :link="module.link + '/preview/changes'" icon="window" target="_blank">
-              {{ $t("form.preview") }}
-            </k-dropdown-item>
-          </k-dropdown-content>
           <span class="k-module-name">{{ module.moduleName }}</span>
           <button class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug"
             :disabled="!permissions.changeSlug" @click="$emit('change-slug')">
@@ -104,25 +80,11 @@ export default {
     this.sideObserver?.disconnect();
   },
   computed: {
-    isLockedByOther() {
-      return Boolean(this.module.lock?.isLocked);
-    },
     permissions() {
       return this.module.permissions || {};
     },
     disabled() {
       return !this.permissions.update;
-    },
-    lockUser() {
-      const user = this.module.lock?.user;
-      return user?.name || user?.email || "";
-    },
-    lockTitle() {
-      return this.$t("modules.lock.heldBy", { user: this.lockUser });
-    },
-    lockModified() {
-      const m = this.module.lock?.modified;
-      return m ? this.$library.dayjs(m).format("YYYY-MM-DD HH:mm:ss") : null;
     },
     contentReady() {
       if (!this.module.hasFields) return true;
@@ -243,13 +205,6 @@ export default {
     switchTab(tabName) {
       this.currentTab = tabName;
     },
-    onToggleClick() {
-      if (this.isLockedByOther) {
-        this.$refs.lockDropdown.toggle();
-      } else {
-        this.$emit("toggle");
-      }
-    },
   },
 };
 </script>
@@ -288,10 +243,6 @@ export default {
 .k-module[data-disabled="true"] .k-fields-section {
   opacity: 0.2;
   pointer-events: none;
-}
-
-.k-module[data-disabled="true"] .k-module-toggle-locked {
-  color: var(--color-red-700);
 }
 
 .k-module:is(.k-sortable-ghost, .k-sortable-fallback) .k-module-body {

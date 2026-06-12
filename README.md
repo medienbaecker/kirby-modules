@@ -124,6 +124,12 @@ Add preview images to make the create and change-type dialogs show a visual grid
 
 Types without a matching image fall back to their blueprint `icon`. If no type has a preview image, the dialogs keep the plain dropdown.
 
+### Concurrent editing
+
+Module edits are unsaved changes, published with the page's own Save button. While someone has unsaved module edits, the whole page is locked for everyone else, using Kirby's native lock: they see who is editing and all fields and modules become read-only.
+
+Kirby releases a lock 10 minutes after the last edit. If someone leaves without saving, their changes wait for the next editor, and the page header names who made them, just like on any other page. Saving publishes them, discarding removes them.
+
 ## Section Options
 
 | Option            | Type     | Description                                    |

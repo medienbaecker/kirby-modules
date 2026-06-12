@@ -74,6 +74,11 @@ return [
     return str_starts_with($this->intendedTemplate()->name(), 'module.');
   },
 
+  // The hidden page holding a section's modules as children.
+  'isModuleContainer' => function () {
+    return $this->intendedTemplate()->name() === 'modules';
+  },
+
   // Hidden state lives on the default language only — content(null) would
   // read the current Panel language instead.
   'isHidden' => function () {
