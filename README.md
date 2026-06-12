@@ -1,6 +1,6 @@
 # Kirby Modules
 
-Modular page building for [Kirby](https://getkirby.com/) using regular Kirby pages with their own blueprint and snippet, edited inline on the parent page.
+Modular page building for [Kirby](https://getkirby.com/). Every module is a regular page with its own blueprint and snippet, edited inline on the parent page.
 
 <img width="1988" height="1452" alt="Screenshot of the modules section with two modules, a text module with a textarea and a text with buttons module with both a textarea and a structure field for buttons" src=".github/screenshot.webp" />
 
@@ -13,6 +13,8 @@ Modular page building for [Kirby](https://getkirby.com/) using regular Kirby pag
 - Sensible defaults in module blueprints
 
 ## Installation
+
+The plugin requires Kirby 5.
 
 ```
 composer require medienbaecker/kirby-modules
@@ -66,7 +68,7 @@ kirby make:module text
 
 ## How It Works
 
-A module is a regular page, differentiated from other pages by being inside a modules container. This makes it possible to use pages as modules without sacrificing regular subpages:
+A module is a regular page, set apart only by living inside a modules container. That way pages can act as modules without sacrificing regular subpages:
 
 ```
 Page
@@ -86,7 +88,7 @@ A module type is defined by two files sharing one name:
 - `site/blueprints/modules/text.yml` for the fields
 - `site/snippets/modules/text.php` for the HTML
 
-Internally, the module page's template gets a prefix: a `text` module is a page with the template `module.text`. You don't need to remember which form goes where as every plugin option (`templates`, `templatesIgnore`, `default`) accepts both `text` and `module.text`.
+Internally, the module page's template gets a prefix: a `text` module is a page with the template `module.text`. You don't need to remember which form goes where: every plugin option (`templates`, `templatesIgnore`, `default`) accepts both `text` and `module.text`.
 
 ## Editing in the Panel
 
@@ -131,6 +133,8 @@ Types without a matching image fall back to their blueprint `icon`. If no type h
 | `templatesIgnore` | `array`  | Hide specific module types                     |
 | `min`             | `int`    | Minimum number of modules                      |
 | `max`             | `int`    | Maximum number of modules                      |
+| `sortable`        | `bool`   | Set to `false` to disable manual sorting       |
+| `label`           | `string` | Section headline (default: "Modules")          |
 | `empty`           | `string` | Empty state text                               |
 
 Type names work with or without the `module.` prefix.
@@ -187,6 +191,7 @@ Modules also work on the site itself: add a modules section to `site.yml` and us
 | `$page->modules()`              | All visible modules (default container)                      |
 | `$page->modules('sidebar')`     | Modules from a named container                               |
 | `$page->renderModules($params)` | Render all modules, optionally passing variables             |
+| `$page->createModule($props)`   | Create a module from code                                    |
 | `$page->hasModules()`           | Page has a modules section                                   |
 | `$page->isModule()`             | Page is a module                                             |
 | `$module->isHidden()`           | Module is hidden (always reads the default language)         |
@@ -262,6 +267,27 @@ echo Modules::factory([
 ```
 
 Inside the snippets, `$module` works as usual and `$page` is the current page. Virtual modules are render-only: they don't appear in the Panel.
+
+### Creating modules from code
+
+While `Module::factory()` is render-only, `$page->createModule()` creates a real module, stored on disk and editable in the Panel. Useful for imports, seeding and migrations:
+
+```php
+$page->createModule([
+  'type' => 'text',
+  'content' => [
+    'textarea' => 'Imported text'
+  ]
+]);
+```
+
+The container is created when missing and the slug defaults to the type name (`text`, `text-2`, …). Like in the Panel, new modules respect the [`autopublish` option](#config-options), so they are created hidden by default. The method returns the created module.
+
+The second argument targets a named container:
+
+```php
+$page->createModule($props, 'sidebar');
+```
 
 ### Config options
 

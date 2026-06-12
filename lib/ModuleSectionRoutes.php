@@ -9,6 +9,7 @@ use Kirby\Content\LockedContentException;
 use Kirby\Exception\NotFoundException;
 use Kirby\Filesystem\Dir;
 use Kirby\Form\Form;
+use Kirby\Toolkit\Str;
 
 class ModuleSectionRoutes
 {
@@ -222,14 +223,31 @@ class ModuleSectionRoutes
     return $child;
   }
 
-  public static function createContainer(ModelWithContent $model, string $slug, string $headline): void
+  public static function createContainer(ModelWithContent $model, string $slug, ?string $headline = null): Page
   {
-    if ($model->find($slug)) return;
+    if ($container = $model->find($slug)) {
+      return $container;
+    }
 
-    kirby()->impersonate('kirby', fn() => $model->createChild([
+    $headline ??= Str::ucfirst(str_replace('-', ' ', $slug));
+
+    return kirby()->impersonate('kirby', fn() => $model->createChild([
       'content'  => ['title' => $headline],
       'slug'     => $slug,
       'template' => 'modules',
     ])->publish());
+  }
+
+  // Applies the autopublish option to a freshly created module.
+  public static function applyAutopublish(Page $module): Page
+  {
+    if (option('medienbaecker.modules.autopublish', false) === true) {
+      return $module;
+    }
+
+    return kirby()->impersonate(
+      'kirby',
+      fn() => self::writeHidden($module, 'true', kirby()->defaultLanguage()?->code())
+    );
   }
 }

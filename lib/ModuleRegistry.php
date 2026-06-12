@@ -3,6 +3,7 @@
 namespace Medienbaecker\Modules;
 
 use Kirby\Data\Data;
+use Kirby\Exception\InvalidArgumentException;
 use Kirby\Filesystem\Dir;
 use Kirby\Filesystem\F;
 use Kirby\Toolkit\Str;
@@ -119,6 +120,22 @@ class ModuleRegistry
   public static function qualify(string $name): string
   {
     return Str::startsWith($name, 'module.') ? $name : 'module.' . $name;
+  }
+
+  // Like qualify(), but for creating modules: throws when the type is
+  // missing or has no blueprint.
+  public static function template(?string $type): string
+  {
+    if (!$type) {
+      throw new InvalidArgumentException('Module type is required');
+    }
+
+    $template = self::qualify($type);
+    if (!self::hasBlueprint($template)) {
+      throw new InvalidArgumentException('Unknown module type "' . $type . '"');
+    }
+
+    return $template;
   }
 
   public static function add(array $registry, string $name, string $blueprintPath, string $snippetPath): array

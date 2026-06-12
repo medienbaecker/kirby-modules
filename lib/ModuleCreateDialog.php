@@ -76,14 +76,8 @@ class ModuleCreateDialog extends PageCreateDialog
 
     $response = parent::submit($input);
 
-    if (option('medienbaecker.modules.autopublish', false) !== true) {
-      $page = $this->parent->find($input['slug']);
-      if ($page) {
-        kirby()->impersonate(
-          'kirby',
-          fn() => $page->update(['hidden' => 'true'], kirby()->defaultLanguage()?->code())
-        );
-      }
+    if ($page = $this->parent->find($input['slug'])) {
+      ModuleSectionRoutes::applyAutopublish($page);
     }
 
     return $response;

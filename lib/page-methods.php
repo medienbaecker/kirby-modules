@@ -2,9 +2,30 @@
 
 use Kirby\Cms\File;
 use Kirby\Cms\Page;
+use Medienbaecker\Modules\ModuleRegistry;
+use Medienbaecker\Modules\ModuleSectionRoutes;
 use Medienbaecker\Modules\ModulesCollection;
 
 return [
+
+  // Creates a real, persisted module (unlike Module::factory, which is
+  // render-only). The container is created when missing, same as in the Panel.
+  'createModule' => function (array $props, string $container = 'modules') {
+    $modulesContainer = $this->find($container)
+      ?? ModuleSectionRoutes::createContainer($this, $container);
+
+    $template = ModuleRegistry::template($props['type'] ?? $props['template'] ?? null);
+
+    // createChild always creates a draft; the blueprint's create.status
+    // is Panel-only, so list the module explicitly.
+    $module = kirby()->impersonate('kirby', fn() => $modulesContainer->createChild([
+      'slug'     => $props['slug'] ?? ModuleRegistry::generateSlug($modulesContainer->id(), $template),
+      'template' => $template,
+      'content'  => $props['content'] ?? [],
+    ])->changeStatus('listed'));
+
+    return ModuleSectionRoutes::applyAutopublish($module);
+  },
 
   'renderModules' => function (string|array $containerOrParams = 'modules', array $params = []) {
     [$container, $params] = is_array($containerOrParams)

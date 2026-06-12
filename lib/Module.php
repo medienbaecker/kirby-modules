@@ -3,7 +3,6 @@
 namespace Medienbaecker\Modules;
 
 use Kirby\Cms\Page;
-use Kirby\Exception\InvalidArgumentException;
 
 class Module
 {
@@ -19,15 +18,7 @@ class Module
   // snippet is the parent (the current page unless one is passed).
   public static function factory(array $props): Page
   {
-    $type = $props['type'] ?? $props['template'] ?? null;
-    if (!$type) {
-      throw new InvalidArgumentException('Module type is required');
-    }
-
-    $template = ModuleRegistry::qualify($type);
-    if (!ModuleRegistry::hasBlueprint($template)) {
-      throw new InvalidArgumentException('Unknown module type "' . $type . '"');
-    }
+    $template = ModuleRegistry::template($props['type'] ?? $props['template'] ?? null);
 
     return Page::factory([
       'slug'     => $props['slug'] ?? str_replace('module.', '', $template),

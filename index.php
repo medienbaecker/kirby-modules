@@ -37,6 +37,7 @@ Kirby::plugin(
     'siteMethods'  => [
       'modules'       => $pageMethods['modules'],
       'renderModules' => $pageMethods['renderModules'],
+      'createModule'  => $pageMethods['createModule'],
       'hasModules'    => $pageMethods['hasModules'],
       'filePool'      => $pageMethods['filePool'],
     ],
