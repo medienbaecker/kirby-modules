@@ -13,6 +13,7 @@ use Kirby\Plugin\Plugin;
 class ModulesLicense extends License
 {
   private const POLAR_ORG_ID = '4fc1c5b3-25c7-4a31-a11e-badb102b500a';
+  private const POLAR_BENEFIT_ID = '93507c70-c173-4a72-972f-8c2a97a057c2';
   private const POLAR_API = 'https://api.polar.sh/v1/customer-portal/license-keys/validate';
   public const BUY_URL = 'https://medienbaecker.com/plugins/modules';
   public const PORTAL_URL = 'https://polar.sh/medienbaecker/portal';
@@ -81,6 +82,7 @@ class ModulesLicense extends License
         'data' => Json::encode([
           'key' => $key,
           'organization_id' => self::POLAR_ORG_ID,
+          'benefit_id' => self::POLAR_BENEFIT_ID,
         ])
       ]);
 
