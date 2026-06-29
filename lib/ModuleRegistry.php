@@ -154,13 +154,14 @@ class ModuleRegistry
     ];
     $blueprintArray = array_merge($defaults, Data::read($blueprintPath));
 
-    if (!array_key_exists('create', $blueprintArray)) {
-      $blueprintArray['create'] = [
-        'title'    => '{{ page.blueprint.title }}',
-        'status'   => 'listed',
-        'redirect' => false,
-      ];
-    }
+    // Force status/redirect (modules are always listed; visibility is the
+    // `hidden` flag) while keeping any author-supplied create config.
+    $create = $blueprintArray['create'] ?? null;
+    $create = is_array($create) ? $create : [];
+    $blueprintArray['create'] = array_merge($create, [
+      'status'   => 'listed',
+      'redirect' => false,
+    ]);
 
     $shortName = str_replace('module.', '', $name);
 
@@ -177,17 +178,17 @@ class ModuleRegistry
   // e.g. 'text', 'text-2', 'text-3'
   public static function generateSlug(string $parentId, string $template): ?string
   {
-    return self::buildSlug($parentId, Str::slug(str_replace('module.', '', $template)));
+    return self::uniqueSlug($parentId, Str::slug(str_replace('module.', '', $template)));
   }
 
   // Base on the source slug so #anchor duplicates as #anchor-2. The trailing
   // -N is stripped first so #anchor-2 yields #anchor-3, not #anchor-2-2.
   public static function duplicateSlug(string $parentId, string $sourceSlug): ?string
   {
-    return self::buildSlug($parentId, preg_replace('/-\d+$/', '', $sourceSlug));
+    return self::uniqueSlug($parentId, preg_replace('/-\d+$/', '', $sourceSlug));
   }
 
-  private static function buildSlug(string $parentId, string $slug): ?string
+  public static function uniqueSlug(string $parentId, string $slug): ?string
   {
     $parentId = str_replace('+', '/', $parentId);
     $parentId = preg_replace('#^pages/#', '', $parentId);
@@ -196,7 +197,8 @@ class ModuleRegistry
       return null;
     }
 
-    $siblings = $parent->children();
+    // Match PageRules::create(), which checks the slug against drafts too.
+    $siblings = $parent->childrenAndDrafts();
     while ($siblings->findBy('slug', $slug)) {
       $slug = Str::increment($slug, '-', 2);
     }

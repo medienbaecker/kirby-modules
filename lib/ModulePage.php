@@ -113,8 +113,26 @@ class ModulePage extends Page
     return ModuleRegistry::hasBlueprint($this->intendedTemplate()->name());
   }
 
+  private bool $resolvingTitle = false;
+
   public function title(): Field
   {
+    // The flag stops a `label` of {{ module.title }} recursing back into title().
+    if ($this->resolvingTitle === false && $this->hasTemplate()) {
+      $label = $this->blueprint()->label();
+      if (is_string($label)) {
+        $this->resolvingTitle = true;
+        try {
+          $resolved = $this->toSafeString($label, ['module' => $this]);
+        } finally {
+          $this->resolvingTitle = false;
+        }
+        if ($resolved !== '') {
+          return new Field($this, 'title', $resolved);
+        }
+      }
+    }
+
     return new Field($this, 'title', $this->moduleName());
   }
 

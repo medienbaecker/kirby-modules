@@ -20,11 +20,11 @@ class ModuleSectionRoutes
   {
     return [
       [
-        'pattern' => 'fields/(:any)',
-        'method'  => 'GET',
-        'action'  => function (string $childId) {
+        'pattern' => 'fields',
+        'method'  => 'POST',
+        'action'  => function () {
           $container = ModuleSectionRoutes::container($this->section());
-          return ModuleSectionRoutes::loadFields($container, $childId);
+          return ModuleSectionRoutes::loadFieldsBatch($container, $this->requestBody('ids'));
         },
       ],
       [
@@ -121,11 +121,28 @@ class ModuleSectionRoutes
     $fields = $form->fields();
 
     return [
-      'fields' => $fields->toProps(),
-      // Blueprint values only — stripping passthrough (`hidden`, `uuid`, `lock`)
+      // Blueprint values only - stripping passthrough (`hidden`, `uuid`, `lock`)
       // keeps out-of-band content state from riding back through /changes/save.
       'values' => array_diff_key($fields->toFormValues(), $fields->passthrough()),
+      // `label` can derive from fields; the client refreshes it from here after
+      // a save, sparing a full section refetch.
+      'moduleName' => (string) $child->title(),
     ];
+  }
+
+  // Fields for many modules in one request: an extreme page would otherwise
+  // boot Kirby once per module. A bad id fails only its own entry.
+  public static function loadFieldsBatch(?Page $container, array $ids): array
+  {
+    $result = [];
+    foreach ($ids as $childId) {
+      try {
+        $result[$childId] = self::loadFields($container, $childId);
+      } catch (\Throwable $e) {
+        $result[$childId] = ['error' => true];
+      }
+    }
+    return $result;
   }
 
   public static function duplicate(?Page $container, string $childId): array

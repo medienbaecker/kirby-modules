@@ -153,6 +153,9 @@ export default {
     // Captured for cache invalidation on language switch in fetch().
     this._language = this.$panel.language?.code;
 
+    // Show the label before the first fetch resolves instead of leaving it blank.
+    this.headline = this.$t("modules.plural");
+
     // Section name = container slug; create it on first mount if missing.
     this.$api.post(this.sectionUrl + "/create-container").then(() => this.fetch());
 
@@ -210,12 +213,12 @@ export default {
         }
 
         const collapsed = this.loadCollapsedState();
-        for (const module of this.modules) {
-          this.restoreExpandState(module, collapsed);
-        }
+        const toLoad = this.modules.filter((m) => this.restoreExpandState(m, collapsed));
 
         this.reconcileState();
         this.positionNewModule(previousIds);
+
+        this.loadFieldsBatch(toLoad, true);
       } catch (e) {
         this.handleError(e);
       } finally {
@@ -223,24 +226,20 @@ export default {
       }
     },
 
+    // Returns true when fields still need loading (deferred to a batched
+    // request); otherwise sets the expand state directly.
     restoreExpandState(module, collapsed) {
       if (collapsed.includes(module.id)) {
         this.$set(this.expanded, module.id, false);
-        return;
+        return false;
       }
 
-      // Fields must load before k-sections can render them
-      const needsLoad = module.hasFields &&
-        (!this.fieldData[module.id] || module.hasPendingChanges);
-      if (needsLoad) {
-        this.loadFields(module).then(() => {
-          this.$nextTick(() => {
-            this.$set(this.expanded, module.id, true);
-          });
-        });
-      } else {
-        this.$set(this.expanded, module.id, true);
+      // Fields must load before k-sections can render them, so defer the expand.
+      if (module.hasFields && (!this.fieldData[module.id] || module.hasPendingChanges)) {
+        return true;
       }
+      this.$set(this.expanded, module.id, true);
+      return false;
     },
 
     reconcileState() {
@@ -317,18 +316,47 @@ export default {
       tryFocus();
     },
 
-    async loadFields(module) {
-      try {
-        const response = await this.$api.get(
-          this.sectionUrl + "/fields/" + this.encodeId(module.id),
+    // Batched so loading values isn't one request per module.
+    async loadFieldsBatch(modules, reveal = false) {
+      for (const m of modules) this.$set(this.loadingModules, m.id, true);
+      const CHUNK = 30;
+      const tasks = [];
+      for (let i = 0; i < modules.length; i += CHUNK) {
+        const chunk = modules.slice(i, i + CHUNK);
+        tasks.push(
+          this.loadFieldsChunk(chunk).then(() => {
+            for (const m of chunk) {
+              this.$delete(this.loadingModules, m.id);
+              if (reveal) this.$set(this.expanded, m.id, true);
+            }
+          }),
         );
-        this.$set(this.fieldData, module.id, {
-          values: response.values,
-          original: JSON.stringify(response.values),
+      }
+      await Promise.all(tasks);
+    },
+
+    async loadFieldsChunk(modules) {
+      try {
+        const response = await this.$api.post(this.sectionUrl + "/fields", {
+          ids: modules.map((m) => m.id),
         });
+        for (const module of modules) {
+          const entry = response[module.id];
+          if (!entry || entry.error) {
+            this.$set(this.fieldData, module.id, { error: true });
+            continue;
+          }
+          this.$set(this.fieldData, module.id, {
+            values: entry.values,
+            original: JSON.stringify(entry.values),
+          });
+          if (entry.moduleName !== undefined) module.moduleName = entry.moduleName;
+        }
       } catch (e) {
         this.handleError(e);
-        this.$set(this.fieldData, module.id, { error: true });
+        for (const module of modules) {
+          this.$set(this.fieldData, module.id, { error: true });
+        }
       }
     },
 
@@ -532,10 +560,10 @@ export default {
           const firstFailed = lockFailed[0] || otherFailed[0]?.id;
           if (firstFailed) this.revealModule(firstFailed);
         } else {
-          await Promise.all(
-            this.modules
-              .filter((m) => succeeded.includes(m.id) && this.expanded[m.id] && m.hasFields)
-              .map((m) => this.loadFields(m)),
+          await this.loadFieldsBatch(
+            this.modules.filter(
+              (m) => succeeded.includes(m.id) && this.expanded[m.id] && m.hasFields,
+            ),
           );
 
           if (Object.keys(this.changes).length === 0 && this.serverPendingIds.length === 0) {
@@ -579,10 +607,7 @@ export default {
         return;
       }
       if (module.hasFields && !this.fieldData[module.id]) {
-        this.$set(this.loadingModules, module.id, true);
-        await this.loadFields(module);
-        this.$delete(this.loadingModules, module.id);
-        await this.$nextTick();
+        await this.loadFieldsBatch([module]);
       }
       this.$set(this.expanded, module.id, true);
       this.saveCollapsedState();
@@ -607,13 +632,7 @@ export default {
       const toLoad = this.modules.filter(
         (m) => !this.expanded[m.id] && m.hasFields && !this.fieldData[m.id],
       );
-      for (const m of toLoad) {
-        this.$set(this.loadingModules, m.id, true);
-      }
-      await Promise.all(toLoad.map((m) => this.loadFields(m)));
-      for (const m of toLoad) {
-        this.$delete(this.loadingModules, m.id);
-      }
+      await this.loadFieldsBatch(toLoad);
       for (const m of this.modules) {
         this.$set(this.expanded, m.id, true);
       }
