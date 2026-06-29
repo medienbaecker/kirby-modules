@@ -2,7 +2,7 @@
 
 Modular page building for [Kirby](https://getkirby.com/). Every module is a regular page with its own blueprint and snippet, edited inline on the parent page.
 
-<img width="1988" height="1452" alt="Screenshot of the modules section with two modules, a text module with a textarea and a text with buttons module with both a textarea and a structure field for buttons" src=".github/screenshot.webp" />
+<img width="1089" height="929" alt="Screenshot of the modules section with two modules, a text module with a textarea and a text with buttons module with both a textarea and a structure field for buttons" src=".github/screenshot.webp" />
 
 - Edit module fields inline on the parent page with a blocks-like UI
 - Signed previews for hidden modules
@@ -112,17 +112,70 @@ A module's slug doubles as its anchor. Use it as the element ID in your snippet:
 
 The anchor is always visible on the module card (e.g. `#text`) and can be changed by clicking it, or via "Change anchor" in the toolbar's dropdown.
 
+### Labels
+
+Every module shows its type's, or rather its blueprint's `title`. The `label` option in the module blueprint can be used to overwrite this with a field:
+
+```yml
+# site/blueprints/modules/text.yml
+title: Text
+label: "{{ module.headline }}"
+fields:
+  headline:
+    type: text
+```
+
+<img width="455" height="222" alt="Screenshot of a module, showing a text field with This is the label as value, same text is shown in the module card's title" src=".github/label.webp" />
+
+It's a [query](https://getkirby.com/docs/guide/blueprints/query-language) resolved from the module's fields and refreshed on every save, so a text module shows its current headline. An empty result falls back to the title.
+
+To give a brand-new module a meaningful label right away, also ask for that field in the [create dialog](#customizing-the-create-dialog).
+
 ### Changing types
 
 "Change type" in the toolbar's dropdown switches a module to another type. Fields keep their content when the new blueprint has a field with the same name and type.
+
+### Customizing the create dialog
+
+By default the create dialog asks for the module's type (when there's more than one) and its [anchor](#anchors), nothing more. Add a `create` block to a module blueprint, like [Kirby's page creation dialog](https://getkirby.com/docs/reference/panel/blueprints/page#page-creation-dialog), to ask for fields up front or fill the anchor automatically.
+
+#### Asking for fields up front
+
+List the fields you want in the dialog under `create.fields`, in the order they should appear:
+
+```yml
+# site/blueprints/modules/text.yml
+title: Text
+create:
+  fields:
+    - headline
+fields:
+  headline:
+    type: text
+  text:
+    type: textarea
+```
+
+Use it for the things worth setting before the module exists; everything else is edited inline afterwards. Only fields that fit in a dialog work here: text, number, select, date, toggle, link and the like. A textarea, blocks or structure field (or the reserved name `title`) can't be shown and raises an error. That's why the example asks only for the `headline`; the `text` body is a textarea, so you fill it in inline. A `required` field has to be listed here or have a `default`. Kirby normally creates a page as a draft to finish later; a module skips that, so every required field must be satisfied at creation.
+
+#### Filling the anchor automatically
+
+By default the editor types the anchor. Set `create.anchor` and they don't: a query fills it from the content, or `false` builds one from the type name.
+
+```yml
+create:
+  anchor: "{{ module.headline }}"
+```
+
+It uses the same query syntax as [`label`](#labels), and the result is always made unique (`#intro`, `#intro-2` and so on). For a date or time field, format it in the query, for example `{{ module.date.toDate('Y') }}`.
 
 ### Preview images
 
 Add preview images to make the create and change-type dialogs show a visual grid instead of a dropdown. Drop images into `assets/module-previews/`, named after the module, for example `text.png` for the `text` module. Any image format works; a 16:9 ratio looks best.
 
-<img width="2582" height="1604" alt="Screenshot of the module create dialog with an anchor field and 5 module types, 4 with preview images" src=".github/create.webp" />
+<img width="1291" height="802" alt="Screenshot of the module create dialog with an anchor field and 5 module types, 4 with preview images" src=".github/create.webp" />
 
-Types without a matching image fall back to their blueprint `icon`. If no type has a preview image, the dialogs keep the plain dropdown.
+Types without a matching image fall back to their blueprint `icon`. If no type has a preview image, the dialogs keep the plain dropdown. With a single module type there's nothing to pick, so no picker appears and the dialog goes straight to the fields.
 
 ### Concurrent editing
 
