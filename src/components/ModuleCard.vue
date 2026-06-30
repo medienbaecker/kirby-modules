@@ -304,16 +304,20 @@ export default {
 }
 
 .k-module-header {
+  --module-line: calc(var(--text-font-size) * var(--text-line-height));
   display: grid;
   grid-template-columns:
     [title] minmax(var(--side-width, 0px), auto) [tabs] minmax(0, 1fr) [visibility] minmax(var(--side-width, 0px), auto);
   gap: var(--spacing-2);
   min-height: var(--drawer-header-height);
+  align-items: start;
+  padding-block: 0.65em;
 }
 
 .k-module-title {
   grid-column: title;
   display: flex;
+  align-items: flex-start;
   justify-self: start;
   gap: var(--spacing-2);
   z-index: 1;
@@ -323,6 +327,7 @@ export default {
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  min-height: var(--module-line);
   border-radius: var(--rounded);
   padding-inline: var(--spacing-3);
   color: var(--color-text-dimmed);
@@ -339,42 +344,34 @@ export default {
   display: grid;
 }
 
-.k-module-icon > * {
+.k-module-icon>* {
   grid-area: 1 / 1;
 }
 
-.k-module-icon > :last-child:not(:only-child) {
+.k-module-icon> :last-child:not(:only-child) {
   visibility: hidden;
 }
 
 @container style(--show-arrow: true) {
-  .k-module-icon > :first-child:not(:only-child) {
+  .k-module-icon> :first-child:not(:only-child) {
     visibility: hidden;
   }
 
-  .k-module-icon > :last-child:not(:only-child) {
+  .k-module-icon> :last-child:not(:only-child) {
     visibility: visible;
   }
 }
 
 .k-module-name {
-  align-self: center;
   margin-inline: calc(var(--spacing-3)* -1);
-  margin-block: 0.65em;
   font-size: var(--text-font-size);
   line-height: var(--text-line-height);
-}
-
-.k-module-name small {
-  display: block;
-  font-size: var(--text-xs);
-  color: var(--color-text-dimmed);
 }
 
 .k-module-anchor {
   display: flex;
   align-items: center;
-  font-size: var(--text-xs);
+  min-height: var(--module-line);
   color: var(--color-text-dimmed);
   border-radius: var(--rounded);
   padding-inline: var(--spacing-3);
@@ -387,6 +384,7 @@ export default {
 }
 
 .k-module-anchor-text {
+  font-size: var(--text-xs);
   white-space: nowrap;
   max-inline-size: 7rem;
   overflow-x: clip;
@@ -416,10 +414,10 @@ export default {
 
   display: flex;
   align-items: center;
+  min-height: var(--module-line);
   gap: var(--spacing-1);
   padding-inline: var(--spacing-3);
 
-  font-size: var(--text-xs);
   color: var(--color-text-dimmed);
   border-radius: var(--rounded);
 
@@ -427,6 +425,10 @@ export default {
   &:not(:disabled):focus-visible {
     color: var(--color-text);
   }
+}
+
+.k-module-visibility>span {
+  font-size: var(--text-xs);
 }
 
 .k-module-content {
@@ -449,11 +451,11 @@ export default {
   border: 1px solid light-dark(var(--color-border), var(--color-gray-900));
 }
 
-.k-module[data-selected="true"] > .k-module-toolbar {
+.k-module[data-selected="true"]>.k-module-toolbar {
   display: flex;
 }
 
-.k-module-toolbar > .k-button:not(:last-of-type) {
+.k-module-toolbar>.k-button:not(:last-of-type) {
   border-inline-end: 1px solid var(--toolbar-border);
 }
 </style>
