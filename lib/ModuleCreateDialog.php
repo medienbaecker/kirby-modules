@@ -8,6 +8,7 @@ use Kirby\Exception\NotFoundException;
 use Kirby\Form\Form;
 use Kirby\Panel\Field;
 use Kirby\Panel\PageCreateDialog;
+use Kirby\Panel\Panel;
 use Kirby\Toolkit\Str;
 use Kirby\Uuid\Uuids;
 
@@ -133,8 +134,6 @@ class ModuleCreateDialog extends PageCreateDialog
       && !in_array($name, self::RESERVED_FIELDS, true);
   }
 
-  // Without core's auto-submit shortcut, which would create a single fieldless
-  // type and redirect without ever showing the dialog.
   public function load(): array
   {
     if (!$this->hasModuleBlueprints()) {
@@ -149,6 +148,14 @@ class ModuleCreateDialog extends PageCreateDialog
       throw new NotFoundException(t('modules.create.error.notemplates'));
     }
 
+    $fields  = $this->fields();
+    $visible = array_filter($fields, fn($field) => ($field['hidden'] ?? null) !== true);
+
+    if ($visible === [] && count($blueprints) < 2) {
+      $response = $this->submit($this->value());
+      Panel::go($response['redirect'] ?? $this->view->panel()->url(true));
+    }
+
     $status = ModuleSectionRoutes::shouldAutopublish($this->blueprint(), $this->parent instanceof Page ? $this->parent : null)
       ? t('modules.visible')
       : t('modules.hidden');
@@ -157,7 +164,7 @@ class ModuleCreateDialog extends PageCreateDialog
       'component' => 'k-module-create-dialog',
       'props' => [
         'blueprints'   => $blueprints,
-        'fields'       => $this->fields(),
+        'fields'       => $fields,
         'submitButton' => tt('page.create', ['status' => $status]),
         'template'     => $this->template,
         'value'        => $this->value(),

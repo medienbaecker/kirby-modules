@@ -184,6 +184,8 @@ create:
 
 It uses the same query syntax as [`label`](#labels), and the result is always made unique (`#intro`, `#intro-2` and so on). For a date or time field, format it in the query, for example `{{ module.date.toDate('Y') }}`.
 
+When the anchor is filled this way and the type asks for no `create.fields`, there's nothing left to fill in, so the dialog is skipped and the module is created right away (following the [autopublish](#config-options) rules). With multiple module types the picker still appears.
+
 ### Preview images
 
 Add preview images to make the create and change-type dialogs show a visual grid instead of a dropdown. Drop images into `assets/module-previews/`, named after the module, for example `text.png` for the `text` module. Any image format works; a 16:9 ratio looks best.
