@@ -98,7 +98,22 @@ Modules are edited inline on the parent page: expand or collapse them, sort them
 
 Each module's visibility can be toggled with a single click on its card. Hidden modules stay in place, keeping their sort position and any inline edits, but the frontend skips over them when rendering. The card shows a striped background while a module is hidden.
 
-New modules are created hidden, so editors can prepare content before it goes live. Set the [`autopublish` option](#config-options) to create them visible instead.
+New modules are created hidden, so editors can prepare content before it goes live. Set `autopublish: true` to create them visible instead. The setting closest to a module wins, so you can turn it on for a single type or one section even when everything else stays hidden:
+
+```yml
+# site/blueprints/modules/hero.yml
+autopublish: true
+```
+
+```yml
+# site/blueprints/pages/home.yml
+sections:
+  hero:
+    type: modules
+    autopublish: true
+```
+
+Or set it in your [config](#config-options) to apply site-wide.
 
 Every module card has a preview button. Visible modules link to the module's anchor on the live page. Hidden modules get a signed preview URL (token + `_module` query param) instead, so authors can verify them on the live URL without a Panel login.
 
@@ -195,6 +210,7 @@ Kirby releases a lock 10 minutes after the last edit. If someone leaves without 
 | `sortable`        | `bool`   | Set to `false` to disable manual sorting       |
 | `label`           | `string` | Section headline (default: "Modules")          |
 | `empty`           | `string` | Empty state text                               |
+| `autopublish`     | `bool`   | Override the global [`autopublish`](#config-options) for this section (a module's own `autopublish` flag wins) |
 
 Type names work with or without the `module.` prefix.
 

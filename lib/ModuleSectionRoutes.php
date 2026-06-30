@@ -2,6 +2,7 @@
 
 namespace Medienbaecker\Modules;
 
+use Kirby\Cms\Blueprint;
 use Kirby\Cms\ModelWithContent;
 use Kirby\Cms\Page;
 use Kirby\Cms\Section;
@@ -170,7 +171,7 @@ class ModuleSectionRoutes
     // what happens when the source was visible.
     $language = kirby()->defaultLanguage()?->code();
     $hidden = $child->isHidden()
-      || option('medienbaecker.modules.autopublish', false) !== true;
+      || !self::shouldAutopublish($child->blueprint(), $container);
     // Re-assign $duplicate after each call: changeStatus and update move the
     // previous instance to immutable storage.
     kirby()->impersonate('kirby', function () use (&$duplicate, $child, $hidden, $language) {
@@ -263,10 +264,35 @@ class ModuleSectionRoutes
     ])->publish());
   }
 
+  public static function shouldAutopublish(?Blueprint $blueprint, ?Page $container): bool
+  {
+    return self::asBool($blueprint?->autopublish())
+      ?? self::sectionAutopublish($container)
+      ?? option('medienbaecker.modules.autopublish', false) === true;
+  }
+
+  private static function sectionAutopublish(?Page $container): ?bool
+  {
+    if (!$container || !($host = $container->parentModel())) {
+      return null;
+    }
+    try {
+      $section = $host->blueprint()->section($container->slug());
+    } catch (\Throwable) {
+      return null;
+    }
+    return $section?->type() === 'modules' ? self::asBool($section->autopublish()) : null;
+  }
+
+  private static function asBool(mixed $value): ?bool
+  {
+    return is_bool($value) ? $value : null;
+  }
+
   // Applies the autopublish option to a freshly created module.
   public static function applyAutopublish(Page $module): Page
   {
-    if (option('medienbaecker.modules.autopublish', false) === true) {
+    if (self::shouldAutopublish($module->blueprint(), $module->parent())) {
       return $module;
     }
 

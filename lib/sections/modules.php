@@ -22,6 +22,8 @@ return [
     'default' => fn(?string $default = null) => $default,
     'templatesIgnore' => fn(array $templatesIgnore = []) => $templatesIgnore,
 
+    'autopublish' => fn($autopublish = null) => $autopublish,
+
     // The sort mixin reads $this->query, which core's pages section defines
     // as a prop (no mixin does) — declare it so the dependency is explicit.
     'query' => fn() => null,

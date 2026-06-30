@@ -149,7 +149,7 @@ class ModuleCreateDialog extends PageCreateDialog
       throw new NotFoundException(t('modules.create.error.notemplates'));
     }
 
-    $status = option('medienbaecker.modules.autopublish', false) === true
+    $status = ModuleSectionRoutes::shouldAutopublish($this->blueprint(), $this->parent instanceof Page ? $this->parent : null)
       ? t('modules.visible')
       : t('modules.hidden');
 
