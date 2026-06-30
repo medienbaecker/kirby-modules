@@ -304,14 +304,12 @@ export default {
 }
 
 .k-module-header {
-  --module-line: calc(var(--text-font-size) * var(--text-line-height));
+  --module-row: var(--drawer-header-height);
   display: grid;
   grid-template-columns:
     [title] minmax(var(--side-width, 0px), auto) [tabs] minmax(0, 1fr) [visibility] minmax(var(--side-width, 0px), auto);
   gap: var(--spacing-2);
-  min-height: var(--drawer-header-height);
   align-items: start;
-  padding-block: 0.65em;
 }
 
 .k-module-title {
@@ -323,20 +321,29 @@ export default {
   z-index: 1;
 }
 
-.k-module-toggle {
+.k-module-toggle,
+.k-module-anchor,
+.k-module-visibility {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  min-height: var(--module-line);
-  border-radius: var(--rounded);
+  min-height: var(--module-row);
   padding-inline: var(--spacing-3);
   color: var(--color-text-dimmed);
+  border-radius: var(--rounded);
+
+  &:not(:disabled):hover,
+  &:not(:disabled):focus-visible {
+    color: var(--color-text);
+  }
+}
+
+.k-module-toggle {
+  flex-shrink: 0;
   z-index: 1;
 
   &:hover,
   &:focus-visible {
     --show-arrow: true;
-    color: var(--color-text);
   }
 }
 
@@ -363,24 +370,14 @@ export default {
 }
 
 .k-module-name {
+  margin-block: calc((var(--module-row) - 1lh) / 2);
   margin-inline: calc(var(--spacing-3)* -1);
   font-size: var(--text-font-size);
   line-height: var(--text-line-height);
 }
 
 .k-module-anchor {
-  display: flex;
-  align-items: center;
-  min-height: var(--module-line);
-  color: var(--color-text-dimmed);
-  border-radius: var(--rounded);
-  padding-inline: var(--spacing-3);
   z-index: 1;
-
-  &:not(:disabled):hover,
-  &:not(:disabled):focus-visible {
-    color: var(--color-text);
-  }
 }
 
 .k-module-anchor-text {
@@ -409,22 +406,9 @@ export default {
 
 .k-module-visibility {
   grid-column: visibility;
-  z-index: 2;
   justify-self: end;
-
-  display: flex;
-  align-items: center;
-  min-height: var(--module-line);
+  z-index: 2;
   gap: var(--spacing-1);
-  padding-inline: var(--spacing-3);
-
-  color: var(--color-text-dimmed);
-  border-radius: var(--rounded);
-
-  &:not(:disabled):hover,
-  &:not(:disabled):focus-visible {
-    color: var(--color-text);
-  }
 }
 
 .k-module-visibility>span {
