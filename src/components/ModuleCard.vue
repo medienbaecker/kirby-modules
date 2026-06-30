@@ -13,7 +13,7 @@
               <k-icon :type="expanded ? 'angle-up' : 'angle-down'" />
             </span>
           </button>
-          <span class="k-module-name">{{ module.moduleName }}</span>
+          <span class="k-module-name" v-html="module.moduleName"></span>
           <button class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug"
             :disabled="!permissions.changeSlug" @click="$emit('change-slug')">
             <span class="k-module-anchor-text">
@@ -308,7 +308,7 @@ export default {
   grid-template-columns:
     [title] minmax(var(--side-width, 0px), auto) [tabs] minmax(0, 1fr) [visibility] minmax(var(--side-width, 0px), auto);
   gap: var(--spacing-2);
-  height: var(--drawer-header-height);
+  min-height: var(--drawer-header-height);
 }
 
 .k-module-title {
@@ -322,6 +322,7 @@ export default {
 .k-module-toggle {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   border-radius: var(--rounded);
   padding-inline: var(--spacing-3);
   color: var(--color-text-dimmed);
@@ -359,6 +360,15 @@ export default {
 .k-module-name {
   align-self: center;
   margin-inline: calc(var(--spacing-3)* -1);
+  margin-block: 0.65em;
+  font-size: var(--text-font-size);
+  line-height: var(--text-line-height);
+}
+
+.k-module-name small {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-text-dimmed);
 }
 
 .k-module-anchor {
