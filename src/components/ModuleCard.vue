@@ -265,7 +265,7 @@ export default {
   scroll-margin-block-start: var(--header-sticky-offset);
 
   &[data-hidden="true"] {
-    --module-color-back: repeating-linear-gradient(45deg,
+    --module-color-back: repeating-linear-gradient(135deg,
         light-dark(var(--color-white), var(--color-gray-850)),
         light-dark(var(--color-white), var(--color-gray-850)) 1rem,
         light-dark(color-mix(in srgb, var(--color-white), transparent 50%), color-mix(in srgb, var(--color-gray-850), transparent 50%)) 1rem,
