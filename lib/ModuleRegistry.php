@@ -149,7 +149,6 @@ class ModuleRegistry
     $defaults = [
       'options' => ['changeStatus' => false, 'changeTitle' => false],
       'navigation' => ['status' => 'all', 'template' => 'all'],
-      'icon' => 'box',
       'buttons' => ['open', 'preview', '-', 'settings', 'languages', 'modules.visibility'],
     ];
     $blueprintArray = array_merge($defaults, Data::read($blueprintPath));

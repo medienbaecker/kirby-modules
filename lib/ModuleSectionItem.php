@@ -20,7 +20,7 @@ class ModuleSectionItem
       'hasTemplate'       => $hasTemplate,
       // Card label = the module title (live `label` or type name); else "missing".
       'moduleName'        => $blueprint ? (string) $child->title() : I18n::translate('modules.missingTemplate'),
-      'icon'              => $blueprint ? ($blueprint->icon() ?? 'box') : 'alert',
+      'icon'              => $blueprint ? $blueprint->icon() : 'alert',
       'hidden'            => $child->isHidden(),
       'hasFields'         => $blueprint && !empty($blueprint->fields()),
       'hasPendingChanges' => $child->version('changes')->exists('*'),

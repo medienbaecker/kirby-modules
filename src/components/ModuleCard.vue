@@ -9,7 +9,7 @@
             :aria-label="$t('modules.singular') + ' ' + module.moduleName" @click="$emit('toggle')">
             <k-icon v-if="loading || isAwaitingContent" type="loader" />
             <span v-else class="k-module-icon">
-              <k-icon :type="module.icon" />
+              <k-icon v-if="module.icon" :type="module.icon" />
               <k-icon :type="expanded ? 'angle-up' : 'angle-down'" />
             </span>
           </button>
@@ -342,16 +342,16 @@ export default {
   grid-area: 1 / 1;
 }
 
-.k-module-icon > :last-child {
+.k-module-icon > :last-child:not(:only-child) {
   visibility: hidden;
 }
 
 @container style(--show-arrow: true) {
-  .k-module-icon > :first-child {
+  .k-module-icon > :first-child:not(:only-child) {
     visibility: hidden;
   }
 
-  .k-module-icon > :last-child {
+  .k-module-icon > :last-child:not(:only-child) {
     visibility: visible;
   }
 }
