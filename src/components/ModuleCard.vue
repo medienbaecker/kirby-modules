@@ -1,6 +1,6 @@
 <template>
   <div class="k-module" :data-module-id="module.id" :data-hidden="module.hidden" :data-selected="selected"
-    :data-disabled="disabled" tabindex="0" role="group" :aria-label="$t('modules.singular') + ' ' + module.moduleName"
+    :data-disabled="disabled" tabindex="-1" role="group" :aria-label="$t('modules.singular') + ' ' + module.moduleName"
     @focusin.stop="$emit('select')">
     <div class="k-module-body" :data-collapsed="!expanded || isAwaitingContent">
       <header class="k-module-header" :style="{ '--side-width': sideWidth + 'px' }">
