@@ -9,7 +9,7 @@
             :aria-label="$t('modules.singular') + ' ' + module.moduleName" @click="$emit('toggle')">
             <k-icon v-if="loading || isAwaitingContent" type="loader" />
             <span v-else class="k-module-icon">
-              <k-icon :type="module.icon" />
+              <k-icon :type="module.icon" v-if="module.icon !== false" />
               <k-icon :type="expanded ? 'angle-up' : 'angle-down'" />
             </span>
           </button>
@@ -328,7 +328,8 @@ export default {
   z-index: 1;
 
   &:hover,
-  &:focus-visible {
+  &:focus-visible,
+  &:not(:has(.k-icon:nth-child(2))) {
     --show-arrow: true;
     color: var(--color-text);
   }
