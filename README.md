@@ -146,6 +146,28 @@ It's a [query](https://getkirby.com/docs/guide/blueprints/query-language) resolv
 
 To give a brand-new module a meaningful label right away, also ask for that field in the [create dialog](#customizing-the-create-dialog).
 
+Labels may contain HTML, just make sure you're using `{< >}` when the HTML comes from a query:
+
+```yml
+# site/blueprints/modules/hero.yml
+title: Hero
+label: "{< module.heading >} <small>{{ module.subtitle }}</small>"
+fields:
+  heading:
+    type: writer
+  subtitle:
+    type: text
+```
+
+Add your own styles in your [Panel CSS](https://getkirby.com/docs/reference/system/options/panel#custom-panel-css) to style it:
+
+```css
+.k-module-name small {
+  display: block;
+  color: var(--color-text-dimmed);
+}
+```
+
 ### Changing types
 
 "Change type" in the toolbar's dropdown switches a module to another type. Fields keep their content when the new blueprint has a field with the same name and type.
@@ -202,16 +224,16 @@ Kirby releases a lock 10 minutes after the last edit. If someone leaves without 
 
 ## Section Options
 
-| Option            | Type     | Description                                    |
-| ----------------- | -------- | ---------------------------------------------- |
-| `default`         | `string` | Pre-selected module type in the create dialog  |
-| `templates`       | `array`  | Manually define available types instead of all |
-| `templatesIgnore` | `array`  | Hide specific module types                     |
-| `min`             | `int`    | Minimum number of modules                      |
-| `max`             | `int`    | Maximum number of modules                      |
-| `sortable`        | `bool`   | Set to `false` to disable manual sorting       |
-| `label`           | `string` | Section headline (default: "Modules")          |
-| `empty`           | `string` | Empty state text                               |
+| Option            | Type     | Description                                                                                                    |
+| ----------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `default`         | `string` | Pre-selected module type in the create dialog                                                                  |
+| `templates`       | `array`  | Manually define available types instead of all                                                                 |
+| `templatesIgnore` | `array`  | Hide specific module types                                                                                     |
+| `min`             | `int`    | Minimum number of modules                                                                                      |
+| `max`             | `int`    | Maximum number of modules                                                                                      |
+| `sortable`        | `bool`   | Set to `false` to disable manual sorting                                                                       |
+| `label`           | `string` | Section headline (default: "Modules")                                                                          |
+| `empty`           | `string` | Empty state text                                                                                               |
 | `autopublish`     | `bool`   | Override the global [`autopublish`](#config-options) for this section (a module's own `autopublish` flag wins) |
 
 Type names work with or without the `module.` prefix.
