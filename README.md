@@ -265,33 +265,24 @@ sections:
 
 ### Custom layouts
 
-The plugin ships a single card layout. To offer alternatives, set `layout` on a section; its value is passed straight through to a `data-layout` attribute on the list, and you style it in your [Panel CSS](https://getkirby.com/docs/reference/system/options/panel#custom-panel-css):
+Modules render as cards, but the layout is yours. Set `layout` on a section and the plugin puts that value on a `data-layout` attribute on the list, so you can style it in your [Panel CSS](https://getkirby.com/docs/reference/system/options/panel#custom-panel-css):
 
 ```yml
 sections:
-  blocks:
+  modules:
     type: modules
-    layout: list
+    layout: dense
 ```
-
-Target it with `[data-layout~="list"]`. Space-separated tokens each match, so `layout: list shortened` lets you compose several. Two custom properties are exposed as hooks:
-
-- `--module-row`: header row height (a collapsed module's height)
-- `--module-gap`: space between modules
-
-A compact list, for example:
 
 ```css
-.k-modules-list[data-layout~="list"] {
+.k-modules-list[data-layout~="dense"] {
   --module-gap: 2px;
-}
-
-.k-modules-list[data-layout~="list"] .k-module-header {
-  --module-row: var(--field-input-height);
 }
 ```
 
-Beyond the two variables, target any `.k-module*` class to restyle the header, content area, and so on.
+`--module-gap` and `--module-row` (the header row height) cover the common tweaks; target any `.k-module` class to go further.
+
+You can combine layouts too: `layout: dense compact` matches both `[data-layout~="dense"]` and `[data-layout~="compact"]`.
 
 ## Rendering
 
