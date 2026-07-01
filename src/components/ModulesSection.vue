@@ -6,7 +6,8 @@
     <k-empty v-else-if="!modules.length" icon="box" @click="add()">
       {{ empty }}
     </k-empty>
-    <k-draggable v-else :list="modules" :options="dragOptions" @sort="onSort" class="k-modules-list">
+    <k-draggable v-else :list="modules" :options="dragOptions" @sort="onSort" class="k-modules-list"
+      :data-layout="layout">
       <k-module-card v-for="module in modules" :key="module.id + ':' + module.template" :module="module"
         :expanded="expanded[module.id] === true" :loading="!!loadingModules[module.id]"
         :selected="selectedModule === module.id" :values="currentValues(module.id)" :page-url="pageUrl(module.id)"
@@ -61,6 +62,7 @@ export default {
       modules: [],
       empty: "",
       link: null,
+      layout: null,
       canAdd: true,
       min: null,
       max: null,
@@ -198,6 +200,7 @@ export default {
         this.modules = response.data;
         this.empty = response.options.empty;
         this.link = response.options.link;
+        this.layout = response.options.layout;
         this.canAdd = response.options.add;
         this.min = response.options.min;
         this.max = response.options.max;
@@ -696,7 +699,7 @@ export default {
 }
 
 .k-module+.k-module {
-  margin-block-start: var(--spacing-2);
+  margin-block-start: var(--module-gap, var(--spacing-2));
 }
 
 footer {

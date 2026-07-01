@@ -235,6 +235,7 @@ Kirby releases a lock 10 minutes after the last edit. If someone leaves without 
 | `label`           | `string` | Section headline (default: "Modules")                                                                          |
 | `empty`           | `string` | Empty state text                                                                                               |
 | `autopublish`     | `bool`   | Override the global [`autopublish`](#config-options) for this section (a module's own `autopublish` flag wins) |
+| `layout`          | `string` | Set a `data-layout` value on the list for [custom layouts](#custom-layouts) styled in Panel CSS                |
 
 Type names work with or without the `module.` prefix.
 
@@ -261,6 +262,36 @@ sections:
 // Secondary container for the section called `sidebar`
 <?= $page->modules('sidebar') ?>
 ```
+
+### Custom layouts
+
+The plugin ships a single card layout. To offer alternatives, set `layout` on a section; its value is passed straight through to a `data-layout` attribute on the list, and you style it in your [Panel CSS](https://getkirby.com/docs/reference/system/options/panel#custom-panel-css):
+
+```yml
+sections:
+  blocks:
+    type: modules
+    layout: list
+```
+
+Target it with `[data-layout~="list"]`. Space-separated tokens each match, so `layout: list shortened` lets you compose several. Two custom properties are exposed as hooks:
+
+- `--module-row`: header row height (a collapsed module's height)
+- `--module-gap`: space between modules
+
+A compact list, for example:
+
+```css
+.k-modules-list[data-layout~="list"] {
+  --module-gap: 2px;
+}
+
+.k-modules-list[data-layout~="list"] .k-module-header {
+  --module-row: var(--field-input-height);
+}
+```
+
+Beyond the two variables, target any `.k-module*` class to restyle the header, content area, and so on.
 
 ## Rendering
 

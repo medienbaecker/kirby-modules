@@ -24,6 +24,8 @@ return [
 
     'autopublish' => fn($autopublish = null) => $autopublish,
 
+    'layout' => fn($layout = null) => $layout ?: null,
+
     // The sort mixin reads $this->query, which core's pages section defines
     // as a prop (no mixin does) — declare it so the dependency is explicit.
     'query' => fn() => null,
@@ -145,6 +147,7 @@ return [
         'add'       => $this->add,
         'empty'     => $this->empty,
         'headline'  => $this->headline,
+        'layout'    => $this->layout,
         'link'      => $modulesPage ? 'pages/' . str_replace('/', '+', $modulesPage->id()) : null,
         'max'       => $this->max,
         'min'       => $this->min,
