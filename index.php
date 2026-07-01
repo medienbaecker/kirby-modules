@@ -34,6 +34,7 @@ Kirby::plugin(
     ],
     'hooks'        => require __DIR__ . '/lib/hooks.php',
     'pageMethods'  => $pageMethods,
+    'pagesMethods' => require __DIR__ . '/lib/pages-methods.php',
     'siteMethods'  => [
       'modules'       => $pageMethods['modules'],
       'renderModules' => $pageMethods['renderModules'],

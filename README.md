@@ -305,12 +305,15 @@ Inside a snippet, `$module` is the module page and `$page` is the parent page. V
 
 Modules also work on the site itself: add a modules section to `site.yml` and use `$site->modules()` in your templates.
 
+The same method works on a page collection: `$pages->modules()` merges the modules of every page into one collection, so `page('blog')->children()->modules()` gets them all at once.
+
 ## Template Methods
 
 | Method                          | Description                                                  |
 | ------------------------------- | ------------------------------------------------------------ |
 | `$page->modules()`              | All visible modules (default container)                      |
 | `$page->modules('sidebar')`     | Modules from a named container                               |
+| `$pages->modules()`             | Merge modules from every page in a collection                |
 | `$page->renderModules($params)` | Render all modules, optionally passing variables             |
 | `$page->createModule($props)`   | Create a module from code                                    |
 | `$page->hasModules()`           | Page has a modules section                                   |
