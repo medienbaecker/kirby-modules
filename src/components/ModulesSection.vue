@@ -698,8 +698,10 @@ export default {
   pointer-events: none;
 }
 
-.k-module+.k-module {
-  margin-block-start: var(--module-gap, var(--spacing-2));
+.k-modules-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--module-gap, var(--spacing-2));
 }
 
 footer {
