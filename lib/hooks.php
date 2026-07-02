@@ -30,6 +30,16 @@ return [
         // The mirror must never break the module operation itself
       }
     }
+
+    // Separate from the sync branch above: sync re-locks the host as the
+    // leaving user, which would undo the auto-unlock.
+    if ($method === 'POST' && $model = HostLock::modelFromUnlockPath($path)) {
+      try {
+        HostLock::cascadeUnlock($model);
+      } catch (Throwable) {
+      }
+    }
+
     return $result;
   },
 
