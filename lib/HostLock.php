@@ -83,7 +83,7 @@ class HostLock
     }
   }
 
-  public static function hasPendingModules(Page|Site $host, string $language): bool
+  private static function pendingModules(Page|Site $host, string $language): \Generator
   {
     foreach ($host->children() as $container) {
       if (!$container->isModuleContainer()) {
@@ -91,9 +91,16 @@ class HostLock
       }
       foreach ($container->children() as $module) {
         if ($module->version('changes')->exists($language)) {
-          return true;
+          yield $module;
         }
       }
+    }
+  }
+
+  public static function hasPendingModules(Page|Site $host, string $language): bool
+  {
+    foreach (static::pendingModules($host, $language) as $module) {
+      return true;
     }
     return false;
   }
@@ -110,6 +117,37 @@ class HostLock
 
     $page = App::instance()->page(str_replace('+', '/', $matches[1]));
     return $page?->isModule() ? $page : null;
+  }
+
+  public static function modelFromUnlockPath(string $path): Page|Site|null
+  {
+    $api = App::instance()->option('api.slug', 'api');
+
+    if (preg_match('!^' . preg_quote($api, '!') . '/site/changes/unlock$!', $path)) {
+      return App::instance()->site();
+    }
+
+    if (preg_match('!^' . preg_quote($api, '!') . '/pages/([^/]+)/changes/unlock$!', $path, $matches)) {
+      return App::instance()->page(str_replace('+', '/', $matches[1]));
+    }
+
+    return null;
+  }
+
+  // A module lock and its host mirror are separate models, so 5.5's per-view
+  // auto-unlock releases only one; unlock() ignores locks the user doesn't own.
+  public static function cascadeUnlock(Page|Site $model): void
+  {
+    $language = App::instance()->language()?->code() ?? 'default';
+
+    if ($model instanceof Page && $model->isModule()) {
+      static::hostOf($model)?->version('changes')->unlock($language);
+      return;
+    }
+
+    foreach (static::pendingModules($model, $language) as $module) {
+      $module->version('changes')->unlock($language);
+    }
   }
 
 }
