@@ -2,6 +2,7 @@
 
 use Kirby\Cms\Blueprint;
 use Kirby\Cms\Site;
+use Kirby\Query\Query;
 use Kirby\Toolkit\I18n;
 use Medienbaecker\Modules\ModuleRegistry;
 use Medienbaecker\Modules\ModuleSectionRoutes;
@@ -28,7 +29,7 @@ return [
 
     // The sort mixin reads $this->query, which core's pages section defines
     // as a prop (no mixin does) — declare it so the dependency is explicit.
-    'query' => fn() => null,
+    'query' => fn($query = null) => $query ?: null,
 
     // Both short ('text') and full ('module.text') names are accepted here,
     // in templatesIgnore and in default.
@@ -82,24 +83,42 @@ return [
       }
       return $blueprints;
     },
+    'isQueried' => function() {
+      return $this->query() !== null;
+    }
   ],
 
   'computed' => [
     // Computed props evaluate in definition order; `modules` must come
     // first because `total` (and through it `add` and `errors`) reads it.
     'modules' => function () {
-      $modulesPage = $this->model()->find($this->name);
-      if (!$modulesPage) return [];
+      if ($this->query) {
+        $children = Query::factory($this->query)->resolve([
+          'kirby' => kirby(),
+          'site' => site(),
+          'page' => $this->model()
+        ]);
+
+        if (!is_a($children, 'Medienbaecker\Modules\ModulesCollection')) {
+          throw new Exception('Query must return ModulesCollection');
+        }
+      } else {
+        $modulesPage = $this->model()->find($this->name);
+        if (!$modulesPage) {
+          return [];
+        }
+        $children = $modulesPage->children();
+      }
 
       $modules = [];
-      foreach ($modulesPage->children() as $child) {
+      foreach ($children as $child) {
         $modules[] = ModuleSectionItem::for($child);
       }
       return $modules;
     },
 
     'total' => fn() => count($this->modules),
-    'add'   => fn() => !$this->isFull(),
+    'add'   => fn() => !$this->isFull() && !$this->isQueried(),
 
     // Verbatim copy of core's pages section errors computed (sections can't
     // inherit from each other) — keep in sync with

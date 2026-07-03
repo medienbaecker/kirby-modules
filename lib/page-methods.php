@@ -47,7 +47,7 @@ return [
   // Can't use Page::renderVersionFromRequest()'s token check — it grants
   // token-less access to any listed page, but hidden modules are listed
   // too and must stay unaddressable without proof of access.
-  'modules' => function (string $container = 'modules') {
+  'modules' => function (string $container = 'modules', bool $hidden = false) {
     $modules = new ModulesCollection;
     $modulesContainer = $this->find($container);
     if (!$modulesContainer) return $modules;
@@ -64,7 +64,7 @@ return [
     }
 
     foreach ($modulesContainer->children() as $module) {
-      if ($module->isHidden() && $module->slug() !== $previewSlug) continue;
+      if ($hidden === false && $module->isHidden() && $module->slug() !== $previewSlug) continue;
       $modules->append($module);
     }
     return $modules;
