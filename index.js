@@ -1,1 +1,996 @@
-(function(){"use strict";function h(t,e,s,i,n,l,r,o){var d=typeof t=="function"?t.options:t;return e&&(d.render=e,d.staticRenderFns=s,d._compiled=!0),l&&(d._scopeId="data-v-"+l),{exports:t,options:d}}const g={props:{module:Object,expanded:Boolean,loading:Boolean,selected:Boolean,values:Object,pageUrl:String,hasError:Boolean},data(){return{currentTab:null,sideWidth:0,contentRendered:!1}},mounted(){const t=this.$el.querySelector(".k-module-header");this.sideObserver=new ResizeObserver(()=>{const e=Math.max(this.$refs.title.offsetWidth,this.$refs.visibility.offsetWidth),s=50;this.sideWidth=2*e+s<=t.offsetWidth?e:0}),this.sideObserver.observe(this.$refs.title),this.sideObserver.observe(this.$refs.visibility),this.sideObserver.observe(t),this.trackContentRender()},beforeDestroy(){var t,e;(t=this.sideObserver)==null||t.disconnect(),(e=this.contentObserver)==null||e.disconnect(),clearTimeout(this.contentTimeout)},watch:{contentReady(t){t?this.trackContentRender():this.contentRendered=!1}},computed:{permissions(){return this.module.permissions||{}},disabled(){return!this.permissions.update},contentReady(){return this.module.hasFields?!!this.values&&Object.keys(this.values).length>0:!0},isAwaitingContent(){return!this.expanded||!this.module.hasFields||this.module.hasTemplate===!1?!1:this.contentReady&&!this.contentRendered},activeTab(){return this.currentTab||this.module.tabs[0]&&this.module.tabs[0].name},tabs(){return this.module.tabs.map(({link:t,...e})=>e)},toolbar(){const t=this.permissions;return[{icon:"edit",title:this.$t("edit"),click:()=>this.$go(this.module.link)},...this.module.previewUrl?[{icon:"open",title:this.$t("preview"),click:()=>window.open(this.module.previewUrl,"_blank"),disabled:!t.preview}]:[],{icon:"add",title:this.$t("modules.addBelow"),click:()=>this.$emit("add",1)},{icon:"trash",title:this.$t("delete"),click:()=>this.$emit("remove"),disabled:!t.delete},{icon:"sort",title:this.$t("sort"),class:"k-sort-handle",disabled:!t.sort,key:e=>{e.key==="ArrowUp"&&(e.preventDefault(),this.$emit("sort",-1)),e.key==="ArrowDown"&&(e.preventDefault(),this.$emit("sort",1))}},{icon:"dots",dropdown:[{icon:"edit",label:this.$t("edit"),click:()=>this.$go(this.module.link)},{icon:this.module.hidden?"preview":"hidden",label:this.module.hidden?this.$t("publish"):this.$t("modules.unpublish"),click:()=>this.$emit("toggle-visibility"),disabled:!t.update},...this.module.previewUrl?[{icon:"open",label:this.$t("preview"),link:this.module.previewUrl,target:"_blank",disabled:!t.preview}]:[],"-",{icon:"template",label:this.$t("modules.changeType"),click:()=>this.$emit("change-type"),disabled:!t.changeTemplate},{icon:"hash",label:this.$t("modules.changeAnchor"),click:()=>this.$emit("change-slug"),disabled:!t.changeSlug},{icon:"copy",label:this.$t("duplicate"),click:()=>this.$emit("duplicate"),disabled:!t.duplicate},"-",{icon:this.expanded?"collapse":"expand",label:this.expanded?this.$t("collapse"):this.$t("expand"),click:()=>this.$emit("toggle")},"-",{icon:"add-module-above",label:this.$t("modules.addAbove"),click:()=>this.$emit("add",0)},{icon:"add-module-below",label:this.$t("modules.addBelow"),click:()=>this.$emit("add",1)},"-",{icon:"trash",label:this.$t("delete"),click:()=>this.$emit("remove"),disabled:!t.delete}]}]}},methods:{switchTab(t){this.currentTab=t},trackContentRender(){this.contentRendered||!this.contentReady||!this.module.hasFields||this.module.hasTemplate===!1||this.$nextTick(()=>{var s;const t=(s=this.$el)==null?void 0:s.querySelector(".k-module-content");if(!t)return;const e=()=>{var i;this.contentRendered=!0,(i=this.contentObserver)==null||i.disconnect(),clearTimeout(this.contentTimeout)};if(t.querySelector(".k-section"))return e();this.contentObserver=new MutationObserver(()=>{t.querySelector(".k-section")&&e()}),this.contentObserver.observe(t,{childList:!0,subtree:!0}),this.contentTimeout=setTimeout(e,5e3)})}}};var v=function(){var e=this,s=e._self._c;return s("div",{staticClass:"k-module",attrs:{"data-module-id":e.module.id,"data-hidden":e.module.hidden,"data-selected":e.selected,"data-disabled":e.disabled,tabindex:"-1",role:"group","aria-label":e.$t("modules.singular")+" "+e.module.moduleName},on:{focusin:function(i){return i.stopPropagation(),e.$emit("select")}}},[s("div",{staticClass:"k-module-body",attrs:{"data-collapsed":!e.expanded||e.isAwaitingContent}},[s("header",{staticClass:"k-module-header",style:{"--side-width":e.sideWidth+"px"}},[s("div",{ref:"title",staticClass:"k-module-title"},[s("button",{staticClass:"k-module-toggle",attrs:{"aria-expanded":String(e.expanded),"aria-label":e.$t("modules.singular")+" "+e.module.moduleName},on:{click:function(i){return e.$emit("toggle")}}},[e.loading||e.isAwaitingContent?s("k-icon",{attrs:{type:"loader"}}):s("span",{staticClass:"k-module-icon"},[e.module.icon?s("k-icon",{attrs:{type:e.module.icon}}):e._e(),s("k-icon",{attrs:{type:e.expanded?"angle-up":"angle-down"}})],1)],1),s("span",{staticClass:"k-module-name",domProps:{innerHTML:e._s(e.module.moduleName)}}),s("button",{staticClass:"k-module-anchor",attrs:{"aria-label":e.$t("modules.changeAnchor")+": "+e.module.slug,disabled:!e.permissions.changeSlug},on:{click:function(i){return e.$emit("change-slug")}}},[s("span",{staticClass:"k-module-anchor-text"},[e._v(" #"+e._s(e.module.slug)+" ")])])]),s("k-drawer-tabs",{staticClass:"k-module-tabs",attrs:{tab:e.activeTab,tabs:e.tabs},on:{open:e.switchTab}}),s("button",{ref:"visibility",staticClass:"k-module-visibility",attrs:{"data-hidden":e.module.hidden,"aria-label":e.module.hidden?e.$t("publish"):e.$t("modules.unpublish"),disabled:!e.permissions.update},on:{click:function(i){return i.stopPropagation(),e.$emit("toggle-visibility")}}},[s("span",[e._v(e._s(e.module.hidden?e.$t("modules.hidden"):e.$t("modules.visible")))]),s("k-icon",{attrs:{type:e.module.hidden?"hidden":"preview"}})],1)],1),e.contentReady?s("div",{staticClass:"k-module-content"},[e.module.hasTemplate===!1?s("k-empty",{directives:[{name:"show",rawName:"v-show",value:e.expanded,expression:"expanded"}],attrs:{icon:"alert",layout:"cardlets"}},[e._v(" "+e._s(e.$t("modules.missingTemplate.info"))+" ")]):e._l(e.module.tabs,function(i){return s("k-sections",{directives:[{name:"show",rawName:"v-show",value:e.expanded&&e.activeTab===i.name,expression:"expanded && activeTab === tab.name"}],key:i.name,attrs:{parent:e.pageUrl,tab:i,content:e.values},on:{input:function(n){return e.$emit("input",n)}}})})],2):e._e(),e.hasError?s("k-empty",{staticClass:"k-module-error",attrs:{icon:"alert",layout:"cardlets"}},[e._v(" "+e._s(e.$t("error"))+" ")]):e._e()],1),e.selected?s("k-toolbar",{staticClass:"k-module-toolbar",attrs:{buttons:e.toolbar,"data-inline":"true"},nativeOn:{mousedown:function(i){i.preventDefault()}}}):e._e()],1)},$=[],b=h(g,v,$,!1,null,null);const k=b.exports;function y(t){const e=t.content;if(!e||typeof e.request!="function"||e.request._stripsMarkers)return;const s=e.request.bind(e);e.request=(i,n={},l={})=>{const r=Object.fromEntries(Object.entries(n).filter(([o])=>!o.startsWith("_modulesChanged_")));return s(i,r,l)},e.request._stripsMarkers=!0}const _={components:{"k-module-card":k},props:{name:String,parent:String,timestamp:Number,lock:Object},data(){return{headline:"",modules:[],empty:"",link:null,layout:null,canAdd:!0,min:null,max:null,expanded:{},fieldData:{},changes:{},serverPendingIds:[],loadingModules:{},isLoading:!0,selectedModule:null,pendingInsertPosition:null,pendingFocusInput:!1,dragOptions:{handle:".k-sort-handle"}}},computed:{sectionUrl(){return this.parent+"/sections/"+this.name},isInvalid(){return!!(this.min&&this.modules.length<this.min||this.max&&this.modules.length>this.max)},isHostLocked(){var t;return((t=this.lock)==null?void 0:t.isLocked)===!0},sectionButtons(){if(this.isHostLocked)return[];const t=[{icon:"cog",title:this.$t("options"),click:()=>{var e;return(e=this.$refs.options)==null?void 0:e.toggle()}}];return this.canAdd&&t.push({icon:"add",text:this.$t("add"),click:()=>this.add(),responsive:!0}),t},dropdownOptions(){return[{text:this.$t("modules.expandAll"),icon:"expand",click:()=>this.expandAll(),disabled:this.isFullyExpanded},{text:this.$t("modules.collapseAll"),icon:"collapse",click:()=>this.collapseAll(),disabled:this.isFullyCollapsed},"-",{text:this.$t("delete.all"),icon:"trash",click:()=>this.$panel.dialog.open({component:"k-remove-dialog",props:{text:this.$t("modules.deleteAll.confirm")},on:{submit:async()=>{await this.$api.post(this.sectionUrl+"/deleteAll"),this.$panel.dialog.close(),this.fetch()}}}),disabled:!this.modules.length||!this.link}]},isFullyExpanded(){return this.modules.length>0&&this.modules.every(t=>this.expanded[t.id])},isFullyCollapsed(){return this.modules.length>0&&this.modules.every(t=>!this.expanded[t.id])}},watch:{timestamp(){this.fetch()}},created(){var t;y(this.$panel),this._language=(t=this.$panel.language)==null?void 0:t.code,this.headline=this.$t("modules.plural"),this.$api.post(this.sectionUrl+"/create-container").then(()=>this.fetch()),this._onPublish=({api:e})=>{this.isParentApi(e)&&this.applyChanges("publish")},this._onDiscard=({api:e})=>{this.isParentApi(e)&&this.applyChanges("discard")},this.$events.on("content.publish",this._onPublish),this.$events.on("content.discard",this._onDiscard)},mounted(){document.addEventListener("mousedown",this.onClickOutside)},destroyed(){this.$events.off("content.publish",this._onPublish),this.$events.off("content.discard",this._onDiscard),document.removeEventListener("mousedown",this.onClickOutside)},methods:{async fetch(){var t;try{const e=(t=this.$panel.language)==null?void 0:t.code;this._language!==void 0&&this._language!==e&&(this.fieldData={},this.changes={}),this._language=e;const s=new Set(this.modules.map(o=>o.id)),i=new Map(this.modules.map(o=>[o.id,o.template])),n=await this.$api.get(this.sectionUrl);this.headline=n.options.headline,this.modules=n.data,this.empty=n.options.empty,this.link=n.options.link,this.layout=n.options.layout,this.canAdd=n.options.add,this.min=n.options.min,this.max=n.options.max;for(const o of this.modules){const d=i.get(o.id);d&&d!==o.template&&(this.$delete(this.fieldData,o.id),this.$delete(this.changes,o.id),o.hasPendingChanges=!1,this.$api.post(this.pageUrl(o.id)+"/changes/discard",{},{silent:!0}).catch(()=>{}))}const l=this.loadCollapsedState(),r=this.modules.filter(o=>this.restoreExpandState(o,l));this.reconcileState(),this.positionNewModule(s),this.loadFieldsBatch(r,!0)}catch(e){this.handleError(e)}finally{this.isLoading=!1}},restoreExpandState(t,e){return e.includes(t.id)?(this.$set(this.expanded,t.id,!1),!1):t.hasFields&&(!this.fieldData[t.id]||t.hasPendingChanges)?!0:(this.$set(this.expanded,t.id,!0),!1)},reconcileState(){const t=new Set(this.modules.map(s=>s.id)),e=[this.changes,this.fieldData,this.expanded,this.loadingModules];for(const s of e)for(const i of Object.keys(s))t.has(i)||this.$delete(s,i);if(this.isHostLocked){this.serverPendingIds=[],this.undirtyParent();return}this.serverPendingIds=this.modules.filter(s=>s.hasPendingChanges&&!this.changes[s.id]&&!s.isLocked).map(s=>s.id),this.syncDirtyState()},positionNewModule(t){if(this.pendingInsertPosition==null)return;const e=this.modules.find(s=>!t.has(s.id));if(e){const s=this.modules.map(i=>i.id).filter(i=>i!==e.id);this.pendingInsertPosition>=0?s.splice(this.pendingInsertPosition,0,e.id):s.push(e.id),this.modules=s.map(i=>this.modules.find(n=>n.id===i)),this.onSort(),this.$nextTick(()=>{const i=this.$el.querySelector(`[data-module-id="${e.id}"]`);i&&i.focus(),this.pendingFocusInput&&i&&(this.pendingFocusInput=!1,this.focusFirstInput(i))})}this.pendingInsertPosition=null},focusFirstInput(t){const e=[".k-module-content :where([autofocus], [data-autofocus])",".k-module-content :where(input:not([type=hidden]), textarea, select, [contenteditable=true], .input-focus)"],s=Date.now()+1e3,i=()=>{for(const n of e){const l=t.querySelector(n);if(l){l.focus();return}}Date.now()<s&&setTimeout(i,50)};i()},async loadFieldsBatch(t,e=!1){for(const n of t)this.$set(this.loadingModules,n.id,!0);const s=30,i=[];for(let n=0;n<t.length;n+=s){const l=t.slice(n,n+s);i.push(this.loadFieldsChunk(l).then(()=>{for(const r of l)this.$delete(this.loadingModules,r.id),e&&this.$set(this.expanded,r.id,!0)}))}await Promise.all(i)},async loadFieldsChunk(t){try{const e=await this.$api.post(this.sectionUrl+"/fields",{ids:t.map(s=>s.id)});for(const s of t){const i=e[s.id];if(!i||i.error){this.$set(this.fieldData,s.id,{error:!0});continue}this.$set(this.fieldData,s.id,{values:i.values,original:JSON.stringify(i.values)}),i.moduleName!==void 0&&(s.moduleName=i.moduleName)}}catch(e){this.handleError(e);for(const s of t)this.$set(this.fieldData,s.id,{error:!0})}},add(t=-1){!this.canAdd||this.isHostLocked||(this.pendingInsertPosition=t,this.pendingFocusInput=!0,this.$dialog("modules/create",{query:{parent:this.link||this.parent,view:this.parent,section:this.name}}))},addAt(t,e){const s=this.modules.findIndex(i=>i.id===t.id);this.add(s+e)},async duplicate(t){try{this.pendingFocusInput=!1;const e=this.changes[t.id];e&&await this.queueChanges(t.id,()=>this.$api.post(this.pageUrl(t.id)+"/changes/save",e,{silent:!0})),await this.$api.post(this.sectionUrl+"/duplicate/"+this.encodeId(t.id));const s=this.modules.findIndex(i=>i.id===t.id);this.pendingInsertPosition=s>=0?s+1:-1,this.fetch()}catch(e){this.handleError(e)}},changeType(t){this.$dialog("modules/change-type/"+this.encodeId(t.id),{on:{success:()=>{this.$delete(this.fieldData,t.id),this.$delete(this.changes,t.id),this.$panel.dialog.close(),this.fetch()}}})},changeSlug(t){this.$dialog("modules/change-slug/"+this.encodeId(t.id))},async sortModule(t,e){const s=this.modules.findIndex(r=>r.id===t.id),i=s+e;if(i<0||i>=this.modules.length)return;const n=[...this.modules];n.splice(s,1),n.splice(i,0,t),this.modules=n,this.onSort(),await this.$nextTick();const l=this.$el.querySelector(`[data-module-id="${t.id}"] .k-sort-handle`);l&&l.focus()},async onSort(){const t=this.modules.map(e=>e.id);try{await this.$api.post(this.sectionUrl+"/sort",{ids:t})}catch(e){this.handleError(e)}await this.fetch()},async toggleVisibility(t){try{await this.$api.post(this.sectionUrl+"/toggle-visibility/"+this.encodeId(t.id)),await this.fetch(),this.$nextTick(()=>{const e=this.$el.querySelector(`[data-module-id="${t.id}"]`);e&&e.scrollIntoView({block:"nearest"})})}catch(e){this.handleError(e)}},remove(t){this.$dialog(this.pageUrl(t.id)+"/delete",{query:{redirect:this.parent}})},queueChanges(t,e){const s=this._changesChains??(this._changesChains={}),i=(s[t]||Promise.resolve()).then(e,e);return s[t]=i.catch(()=>{}),i},async onInput(t,e){const s=this.fieldData[t.id];if((s==null?void 0:s.original)&&JSON.stringify(e)===s.original)this.$delete(this.changes,t.id),this.queueChanges(t.id,()=>this.$api.post(this.pageUrl(t.id)+"/changes/discard",{},{silent:!0})).catch(()=>{});else try{await this.queueChanges(t.id,()=>this.$api.post(this.pageUrl(t.id)+"/changes/save",e,{silent:!0})),this.$set(this.changes,t.id,e)}catch(n){this.handleError(n);return}this.syncDirtyState()},async applyChanges(t){var e,s;if(!this._isApplying){this._isApplying=!0;try{const i=new Set(this.modules.map(a=>a.id)),n=Object.keys(this.changes),l=[...new Set([...n,...this.serverPendingIds])].filter(a=>i.has(a));if(!l.length){this.changes={},this.serverPendingIds=[],this.undirtyParent();return}const r=await Promise.allSettled(l.map(a=>this.queueChanges(a,()=>this.$api.post(this.pageUrl(a)+"/changes/"+t)))),o=[],d=[],p=[];r.forEach((a,c)=>{var m,f;const u=l[c];a.status==="fulfilled"?o.push(u):(f=(m=a.reason)==null?void 0:m.details)!=null&&f.isLocked?d.push(u):p.push({id:u,reason:a.reason})});for(const a of o)this.$delete(this.changes,a);this.serverPendingIds=this.serverPendingIds.filter(a=>!o.includes(a)),d.length>0&&this.$panel.notification.error(this.$t("modules.lock.applyFailed"));for(const{id:a,reason:c}of p){const u=((e=this.modules.find(m=>m.id===a))==null?void 0:e.moduleName)||a;this.$panel.notification.error({message:`${u}: ${(c==null?void 0:c.message)||this.$t("error")}`,details:c==null?void 0:c.details})}if(d.length>0||p.length>0){await this.fetch();const a=d[0]||((s=p[0])==null?void 0:s.id);a&&this.revealModule(a)}else await this.loadFieldsBatch(this.modules.filter(a=>o.includes(a.id)&&this.expanded[a.id]&&a.hasFields)),Object.keys(this.changes).length===0&&this.serverPendingIds.length===0&&this.undirtyParent()}finally{this._isApplying=!1}}},currentValues(t){var e;return this.changes[t]||((e=this.fieldData[t])==null?void 0:e.values)||{}},dirtyParent(){this.$panel.content.merge({[`_modulesChanged_${this.name}`]:String(Date.now())})},undirtyParent(){this.$panel.content.merge({[`_modulesChanged_${this.name}`]:void 0})},syncDirtyState(){this.serverPendingIds.length>0||Object.keys(this.changes).length>0?this.dirtyParent():this.undirtyParent()},async toggle(t){if(this.expanded[t.id]){this.$set(this.expanded,t.id,!1),this.saveCollapsedState();return}t.hasFields&&!this.fieldData[t.id]&&await this.loadFieldsBatch([t]),this.$set(this.expanded,t.id,!0),this.saveCollapsedState()},saveCollapsedState(){const t="kirby-modules:"+this.parent+":"+this.name,e=Object.keys(this.expanded).filter(s=>!this.expanded[s]);localStorage.setItem(t,JSON.stringify(e))},loadCollapsedState(){const t="kirby-modules:"+this.parent+":"+this.name;try{const e=localStorage.getItem(t);return e?JSON.parse(e):[]}catch{return[]}},async expandAll(){const t=this.modules.filter(e=>!this.expanded[e.id]&&e.hasFields&&!this.fieldData[e.id]);await this.loadFieldsBatch(t);for(const e of this.modules)this.$set(this.expanded,e.id,!0);this.saveCollapsedState()},collapseAll(){for(const t of this.modules)this.$set(this.expanded,t.id,!1);this.saveCollapsedState()},select(t){this.selectedModule=t.id},async revealModule(t){const e=this.modules.find(i=>i.id===t);if(!e)return;this.expanded[t]||await this.toggle(e),await this.$nextTick();const s=this.$el.querySelector(`[data-module-id="${t}"]`);s==null||s.scrollIntoView({block:"nearest",behavior:"smooth"}),s==null||s.focus()},onClickOutside(t){const e=t.target.closest(".k-module");e&&this.$el.contains(e)||t.target.closest(".k-dialog, .k-drawer")||(this.selectedModule=null)},isParentApi(t){return(t==null?void 0:t.replace(/^\//,""))===this.parent.replace(/^\//,"")},handleError(t){var e;if((e=t==null?void 0:t.details)!=null&&e.isLocked){this.$panel.view.reload();return}this.$panel.notification.error(t||this.$t("error"))},encodeId(t){return t.replace(/\//g,"+")},pageUrl(t){return"pages/"+this.encodeId(t)}}};var w=function(){var e=this,s=e._self._c;return s("k-section",{staticClass:"k-modules-section",attrs:{headline:e.headline,buttons:e.sectionButtons,required:!!e.min,invalid:e.isInvalid}},[s("k-dropdown-content",{ref:"options",attrs:{options:e.dropdownOptions,"align-x":"end"}}),e.isLoading?s("k-loader"):e.modules.length?s("k-draggable",{staticClass:"k-modules-list",attrs:{list:e.modules,options:e.dragOptions,"data-layout":e.layout},on:{sort:e.onSort}},e._l(e.modules,function(i){return s("k-module-card",{key:i.id+":"+i.template,attrs:{module:i,expanded:e.expanded[i.id]===!0,loading:!!e.loadingModules[i.id],selected:e.selectedModule===i.id,values:e.currentValues(i.id),"page-url":e.pageUrl(i.id),"has-error":!!(e.fieldData[i.id]&&e.fieldData[i.id].error)},on:{toggle:function(n){return e.toggle(i)},"toggle-visibility":function(n){return e.toggleVisibility(i)},select:function(n){return e.select(i)},input:function(n){return e.onInput(i,n)},add:function(n){return e.addAt(i,n)},remove:function(n){return e.remove(i)},duplicate:function(n){return e.duplicate(i)},"change-type":function(n){return e.changeType(i)},"change-slug":function(n){return e.changeSlug(i)},sort:function(n){return e.sortModule(i,n)}}})}),1):s("k-empty",{attrs:{icon:"box"},on:{click:function(i){return e.add()}}},[e._v(" "+e._s(e.empty)+" ")]),!e.isLoading&&e.modules.length&&e.canAdd?s("footer",[s("k-button",{attrs:{icon:"add",size:"xs",variant:"filled",title:e.$t("add")},on:{click:function(i){return e.add()}}})],1):e._e()],1)},C=[],x=h(_,w,C,!1,null,"5b07a9d3");const H=x.exports,S={props:{types:{type:Array,default:()=>[]},selected:String},computed:{hasPreviews(){return this.types.some(t=>t.preview)},typeOptions(){return this.types.map(t=>({value:t.name,text:t.title,disabled:t.disabled}))}},methods:{image(t){return t.preview?{src:t.preview,cover:!0,ratio:"16/9",back:"pattern"}:{icon:t.icon||"box",ratio:"16/9",back:"pattern",color:"var(--color-white)"}}}};var M=function(){var e=this,s=e._self._c;return s("div",{staticClass:"k-module-type-field"},[e.hasPreviews?[s("header",{staticClass:"k-field-header"},[s("label",{staticClass:"k-label k-field-label"},[s("span",{staticClass:"k-label-text"},[e._v(e._s(e.$t("modules.create.type")))])])]),s("k-navigate",{staticClass:"k-module-types"},e._l(e.types,function(i){return s("button",{key:i.name,staticClass:"k-module-type",attrs:{type:"button","aria-current":i.name===e.selected,"aria-label":i.title,disabled:i.disabled},on:{click:function(n){return e.$emit("select",i.name)}}},[s("k-item-image",{staticClass:"k-module-type-image",attrs:{image:e.image(i),layout:"cards"}}),s("span",{staticClass:"k-module-type-label"},[e._v(e._s(i.title))])],1)}),0)]:s("k-select-field",{attrs:{label:e.$t("modules.create.type"),options:e.typeOptions,value:e.selected,empty:!1,required:!0},on:{input:function(i){return e.$emit("select",i)}}})],2)},I=[],P=h(S,M,I,!1,null,"19887a1b");const O=P.exports,F={extends:"k-page-create-dialog"};var T=function(){var e=this,s=e._self._c;return s("k-form-dialog",e._b({ref:"dialog",staticClass:"k-module-create-dialog",attrs:{size:"large"},on:{cancel:function(i){return e.$emit("cancel")},submit:function(i){return e.$emit("submit",e.value)}}},"k-form-dialog",e.$props,!1),[e.blueprints.length>1?s("k-module-type-grid",{attrs:{types:e.blueprints,selected:e.template},on:{select:e.pick}}):e._e(),s("k-dialog-fields",{attrs:{fields:e.fields,value:e.value},on:{input:function(i){return e.$emit("input",i)},submit:function(i){return e.$emit("submit",i)}}})],1)},V=[],D=h(F,T,V,!1,null,"b1e9fb28");const A=D.exports,L={extends:"k-form-dialog",props:{blueprints:{type:Array,default:()=>[]}},methods:{select(t){this.$emit("input",{...this.value,template:t})}}};var U=function(){var e=this,s=e._self._c;return s("k-form-dialog",e._b({ref:"dialog",staticClass:"k-module-change-type-dialog",attrs:{size:"large"},on:{cancel:function(i){return e.$emit("cancel")},submit:function(i){return e.$emit("submit",e.value)}}},"k-form-dialog",e.$props,!1),[s("k-module-type-grid",{attrs:{types:e.blueprints,selected:e.value.template},on:{select:e.select}})],1)},q=[],B=h(L,U,q,!1,null,null);const R=B.exports,N={props:{license:{type:Object,default:()=>({})},cancelButton:{default:!1},submitButton:{default:!1}}};var E=function(){var e=this,s=e._self._c;return s("k-dialog",{staticClass:"k-modules-license-dialog",attrs:{size:"large","cancel-button":e.cancelButton,"submit-button":e.submitButton,visible:!0},on:{cancel:function(i){return e.$emit("cancel")}}},[s("k-bar",{staticClass:"k-modules-license-header"},[s("h2",{staticClass:"k-headline"},[e._v(" Kirby Modules ")]),s("k-button",{attrs:{text:e.$t("remove"),icon:"trash",size:"xs",variant:"filled",dialog:"modules/remove-license"}})],1),s("div",{staticClass:"k-table"},[s("table",{staticClass:"k-modules-license-table"},[s("tbody",[e.license.code?s("tr",[s("th",{attrs:{"data-mobile":"true"}},[e._v(e._s(e.$t("license.code")))]),s("td",{staticClass:"k-text",attrs:{"data-mobile":"true"}},[s("code",[e._v(e._s(e.license.code))])])]):e._e(),e.license.version?s("tr",[s("th",{attrs:{"data-mobile":"true"}},[e._v(e._s(e.$t("version")))]),s("td",{attrs:{"data-mobile":"true"}},[e._v(e._s(e.license.version))])]):e._e()])])]),s("p",{staticClass:"k-modules-license-thanks"},[e._v(" "+e._s(e.$t("modules.license.active.info"))+" ")])],1)},Z=[],j=h(N,E,Z,!1,null,null);const z=j.exports;panel.plugin("medienbaecker/modules",{components:{"k-modules-section":H,"k-module-type-grid":O,"k-module-create-dialog":A,"k-module-change-type-dialog":R,"k-modules-license-dialog":z},icons:{"add-module-above":'<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 9V5H13V9H17V11H13V15H11V11H7V9H11ZM12 20C6.47715 20 2 15.5228 2 10C2 4.47715 6.47715 0 12 0C17.5228 0 22 4.47715 22 10C22 15.5228 17.5228 20 12 20ZM12 18C16.4183 18 20 14.4183 20 10C20 5.58172 16.4183 2 12 2C7.58172 2 4 5.58172 4 10C4 14.4183 7.58172 18 12 18Z"/><path d="M21 23C21 22.4477 20.5523 22 20 22H4C3.44772 22 3 22.4477 3 23C3 23.5523 3.44772 24 4 24H5.00001H19H20C20.5523 24 21 23.5523 21 23Z"/></svg>',"add-module-below":'<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 15V19H13V15H17V13H13V9H11V13H7V15H11ZM12 4C6.47715 4 2 8.4772 2 14C2 19.5229 6.47715 24 12 24C17.5228 24 22 19.5229 22 14C22 8.4772 17.5228 4 12 4ZM12 6C16.4183 6 20 9.5817 20 14C20 18.4183 16.4183 22 12 22C7.58172 22 4 18.4183 4 14C4 9.5817 7.58172 6 12 6Z"/><path d="M21 1C21 1.5523 20.5523 2 20 2H4C3.44772 2 3 1.5523 3 1C3 0.4477 3.44772 0 4 0H5.00001H19H20C20.5523 0 21 0.4477 21 1Z"/></svg>',hash:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M7.78428 14L8.2047 10H4V8H8.41491L8.94043 3H10.9514L10.4259 8H14.4149L14.9404 3H16.9514L16.4259 8H20V10H16.2157L15.7953 14H20V16H15.5851L15.0596 21H13.0486L13.5741 16H9.58509L9.05957 21H7.04855L7.57407 16H4V14H7.78428ZM9.7953 14H13.7843L14.2047 10H10.2157L9.7953 14Z"></path></svg>',modules:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5H20V3H4V5ZM20 9H4V7H20V9ZM3 11H10V13H14V11H21V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V11ZM16 13V15H8V13H5V19H19V13H16Z"></path></svg>'}})})();
+import * as __kirbyModulesVue from "vue";
+(() => {
+const { Fragment: e, createBlock: t, createCommentVNode: n, createElementBlock: r, createElementVNode: i, createTextVNode: a, createVNode: o, mergeProps: s, normalizeStyle: c, openBlock: l, renderList: u, resolveComponent: d, toDisplayString: f, vShow: p, withCtx: m, withDirectives: h, withModifiers: g } = __kirbyModulesVue;
+
+//#region \0plugin-vue:export-helper
+var _ = (e, t) => {
+	let n = e.__vccOpts || e;
+	for (let [e, r] of t) n[e] = r;
+	return n;
+}, v = {
+	emits: [
+		"toggle",
+		"toggle-visibility",
+		"select",
+		"input",
+		"add",
+		"remove",
+		"duplicate",
+		"change-type",
+		"change-slug",
+		"sort"
+	],
+	props: {
+		module: Object,
+		expanded: Boolean,
+		loading: Boolean,
+		selected: Boolean,
+		values: Object,
+		pageUrl: String,
+		hasError: Boolean
+	},
+	data() {
+		return {
+			currentTab: null,
+			sideWidth: 0,
+			contentRendered: !1
+		};
+	},
+	mounted() {
+		let e = this.$el.querySelector(".k-module-header");
+		this.sideObserver = new ResizeObserver(() => {
+			let t = Math.max(this.$refs.title.offsetWidth, this.$refs.visibility.offsetWidth);
+			this.sideWidth = 2 * t + 50 <= e.offsetWidth ? t : 0;
+		}), this.sideObserver.observe(this.$refs.title), this.sideObserver.observe(this.$refs.visibility), this.sideObserver.observe(e), this.trackContentRender();
+	},
+	beforeUnmount() {
+		this.sideObserver?.disconnect(), this.contentObserver?.disconnect(), clearTimeout(this.contentTimeout);
+	},
+	watch: { contentReady(e) {
+		e ? this.trackContentRender() : this.contentRendered = !1;
+	} },
+	computed: {
+		permissions() {
+			return this.module.permissions || {};
+		},
+		disabled() {
+			return !this.permissions.update;
+		},
+		contentReady() {
+			return this.module.hasFields ? !!this.values && Object.keys(this.values).length > 0 : !0;
+		},
+		isAwaitingContent() {
+			return !this.expanded || !this.module.hasFields || this.module.hasTemplate === !1 ? !1 : this.contentReady && !this.contentRendered;
+		},
+		activeTab() {
+			return this.currentTab || this.module.tabs[0] && this.module.tabs[0].name;
+		},
+		tabs() {
+			return this.module.tabs.map(({ link: e, ...t }) => t);
+		},
+		toolbar() {
+			let e = this.permissions;
+			return [
+				{
+					icon: "edit",
+					title: this.$t("edit"),
+					click: () => this.$go(this.module.link)
+				},
+				...this.module.previewUrl ? [{
+					icon: "open",
+					title: this.$t("preview"),
+					click: () => window.open(this.module.previewUrl, "_blank"),
+					disabled: !e.preview
+				}] : [],
+				{
+					icon: "add",
+					title: this.$t("modules.addBelow"),
+					click: () => this.$emit("add", 1)
+				},
+				{
+					icon: "trash",
+					title: this.$t("delete"),
+					click: () => this.$emit("remove"),
+					disabled: !e.delete
+				},
+				{
+					icon: "sort",
+					title: this.$t("sort"),
+					class: "k-sort-handle",
+					disabled: !e.sort,
+					key: (e) => {
+						e.key === "ArrowUp" && (e.preventDefault(), this.$emit("sort", -1)), e.key === "ArrowDown" && (e.preventDefault(), this.$emit("sort", 1));
+					}
+				},
+				{
+					icon: "dots",
+					dropdown: [
+						{
+							icon: "edit",
+							label: this.$t("edit"),
+							click: () => this.$go(this.module.link)
+						},
+						{
+							icon: this.module.hidden ? "preview" : "hidden",
+							label: this.module.hidden ? this.$t("publish") : this.$t("modules.unpublish"),
+							click: () => this.$emit("toggle-visibility"),
+							disabled: !e.update
+						},
+						...this.module.previewUrl ? [{
+							icon: "open",
+							label: this.$t("preview"),
+							link: this.module.previewUrl,
+							target: "_blank",
+							disabled: !e.preview
+						}] : [],
+						"-",
+						{
+							icon: "template",
+							label: this.$t("modules.changeType"),
+							click: () => this.$emit("change-type"),
+							disabled: !e.changeTemplate
+						},
+						{
+							icon: "hash",
+							label: this.$t("modules.changeAnchor"),
+							click: () => this.$emit("change-slug"),
+							disabled: !e.changeSlug
+						},
+						{
+							icon: "copy",
+							label: this.$t("duplicate"),
+							click: () => this.$emit("duplicate"),
+							disabled: !e.duplicate
+						},
+						"-",
+						{
+							icon: this.expanded ? "collapse" : "expand",
+							label: this.expanded ? this.$t("collapse") : this.$t("expand"),
+							click: () => this.$emit("toggle")
+						},
+						"-",
+						{
+							icon: "add-module-above",
+							label: this.$t("modules.addAbove"),
+							click: () => this.$emit("add", 0)
+						},
+						{
+							icon: "add-module-below",
+							label: this.$t("modules.addBelow"),
+							click: () => this.$emit("add", 1)
+						},
+						"-",
+						{
+							icon: "trash",
+							label: this.$t("delete"),
+							click: () => this.$emit("remove"),
+							disabled: !e.delete
+						}
+					]
+				}
+			];
+		}
+	},
+	methods: {
+		switchTab(e) {
+			this.currentTab = e;
+		},
+		trackContentRender() {
+			this.contentRendered || !this.contentReady || !this.module.hasFields || this.module.hasTemplate === !1 || this.$nextTick(() => {
+				let e = this.$el?.querySelector(".k-module-content");
+				if (!e) return;
+				let t = () => {
+					this.contentRendered = !0, this.contentObserver?.disconnect(), clearTimeout(this.contentTimeout);
+				};
+				if (e.querySelector(".k-section")) return t();
+				this.contentObserver = new MutationObserver(() => {
+					e.querySelector(".k-section") && t();
+				}), this.contentObserver.observe(e, {
+					childList: !0,
+					subtree: !0
+				}), this.contentTimeout = setTimeout(t, 5e3);
+			});
+		}
+	}
+}, y = [
+	"data-module-id",
+	"data-hidden",
+	"data-selected",
+	"data-disabled",
+	"aria-label"
+], b = ["data-collapsed"], x = {
+	ref: "title",
+	class: "k-module-title"
+}, S = ["aria-expanded", "aria-label"], C = {
+	key: 1,
+	class: "k-module-icon"
+}, w = ["innerHTML"], T = ["aria-label", "disabled"], E = { class: "k-module-anchor-text" }, D = [
+	"data-hidden",
+	"aria-label",
+	"disabled"
+], O = {
+	key: 0,
+	class: "k-module-content"
+};
+function k(s, _, v, k, A, j) {
+	let M = d("k-icon"), N = d("k-drawer-tabs"), P = d("k-empty"), F = d("k-sections"), I = d("k-toolbar");
+	return l(), r("div", {
+		class: "k-module",
+		"data-module-id": v.module.id,
+		"data-hidden": v.module.hidden,
+		"data-selected": v.selected,
+		"data-disabled": j.disabled,
+		tabindex: "-1",
+		role: "group",
+		"aria-label": s.$t("modules.singular") + " " + v.module.moduleName,
+		onFocusin: _[5] ||= g((e) => s.$emit("select"), ["stop"])
+	}, [i("div", {
+		class: "k-module-body",
+		"data-collapsed": !v.expanded || j.isAwaitingContent
+	}, [
+		i("header", {
+			class: "k-module-header",
+			style: c({ "--side-width": A.sideWidth + "px" })
+		}, [
+			i("div", x, [
+				i("button", {
+					class: "k-module-toggle",
+					"aria-expanded": String(v.expanded),
+					"aria-label": s.$t("modules.singular") + " " + v.module.moduleName,
+					onClick: _[0] ||= (e) => s.$emit("toggle")
+				}, [v.loading || j.isAwaitingContent ? (l(), t(M, {
+					key: 0,
+					type: "loader"
+				})) : (l(), r("span", C, [v.module.icon ? (l(), t(M, {
+					key: 0,
+					type: v.module.icon
+				}, null, 8, ["type"])) : n("v-if", !0), o(M, { type: v.expanded ? "angle-up" : "angle-down" }, null, 8, ["type"])]))], 8, S),
+				i("span", {
+					class: "k-module-name",
+					innerHTML: v.module.moduleName
+				}, null, 8, w),
+				i("button", {
+					class: "k-module-anchor",
+					"aria-label": s.$t("modules.changeAnchor") + ": " + v.module.slug,
+					disabled: !j.permissions.changeSlug,
+					onClick: _[1] ||= (e) => s.$emit("change-slug")
+				}, [i("span", E, " #" + f(v.module.slug), 1)], 8, T)
+			], 512),
+			o(N, {
+				class: "k-module-tabs",
+				tab: j.activeTab,
+				tabs: j.tabs,
+				onOpen: j.switchTab
+			}, null, 8, [
+				"tab",
+				"tabs",
+				"onOpen"
+			]),
+			i("button", {
+				ref: "visibility",
+				class: "k-module-visibility",
+				"data-hidden": v.module.hidden,
+				"aria-label": v.module.hidden ? s.$t("publish") : s.$t("modules.unpublish"),
+				disabled: !j.permissions.update,
+				onClick: _[2] ||= g((e) => s.$emit("toggle-visibility"), ["stop"])
+			}, [i("span", null, f(v.module.hidden ? s.$t("modules.hidden") : s.$t("modules.visible")), 1), o(M, { type: v.module.hidden ? "hidden" : "preview" }, null, 8, ["type"])], 8, D)
+		], 4),
+		j.contentReady ? (l(), r("div", O, [v.module.hasTemplate === !1 ? h((l(), t(P, {
+			key: 0,
+			icon: "alert",
+			layout: "cardlets"
+		}, {
+			default: m(() => [a(f(s.$t("modules.missingTemplate.info")), 1)]),
+			_: 1
+		}, 512)), [[p, v.expanded]]) : (l(!0), r(e, { key: 1 }, u(v.module.tabs, (e) => h((l(), t(F, {
+			key: e.name,
+			parent: v.pageUrl,
+			tab: e,
+			content: v.values,
+			onInput: _[3] ||= (e) => s.$emit("input", e)
+		}, null, 8, [
+			"parent",
+			"tab",
+			"content"
+		])), [[p, v.expanded && j.activeTab === e.name]])), 128))])) : n("v-if", !0),
+		v.hasError ? (l(), t(P, {
+			key: 1,
+			icon: "alert",
+			layout: "cardlets",
+			class: "k-module-error"
+		}, {
+			default: m(() => [a(f(s.$t("error")), 1)]),
+			_: 1
+		})) : n("v-if", !0)
+	], 8, b), v.selected ? (l(), t(I, {
+		key: 0,
+		buttons: j.toolbar,
+		"data-inline": "true",
+		class: "k-module-toolbar",
+		onMousedown: _[4] ||= g(() => {}, ["prevent"])
+	}, null, 8, ["buttons"])) : n("v-if", !0)], 40, y);
+}
+var A = /*#__PURE__*/ _(v, [["render", k]]);
+//#endregion
+//#region src/components/ModulesSection.vue
+function j(e) {
+	let t = e.content;
+	if (!t || typeof t.request != "function" || t.request._stripsMarkers) return;
+	let n = t.request.bind(t);
+	t.request = (e, t = {}, r = {}) => {
+		let i = Object.fromEntries(Object.entries(t).filter(([e]) => !e.startsWith("_modulesChanged_")));
+		return n(e, i, r);
+	}, t.request._stripsMarkers = !0;
+}
+var M = {
+	components: { "k-module-card": A },
+	props: {
+		name: String,
+		parent: String,
+		timestamp: Number,
+		lock: Object
+	},
+	data() {
+		return {
+			headline: "",
+			modules: [],
+			empty: "",
+			link: null,
+			layout: null,
+			canAdd: !0,
+			min: null,
+			max: null,
+			expanded: {},
+			fieldData: {},
+			changes: {},
+			serverPendingIds: [],
+			loadingModules: {},
+			isLoading: !0,
+			selectedModule: null,
+			pendingInsertPosition: null,
+			pendingFocusInput: !1,
+			dragOptions: { handle: ".k-sort-handle" }
+		};
+	},
+	computed: {
+		sectionUrl() {
+			return this.parent + "/sections/" + this.name;
+		},
+		isInvalid() {
+			return !!(this.min && this.modules.length < this.min || this.max && this.modules.length > this.max);
+		},
+		isHostLocked() {
+			return this.lock?.isLocked === !0;
+		},
+		sectionButtons() {
+			if (this.isHostLocked) return [];
+			let e = [{
+				icon: "cog",
+				title: this.$t("options"),
+				click: () => this.$refs.options?.toggle()
+			}];
+			return this.canAdd && e.push({
+				icon: "add",
+				text: this.$t("add"),
+				click: () => this.add(),
+				responsive: !0
+			}), e;
+		},
+		dropdownOptions() {
+			return [
+				{
+					text: this.$t("modules.expandAll"),
+					icon: "expand",
+					click: () => this.expandAll(),
+					disabled: this.isFullyExpanded
+				},
+				{
+					text: this.$t("modules.collapseAll"),
+					icon: "collapse",
+					click: () => this.collapseAll(),
+					disabled: this.isFullyCollapsed
+				},
+				"-",
+				{
+					text: this.$t("delete.all"),
+					icon: "trash",
+					click: () => this.$panel.dialog.open({
+						component: "k-remove-dialog",
+						props: { text: this.$t("modules.deleteAll.confirm") },
+						on: { submit: async () => {
+							await this.$api.post(this.sectionUrl + "/deleteAll"), this.$panel.dialog.close(), this.fetch();
+						} }
+					}),
+					disabled: !this.modules.length || !this.link
+				}
+			];
+		},
+		isFullyExpanded() {
+			return this.modules.length > 0 && this.modules.every((e) => this.expanded[e.id]);
+		},
+		isFullyCollapsed() {
+			return this.modules.length > 0 && this.modules.every((e) => !this.expanded[e.id]);
+		}
+	},
+	watch: { timestamp() {
+		this.fetch();
+	} },
+	created() {
+		j(this.$panel), this._language = this.$panel.language?.code, this.headline = this.$t("modules.plural"), this.$api.post(this.sectionUrl + "/create-container").then(() => this.fetch()), this._onPublish = ({ api: e }) => {
+			this.isParentApi(e) && this.applyChanges("publish");
+		}, this._onDiscard = ({ api: e }) => {
+			this.isParentApi(e) && this.applyChanges("discard");
+		}, this.$events.on("content.publish", this._onPublish), this.$events.on("content.discard", this._onDiscard);
+	},
+	mounted() {
+		document.addEventListener("mousedown", this.onClickOutside);
+	},
+	unmounted() {
+		this.$events.off("content.publish", this._onPublish), this.$events.off("content.discard", this._onDiscard), document.removeEventListener("mousedown", this.onClickOutside);
+	},
+	methods: {
+		async fetch() {
+			try {
+				let e = this.$panel.language?.code;
+				this._language !== void 0 && this._language !== e && (this.fieldData = {}, this.changes = {}), this._language = e;
+				let t = new Set(this.modules.map((e) => e.id)), n = new Map(this.modules.map((e) => [e.id, e.template])), r = await this.$api.get(this.sectionUrl);
+				this.headline = r.options.headline, this.modules = r.data, this.empty = r.options.empty, this.link = r.options.link, this.layout = r.options.layout, this.canAdd = r.options.add, this.min = r.options.min, this.max = r.options.max;
+				for (let e of this.modules) {
+					let t = n.get(e.id);
+					t && t !== e.template && (delete this.fieldData[e.id], delete this.changes[e.id], e.hasPendingChanges = !1, this.$api.post(this.pageUrl(e.id) + "/changes/discard", {}, { silent: !0 }).catch(() => {}));
+				}
+				let i = this.loadCollapsedState(), a = this.modules.filter((e) => this.restoreExpandState(e, i));
+				this.reconcileState(), this.positionNewModule(t), this.loadFieldsBatch(a, !0);
+			} catch (e) {
+				this.handleError(e);
+			} finally {
+				this.isLoading = !1;
+			}
+		},
+		restoreExpandState(e, t) {
+			return t.includes(e.id) ? (this.expanded[e.id] = !1, !1) : e.hasFields && (!this.fieldData[e.id] || e.hasPendingChanges) ? !0 : (this.expanded[e.id] = !0, !1);
+		},
+		reconcileState() {
+			let e = new Set(this.modules.map((e) => e.id)), t = [
+				this.changes,
+				this.fieldData,
+				this.expanded,
+				this.loadingModules
+			];
+			for (let n of t) for (let t of Object.keys(n)) e.has(t) || delete n[t];
+			if (this.isHostLocked) {
+				this.serverPendingIds = [], this.undirtyParent();
+				return;
+			}
+			this.serverPendingIds = this.modules.filter((e) => e.hasPendingChanges && !this.changes[e.id] && !e.isLocked).map((e) => e.id), this.syncDirtyState();
+		},
+		positionNewModule(e) {
+			if (this.pendingInsertPosition == null) return;
+			let t = this.modules.find((t) => !e.has(t.id));
+			if (t) {
+				let e = this.modules.map((e) => e.id).filter((e) => e !== t.id);
+				this.pendingInsertPosition >= 0 ? e.splice(this.pendingInsertPosition, 0, t.id) : e.push(t.id), this.modules = e.map((e) => this.modules.find((t) => t.id === e)), this.onSort(), this.$nextTick(() => {
+					let e = this.$el.querySelector(`[data-module-id="${t.id}"]`);
+					e && e.focus(), this.pendingFocusInput && e && (this.pendingFocusInput = !1, this.focusFirstInput(e));
+				});
+			}
+			this.pendingInsertPosition = null;
+		},
+		focusFirstInput(e) {
+			let t = [".k-module-content :where([autofocus], [data-autofocus])", ".k-module-content :where(input:not([type=hidden]), textarea, select, [contenteditable=true], .input-focus)"], n = Date.now() + 1e3, r = () => {
+				for (let n of t) {
+					let t = e.querySelector(n);
+					if (t) {
+						t.focus();
+						return;
+					}
+				}
+				Date.now() < n && setTimeout(r, 50);
+			};
+			r();
+		},
+		async loadFieldsBatch(e, t = !1) {
+			for (let t of e) this.loadingModules[t.id] = !0;
+			let n = [];
+			for (let r = 0; r < e.length; r += 30) {
+				let i = e.slice(r, r + 30);
+				n.push(this.loadFieldsChunk(i).then(() => {
+					for (let e of i) delete this.loadingModules[e.id], t && (this.expanded[e.id] = !0);
+				}));
+			}
+			await Promise.all(n);
+		},
+		async loadFieldsChunk(e) {
+			try {
+				let t = await this.$api.post(this.sectionUrl + "/fields", { ids: e.map((e) => e.id) });
+				for (let n of e) {
+					let e = t[n.id];
+					if (!e || e.error) {
+						this.fieldData[n.id] = { error: !0 };
+						continue;
+					}
+					this.fieldData[n.id] = {
+						values: e.values,
+						original: JSON.stringify(e.values)
+					}, e.moduleName !== void 0 && (n.moduleName = e.moduleName);
+				}
+			} catch (t) {
+				this.handleError(t);
+				for (let t of e) this.fieldData[t.id] = { error: !0 };
+			}
+		},
+		add(e = -1) {
+			!this.canAdd || this.isHostLocked || (this.pendingInsertPosition = e, this.pendingFocusInput = !0, this.$dialog("modules/create", { query: {
+				parent: this.link || this.parent,
+				view: this.parent,
+				section: this.name
+			} }));
+		},
+		addAt(e, t) {
+			let n = this.modules.findIndex((t) => t.id === e.id);
+			this.add(n + t);
+		},
+		async duplicate(e) {
+			try {
+				this.pendingFocusInput = !1;
+				let t = this.changes[e.id];
+				t && await this.queueChanges(e.id, () => this.$api.post(this.pageUrl(e.id) + "/changes/save", t, { silent: !0 })), await this.$api.post(this.sectionUrl + "/duplicate/" + this.encodeId(e.id));
+				let n = this.modules.findIndex((t) => t.id === e.id);
+				this.pendingInsertPosition = n >= 0 ? n + 1 : -1, this.fetch();
+			} catch (e) {
+				this.handleError(e);
+			}
+		},
+		async changeType(e) {
+			await this.$panel.dialog.open("modules/change-type/" + this.encodeId(e.id)), this.$panel.dialog.addEventListener("success", () => {
+				delete this.fieldData[e.id], delete this.changes[e.id], this.$panel.dialog.close(), this.fetch();
+			});
+		},
+		changeSlug(e) {
+			this.$dialog("modules/change-slug/" + this.encodeId(e.id));
+		},
+		async sortModule(e, t) {
+			let n = this.modules.findIndex((t) => t.id === e.id), r = n + t;
+			if (r < 0 || r >= this.modules.length) return;
+			let i = [...this.modules];
+			i.splice(n, 1), i.splice(r, 0, e), this.modules = i, this.onSort(), await this.$nextTick();
+			let a = this.$el.querySelector(`[data-module-id="${e.id}"] .k-sort-handle`);
+			a && a.focus();
+		},
+		async onSort() {
+			let e = this.modules.map((e) => e.id);
+			try {
+				await this.$api.post(this.sectionUrl + "/sort", { ids: e });
+			} catch (e) {
+				this.handleError(e);
+			}
+			await this.fetch();
+		},
+		async toggleVisibility(e) {
+			try {
+				await this.$api.post(this.sectionUrl + "/toggle-visibility/" + this.encodeId(e.id)), await this.fetch(), this.$nextTick(() => {
+					let t = this.$el.querySelector(`[data-module-id="${e.id}"]`);
+					t && t.scrollIntoView({ block: "nearest" });
+				});
+			} catch (e) {
+				this.handleError(e);
+			}
+		},
+		remove(e) {
+			this.$dialog(this.pageUrl(e.id) + "/delete", { query: { redirect: this.parent } });
+		},
+		queueChanges(e, t) {
+			let n = this._changesChains ??= {}, r = (n[e] || Promise.resolve()).then(t, t);
+			return n[e] = r.catch(() => {}), r;
+		},
+		async onInput(e, t) {
+			let n = this.fieldData[e.id];
+			if (n?.original && JSON.stringify(t) === n.original) delete this.changes[e.id], this.queueChanges(e.id, () => this.$api.post(this.pageUrl(e.id) + "/changes/discard", {}, { silent: !0 })).catch(() => {});
+			else try {
+				await this.queueChanges(e.id, () => this.$api.post(this.pageUrl(e.id) + "/changes/save", t, { silent: !0 })), this.changes[e.id] = t;
+			} catch (e) {
+				this.handleError(e);
+				return;
+			}
+			this.syncDirtyState();
+		},
+		async applyChanges(e) {
+			if (!this._isApplying) {
+				this._isApplying = !0;
+				try {
+					let t = new Set(this.modules.map((e) => e.id)), n = Object.keys(this.changes), r = [.../* @__PURE__ */ new Set([...n, ...this.serverPendingIds])].filter((e) => t.has(e));
+					if (!r.length) {
+						this.changes = {}, this.serverPendingIds = [], this.undirtyParent();
+						return;
+					}
+					let i = await Promise.allSettled(r.map((t) => this.queueChanges(t, () => this.$api.post(this.pageUrl(t) + "/changes/" + e)))), a = [], o = [], s = [];
+					i.forEach((e, t) => {
+						let n = r[t];
+						e.status === "fulfilled" ? a.push(n) : e.reason?.details?.isLocked ? o.push(n) : s.push({
+							id: n,
+							reason: e.reason
+						});
+					});
+					for (let e of a) delete this.changes[e];
+					this.serverPendingIds = this.serverPendingIds.filter((e) => !a.includes(e)), o.length > 0 && this.$panel.notification.error(this.$t("modules.lock.applyFailed"));
+					for (let { id: e, reason: t } of s) {
+						let n = this.modules.find((t) => t.id === e)?.moduleName || e;
+						this.$panel.notification.error({
+							message: `${n}: ${t?.message || this.$t("error")}`,
+							details: t?.details
+						});
+					}
+					if (o.length > 0 || s.length > 0) {
+						await this.fetch();
+						let e = o[0] || s[0]?.id;
+						e && this.revealModule(e);
+					} else await this.loadFieldsBatch(this.modules.filter((e) => a.includes(e.id) && this.expanded[e.id] && e.hasFields)), Object.keys(this.changes).length === 0 && this.serverPendingIds.length === 0 && this.undirtyParent();
+				} finally {
+					this._isApplying = !1;
+				}
+			}
+		},
+		currentValues(e) {
+			return this.changes[e] || this.fieldData[e]?.values || {};
+		},
+		dirtyParent() {
+			this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: String(Date.now()) });
+		},
+		undirtyParent() {
+			this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: void 0 });
+		},
+		syncDirtyState() {
+			this.serverPendingIds.length > 0 || Object.keys(this.changes).length > 0 ? this.dirtyParent() : this.undirtyParent();
+		},
+		async toggle(e) {
+			if (this.expanded[e.id]) {
+				this.expanded[e.id] = !1, this.saveCollapsedState();
+				return;
+			}
+			e.hasFields && !this.fieldData[e.id] && await this.loadFieldsBatch([e]), this.expanded[e.id] = !0, this.saveCollapsedState();
+		},
+		saveCollapsedState() {
+			let e = "kirby-modules:" + this.parent + ":" + this.name, t = Object.keys(this.expanded).filter((e) => !this.expanded[e]);
+			localStorage.setItem(e, JSON.stringify(t));
+		},
+		loadCollapsedState() {
+			let e = "kirby-modules:" + this.parent + ":" + this.name;
+			try {
+				let t = localStorage.getItem(e);
+				return t ? JSON.parse(t) : [];
+			} catch {
+				return [];
+			}
+		},
+		async expandAll() {
+			let e = this.modules.filter((e) => !this.expanded[e.id] && e.hasFields && !this.fieldData[e.id]);
+			await this.loadFieldsBatch(e);
+			for (let e of this.modules) this.expanded[e.id] = !0;
+			this.saveCollapsedState();
+		},
+		collapseAll() {
+			for (let e of this.modules) this.expanded[e.id] = !1;
+			this.saveCollapsedState();
+		},
+		select(e) {
+			this.selectedModule = e.id;
+		},
+		async revealModule(e) {
+			let t = this.modules.find((t) => t.id === e);
+			if (!t) return;
+			this.expanded[e] || await this.toggle(t), await this.$nextTick();
+			let n = this.$el.querySelector(`[data-module-id="${e}"]`);
+			n?.scrollIntoView({
+				block: "nearest",
+				behavior: "smooth"
+			}), n?.focus();
+		},
+		onClickOutside(e) {
+			let t = e.target.closest(".k-module");
+			t && this.$el.contains(t) || e.target.closest(".k-dialog, .k-drawer") || (this.selectedModule = null);
+		},
+		isParentApi(e) {
+			return e?.replace(/^\//, "") === this.parent.replace(/^\//, "");
+		},
+		handleError(e) {
+			if (e?.details?.isLocked) {
+				this.$panel.view.reload();
+				return;
+			}
+			this.$panel.notification.error(e || this.$t("error"));
+		},
+		encodeId(e) {
+			return e.replace(/\//g, "+");
+		},
+		pageUrl(e) {
+			return "pages/" + this.encodeId(e);
+		}
+	}
+}, N = { key: 3 };
+function P(i, s, c, p, h, g) {
+	let _ = d("k-dropdown"), v = d("k-icon"), y = d("k-empty"), b = d("k-module-card"), x = d("k-draggable"), S = d("k-button"), C = d("k-section");
+	return l(), t(C, {
+		class: "k-modules-section",
+		headline: h.headline,
+		buttons: g.sectionButtons,
+		required: !!h.min,
+		invalid: g.isInvalid
+	}, {
+		default: m(() => [
+			o(_, {
+				ref: "options",
+				options: g.dropdownOptions,
+				"align-x": "end"
+			}, null, 8, ["options"]),
+			h.isLoading ? (l(), t(v, {
+				key: 0,
+				type: "loader"
+			})) : h.modules.length ? (l(), t(x, {
+				key: 2,
+				list: h.modules,
+				options: h.dragOptions,
+				onSort: g.onSort,
+				class: "k-modules-list",
+				"data-layout": h.layout
+			}, {
+				default: m(() => [(l(!0), r(e, null, u(h.modules, (e) => (l(), t(b, {
+					key: e.id + ":" + e.template,
+					module: e,
+					expanded: h.expanded[e.id] === !0,
+					loading: !!h.loadingModules[e.id],
+					selected: h.selectedModule === e.id,
+					values: g.currentValues(e.id),
+					"page-url": g.pageUrl(e.id),
+					"has-error": !!(h.fieldData[e.id] && h.fieldData[e.id].error),
+					onToggle: (t) => g.toggle(e),
+					onToggleVisibility: (t) => g.toggleVisibility(e),
+					onSelect: (t) => g.select(e),
+					onInput: (t) => g.onInput(e, t),
+					onAdd: (t) => g.addAt(e, t),
+					onRemove: (t) => g.remove(e),
+					onDuplicate: (t) => g.duplicate(e),
+					onChangeType: (t) => g.changeType(e),
+					onChangeSlug: (t) => g.changeSlug(e),
+					onSort: (t) => g.sortModule(e, t)
+				}, null, 8, [
+					"module",
+					"expanded",
+					"loading",
+					"selected",
+					"values",
+					"page-url",
+					"has-error",
+					"onToggle",
+					"onToggleVisibility",
+					"onSelect",
+					"onInput",
+					"onAdd",
+					"onRemove",
+					"onDuplicate",
+					"onChangeType",
+					"onChangeSlug",
+					"onSort"
+				]))), 128))]),
+				_: 1
+			}, 8, [
+				"list",
+				"options",
+				"onSort",
+				"data-layout"
+			])) : (l(), t(y, {
+				key: 1,
+				icon: "box",
+				onClick: s[0] ||= (e) => g.add()
+			}, {
+				default: m(() => [a(f(h.empty), 1)]),
+				_: 1
+			})),
+			!h.isLoading && h.modules.length && h.canAdd ? (l(), r("footer", N, [o(S, {
+				icon: "add",
+				size: "xs",
+				variant: "filled",
+				title: i.$t("add"),
+				onClick: s[1] ||= (e) => g.add()
+			}, null, 8, ["title"])])) : n("v-if", !0)
+		]),
+		_: 1
+	}, 8, [
+		"headline",
+		"buttons",
+		"required",
+		"invalid"
+	]);
+}
+var F = /*#__PURE__*/ _(M, [["render", P], ["__scopeId", "data-v-dce90d14"]]), I = {
+	props: {
+		types: {
+			type: Array,
+			default: () => []
+		},
+		selected: String
+	},
+	computed: {
+		hasPreviews() {
+			return this.types.some((e) => e.preview);
+		},
+		typeOptions() {
+			return this.types.map((e) => ({
+				value: e.name,
+				text: e.title,
+				disabled: e.disabled
+			}));
+		}
+	},
+	methods: { image(e) {
+		return e.preview ? {
+			src: e.preview,
+			cover: !0,
+			ratio: "16/9",
+			back: "pattern"
+		} : {
+			icon: e.icon || "box",
+			ratio: "16/9",
+			back: "pattern",
+			color: "var(--color-white)"
+		};
+	} }
+}, L = { class: "k-module-type-field" }, R = { class: "k-field-header" }, z = { class: "k-label k-field-label" }, B = { class: "k-label-text" }, V = [
+	"aria-current",
+	"aria-label",
+	"disabled",
+	"onClick"
+], H = { class: "k-module-type-label" };
+function U(n, a, s, c, p, h) {
+	let g = d("k-item-image"), _ = d("k-navigate"), v = d("k-select-field");
+	return l(), r("div", L, [h.hasPreviews ? (l(), r(e, { key: 0 }, [i("header", R, [i("label", z, [i("span", B, f(n.$t("modules.create.type")), 1)])]), o(_, { class: "k-module-types" }, {
+		default: m(() => [(l(!0), r(e, null, u(s.types, (e) => (l(), r("button", {
+			key: e.name,
+			type: "button",
+			class: "k-module-type",
+			"aria-current": e.name === s.selected,
+			"aria-label": e.title,
+			disabled: e.disabled,
+			onClick: (t) => n.$emit("select", e.name)
+		}, [o(g, {
+			class: "k-module-type-image",
+			image: h.image(e),
+			layout: "cards"
+		}, null, 8, ["image"]), i("span", H, f(e.title), 1)], 8, V))), 128))]),
+		_: 1
+	})], 64)) : (l(), t(v, {
+		key: 1,
+		label: n.$t("modules.create.type"),
+		options: h.typeOptions,
+		value: s.selected,
+		empty: !1,
+		required: !0,
+		onInput: a[0] ||= (e) => n.$emit("select", e)
+	}, null, 8, [
+		"label",
+		"options",
+		"value"
+	]))]);
+}
+var W = /*#__PURE__*/ _(I, [["render", U], ["__scopeId", "data-v-19887a1b"]]), G = { extends: "k-page-create-dialog" };
+function K(e, r, i, a, c, u) {
+	let f = d("k-module-type-grid"), p = d("k-dialog-fields"), h = d("k-form-dialog");
+	return l(), t(h, s({
+		ref: "dialog",
+		size: "large"
+	}, e.$props, {
+		class: "k-module-create-dialog",
+		onCancel: r[2] ||= (t) => e.$emit("cancel"),
+		onSubmit: r[3] ||= (t) => e.$emit("submit", e.value)
+	}), {
+		default: m(() => [e.blueprints.length > 1 ? (l(), t(f, {
+			key: 0,
+			types: e.blueprints,
+			selected: e.template,
+			onSelect: e.pick
+		}, null, 8, [
+			"types",
+			"selected",
+			"onSelect"
+		])) : n("v-if", !0), o(p, {
+			fields: e.fields,
+			value: e.value,
+			onInput: r[0] ||= (t) => e.$emit("input", t),
+			onSubmit: r[1] ||= (t) => e.$emit("submit", t)
+		}, null, 8, ["fields", "value"])]),
+		_: 1
+	}, 16);
+}
+var q = /*#__PURE__*/ _(G, [["render", K], ["__scopeId", "data-v-b1e9fb28"]]), J = {
+	extends: "k-form-dialog",
+	props: { blueprints: {
+		type: Array,
+		default: () => []
+	} },
+	methods: { select(e) {
+		this.$emit("input", {
+			...this.value,
+			template: e
+		});
+	} }
+};
+function Y(e, n, r, i, a, c) {
+	let u = d("k-module-type-grid"), f = d("k-form-dialog");
+	return l(), t(f, s({
+		ref: "dialog",
+		size: "large"
+	}, e.$props, {
+		class: "k-module-change-type-dialog",
+		onCancel: n[0] ||= (t) => e.$emit("cancel"),
+		onSubmit: n[1] ||= (t) => e.$emit("submit", e.value)
+	}), {
+		default: m(() => [o(u, {
+			types: r.blueprints,
+			selected: e.value.template,
+			onSelect: c.select
+		}, null, 8, [
+			"types",
+			"selected",
+			"onSelect"
+		])]),
+		_: 1
+	}, 16);
+}
+var X = /*#__PURE__*/ _(J, [["render", Y]]), Z = { props: {
+	license: {
+		type: Object,
+		default: () => ({})
+	},
+	cancelButton: { default: !1 },
+	submitButton: { default: !1 }
+} }, Q = { class: "k-table" }, $ = { class: "k-modules-license-table" }, ee = { key: 0 }, te = { "data-mobile": "true" }, ne = {
+	"data-mobile": "true",
+	class: "k-text"
+}, re = { key: 1 }, ie = { "data-mobile": "true" }, ae = { "data-mobile": "true" }, oe = { class: "k-modules-license-thanks" };
+function se(e, a, s, c, u, p) {
+	let h = d("k-button"), g = d("k-bar"), _ = d("k-dialog");
+	return l(), t(_, {
+		class: "k-modules-license-dialog",
+		size: "large",
+		"cancel-button": s.cancelButton,
+		"submit-button": s.submitButton,
+		visible: !0,
+		onCancel: a[0] ||= (t) => e.$emit("cancel")
+	}, {
+		default: m(() => [
+			o(g, { class: "k-modules-license-header" }, {
+				default: m(() => [a[1] ||= i("h2", { class: "k-headline" }, " Kirby Modules ", -1), o(h, {
+					text: e.$t("remove"),
+					icon: "trash",
+					size: "xs",
+					variant: "filled",
+					dialog: "modules/remove-license"
+				}, null, 8, ["text"])]),
+				_: 1
+			}),
+			i("div", Q, [i("table", $, [i("tbody", null, [s.license.code ? (l(), r("tr", ee, [i("th", te, f(e.$t("license.code")), 1), i("td", ne, [i("code", null, f(s.license.code), 1)])])) : n("v-if", !0), s.license.version ? (l(), r("tr", re, [i("th", ie, f(e.$t("version")), 1), i("td", ae, f(s.license.version), 1)])) : n("v-if", !0)])])]),
+			i("p", oe, f(e.$t("modules.license.active.info")), 1)
+		]),
+		_: 1
+	}, 8, ["cancel-button", "submit-button"]);
+}
+var ce = /*#__PURE__*/ _(Z, [["render", se]]);
+//#endregion
+//#region src/index.js
+panel.plugin("medienbaecker/modules", {
+	components: {
+		"k-modules-section": F,
+		"k-module-type-grid": W,
+		"k-module-create-dialog": q,
+		"k-module-change-type-dialog": X,
+		"k-modules-license-dialog": ce
+	},
+	icons: {
+		"add-module-above": "<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M11 9V5H13V9H17V11H13V15H11V11H7V9H11ZM12 20C6.47715 20 2 15.5228 2 10C2 4.47715 6.47715 0 12 0C17.5228 0 22 4.47715 22 10C22 15.5228 17.5228 20 12 20ZM12 18C16.4183 18 20 14.4183 20 10C20 5.58172 16.4183 2 12 2C7.58172 2 4 5.58172 4 10C4 14.4183 7.58172 18 12 18Z\"/><path d=\"M21 23C21 22.4477 20.5523 22 20 22H4C3.44772 22 3 22.4477 3 23C3 23.5523 3.44772 24 4 24H5.00001H19H20C20.5523 24 21 23.5523 21 23Z\"/></svg>",
+		"add-module-below": "<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M11 15V19H13V15H17V13H13V9H11V13H7V15H11ZM12 4C6.47715 4 2 8.4772 2 14C2 19.5229 6.47715 24 12 24C17.5228 24 22 19.5229 22 14C22 8.4772 17.5228 4 12 4ZM12 6C16.4183 6 20 9.5817 20 14C20 18.4183 16.4183 22 12 22C7.58172 22 4 18.4183 4 14C4 9.5817 7.58172 6 12 6Z\"/><path d=\"M21 1C21 1.5523 20.5523 2 20 2H4C3.44772 2 3 1.5523 3 1C3 0.4477 3.44772 0 4 0H5.00001H19H20C20.5523 0 21 0.4477 21 1Z\"/></svg>",
+		hash: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M7.78428 14L8.2047 10H4V8H8.41491L8.94043 3H10.9514L10.4259 8H14.4149L14.9404 3H16.9514L16.4259 8H20V10H16.2157L15.7953 14H20V16H15.5851L15.0596 21H13.0486L13.5741 16H9.58509L9.05957 21H7.04855L7.57407 16H4V14H7.78428ZM9.7953 14H13.7843L14.2047 10H10.2157L9.7953 14Z\"></path></svg>",
+		modules: "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M4 5H20V3H4V5ZM20 9H4V7H20V9ZM3 11H10V13H14V11H21V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V11ZM16 13V15H8V13H5V19H19V13H16Z\"></path></svg>"
+	}
+});
+//#endregion
+
+})();

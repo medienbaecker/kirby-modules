@@ -23,7 +23,7 @@
   },
   "require": {
     "getkirby/composer-installer": "^1.1",
-    "getkirby/cms": "~5.0"
+    "getkirby/cms": "^6.0.0-alpha.3"
   },
   "extra": {
     "installer-name": "modules"

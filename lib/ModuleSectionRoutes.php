@@ -2,13 +2,12 @@
 
 namespace Medienbaecker\Modules;
 
-use Kirby\Cms\Blueprint;
+use Kirby\Blueprint\Blueprint;
+use Kirby\Blueprint\Section;
 use Kirby\Cms\ModelWithContent;
 use Kirby\Cms\Page;
-use Kirby\Cms\Section;
 use Kirby\Content\LockedContentException;
 use Kirby\Exception\NotFoundException;
-use Kirby\Filesystem\Dir;
 use Kirby\Form\Form;
 use Kirby\Toolkit\Str;
 
@@ -160,13 +159,6 @@ class ModuleSectionRoutes
     );
     $duplicate = $child->duplicate($slug, ['files' => true]);
 
-    // Skip the _changes copy if another user holds the lock — their `Lock:`
-    // field would otherwise be cloned into the duplicate.
-    $changesDir = $child->root() . '/_changes';
-    if (is_dir($changesDir) && !$child->lock()?->isLocked()) {
-      Dir::copy($changesDir, $duplicate->root() . '/_changes');
-    }
-
     // A hidden source always duplicates as hidden; autopublish only decides
     // what happens when the source was visible.
     $language = kirby()->defaultLanguage()?->code();
@@ -179,7 +171,35 @@ class ModuleSectionRoutes
       $duplicate = self::writeHidden($duplicate, $hidden ? 'true' : null, $language);
     });
 
-    // The copied _changes directory may add pending changes to the host.
+    // Carry pending changes via the Version API, not a raw directory copy:
+    // raw files carry the source's `Uuid:` and `Lock:`. Skipped when another
+    // user holds the lock; runs after writeHidden so `hidden` syncs here.
+    if (!$child->lock()?->isLocked()) {
+      $sourceChanges = $child->version('changes');
+      $codes = kirby()->multilang()
+        ? kirby()->languages()->codes()
+        : ['default'];
+      foreach ($codes as $code) {
+        if (!$sourceChanges->exists($code)) continue;
+        $fields = $sourceChanges->read($code) ?? [];
+        // Pin the copy's fresh uuid: publishing replaces latest wholesale.
+        if ($uuid = $duplicate->content($code)->get('uuid')->value()) {
+          $fields['uuid'] = $uuid;
+        } else {
+          unset($fields['uuid']);
+        }
+        if ($code === ($language ?? 'default')) {
+          if ($hidden) {
+            $fields['hidden'] = 'true';
+          } else {
+            unset($fields['hidden']);
+          }
+        }
+        $duplicate->version('changes')->create($fields, $code);
+      }
+    }
+
+    // The copied changes version may add pending changes to the host.
     HostLock::sync($container->parentModel());
 
     return ['status' => 'ok'];

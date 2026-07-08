@@ -1,8 +1,8 @@
 <template>
   <k-section class="k-modules-section" :headline="headline" :buttons="sectionButtons" :required="Boolean(min)"
     :invalid="isInvalid">
-    <k-dropdown-content ref="options" :options="dropdownOptions" align-x="end" />
-    <k-loader v-if="isLoading" />
+    <k-dropdown ref="options" :options="dropdownOptions" align-x="end" />
+    <k-icon v-if="isLoading" type="loader" />
     <k-empty v-else-if="!modules.length" icon="box" @click="add()">
       {{ empty }}
     </k-empty>
@@ -175,7 +175,7 @@ export default {
   mounted() {
     document.addEventListener("mousedown", this.onClickOutside);
   },
-  destroyed() {
+  unmounted() {
     this.$events.off("content.publish", this._onPublish);
     this.$events.off("content.discard", this._onDiscard);
     document.removeEventListener("mousedown", this.onClickOutside);
@@ -208,8 +208,8 @@ export default {
         for (const module of this.modules) {
           const prev = previousTemplates.get(module.id);
           if (prev && prev !== module.template) {
-            this.$delete(this.fieldData, module.id);
-            this.$delete(this.changes, module.id);
+            delete this.fieldData[module.id];
+            delete this.changes[module.id];
             module.hasPendingChanges = false;
             this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }).catch(() => { });
           }
@@ -233,7 +233,7 @@ export default {
     // request); otherwise sets the expand state directly.
     restoreExpandState(module, collapsed) {
       if (collapsed.includes(module.id)) {
-        this.$set(this.expanded, module.id, false);
+        this.expanded[module.id] = false;
         return false;
       }
 
@@ -241,7 +241,7 @@ export default {
       if (module.hasFields && (!this.fieldData[module.id] || module.hasPendingChanges)) {
         return true;
       }
-      this.$set(this.expanded, module.id, true);
+      this.expanded[module.id] = true;
       return false;
     },
 
@@ -251,7 +251,7 @@ export default {
 
       for (const map of trackingMaps) {
         for (const id of Object.keys(map)) {
-          if (!currentIds.has(id)) this.$delete(map, id);
+          if (!currentIds.has(id)) delete map[id];
         }
       }
 
@@ -321,7 +321,7 @@ export default {
 
     // Batched so loading values isn't one request per module.
     async loadFieldsBatch(modules, reveal = false) {
-      for (const m of modules) this.$set(this.loadingModules, m.id, true);
+      for (const m of modules) this.loadingModules[m.id] = true;
       const CHUNK = 30;
       const tasks = [];
       for (let i = 0; i < modules.length; i += CHUNK) {
@@ -329,8 +329,8 @@ export default {
         tasks.push(
           this.loadFieldsChunk(chunk).then(() => {
             for (const m of chunk) {
-              this.$delete(this.loadingModules, m.id);
-              if (reveal) this.$set(this.expanded, m.id, true);
+              delete this.loadingModules[m.id];
+              if (reveal) this.expanded[m.id] = true;
             }
           }),
         );
@@ -346,19 +346,19 @@ export default {
         for (const module of modules) {
           const entry = response[module.id];
           if (!entry || entry.error) {
-            this.$set(this.fieldData, module.id, { error: true });
+            this.fieldData[module.id] = { error: true };
             continue;
           }
-          this.$set(this.fieldData, module.id, {
+          this.fieldData[module.id] = {
             values: entry.values,
             original: JSON.stringify(entry.values),
-          });
+          };
           if (entry.moduleName !== undefined) module.moduleName = entry.moduleName;
         }
       } catch (e) {
         this.handleError(e);
         for (const module of modules) {
-          this.$set(this.fieldData, module.id, { error: true });
+          this.fieldData[module.id] = { error: true };
         }
       }
     },
@@ -402,18 +402,18 @@ export default {
         this.handleError(e);
       }
     },
-    changeType(module) {
-      this.$dialog("modules/change-type/" + this.encodeId(module.id), {
-        on: {
-          // Clear cached fields before refetch so the old k-sections unmounts
-          // instead of fetching the old template's section against the new one.
-          success: () => {
-            this.$delete(this.fieldData, module.id);
-            this.$delete(this.changes, module.id);
-            this.$panel.dialog.close();
-            this.fetch();
-          },
-        },
+    async changeType(module) {
+      // Attach after open: for URL opens K6 registers `on` handlers twice.
+      await this.$panel.dialog.open(
+        "modules/change-type/" + this.encodeId(module.id),
+      );
+      // Clear cached fields before refetch so the old k-sections unmounts
+      // instead of fetching the old template's section against the new one.
+      this.$panel.dialog.addEventListener("success", () => {
+        delete this.fieldData[module.id];
+        delete this.changes[module.id];
+        this.$panel.dialog.close();
+        this.fetch();
       });
     },
     changeSlug(module) {
@@ -485,7 +485,7 @@ export default {
       const unchanged = data?.original && JSON.stringify(values) === data.original;
 
       if (unchanged) {
-        this.$delete(this.changes, module.id);
+        delete this.changes[module.id];
         this.queueChanges(module.id, () =>
           this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }),
         ).catch(() => { });
@@ -496,7 +496,7 @@ export default {
           );
           // Commit local state only after the server accepts; otherwise a
           // 423 leaves the parent dirty with nothing the user can publish.
-          this.$set(this.changes, module.id, values);
+          this.changes[module.id] = values;
         } catch (e) {
           this.handleError(e);
           return;
@@ -542,7 +542,7 @@ export default {
           else otherFailed.push({ id, reason: result.reason });
         });
 
-        for (const id of succeeded) this.$delete(this.changes, id);
+        for (const id of succeeded) delete this.changes[id];
         this.serverPendingIds = this.serverPendingIds.filter(
           (id) => !succeeded.includes(id),
         );
@@ -605,14 +605,14 @@ export default {
     // Collapsed state persists in localStorage per page + section name.
     async toggle(module) {
       if (this.expanded[module.id]) {
-        this.$set(this.expanded, module.id, false);
+        this.expanded[module.id] = false;
         this.saveCollapsedState();
         return;
       }
       if (module.hasFields && !this.fieldData[module.id]) {
         await this.loadFieldsBatch([module]);
       }
-      this.$set(this.expanded, module.id, true);
+      this.expanded[module.id] = true;
       this.saveCollapsedState();
     },
     saveCollapsedState() {
@@ -637,13 +637,13 @@ export default {
       );
       await this.loadFieldsBatch(toLoad);
       for (const m of this.modules) {
-        this.$set(this.expanded, m.id, true);
+        this.expanded[m.id] = true;
       }
       this.saveCollapsedState();
     },
     collapseAll() {
       for (const m of this.modules) {
-        this.$set(this.expanded, m.id, false);
+        this.expanded[m.id] = false;
       }
       this.saveCollapsedState();
     },

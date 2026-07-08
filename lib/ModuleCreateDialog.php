@@ -2,39 +2,42 @@
 
 namespace Medienbaecker\Modules;
 
+use Kirby\Cms\App;
+use Kirby\Cms\Find;
 use Kirby\Cms\Page;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
 use Kirby\Form\Form;
+use Kirby\Panel\Controller\Dialog\PageCreateDialogController;
 use Kirby\Panel\Field;
-use Kirby\Panel\PageCreateDialog;
 use Kirby\Panel\Panel;
+use Kirby\Panel\Ui\Dialog;
+use Kirby\Panel\Ui\Dialog\FormDialog;
 use Kirby\Toolkit\Str;
 use Kirby\Uuid\Uuids;
 
-class ModuleCreateDialog extends PageCreateDialog
+class ModuleCreateDialog extends PageCreateDialogController
 {
   // Field names the create dialog never renders (the page's routing fields;
   // `title` is the type name). Shared by customFields() and guardListedFields()
   // so the skip and the guard can't drift apart.
   private const RESERVED_FIELDS = ['title', 'slug', 'parent', 'template', 'uuid'];
 
-  // Dialog routes call for() with the route arguments (none here); the
-  // dialog parameters travel as request data, exactly like the core
-  // page.create dialog.
-  public static function for(): static
+  public static function factory(): static
   {
-    $request = kirby()->request();
+    $request = App::instance()->request();
 
-    return new static(
-      parentId: $request->get('parent'),
-      sectionId: $request->get('section'),
-      template: $request->get('template'),
-      viewId: $request->get('view'),
-      slug: $request->get('slug'),
-      title: $request->get('title'),
-      uuid: $request->get('uuid'),
-    );
+    // `parent` is the modules container; the section lives on the view
+    // (host) page's blueprint, so resolve it there, not on the container.
+    $parent  = Find::parent($request->get('parent', $request->get('view', 'site')));
+    $section = null;
+
+    if ($name = $request->get('section')) {
+      $view    = Find::parent($request->get('view', 'site'));
+      $section = $view->blueprint()->section($name);
+    }
+
+    return new static(parent: $parent, section: $section);
   }
 
   public function blueprints(): array
@@ -61,7 +64,7 @@ class ModuleCreateDialog extends PageCreateDialog
       $field['icon']   = false;
       $field['before'] = '#';
       $field['help']   = false;
-      if ($placeholder = ModuleRegistry::generateSlug($this->parentId, (string) $this->template)) {
+      if ($this->parent instanceof Page && $placeholder = ModuleRegistry::generateSlug($this->parent->id(), $this->template())) {
         $field['placeholder'] = $placeholder;
       }
       $fields['slug'] = $field;
@@ -81,8 +84,9 @@ class ModuleCreateDialog extends PageCreateDialog
   }
 
   // Stores the type name as title (the card label comes from `label`) and
-  // resolves the create.anchor template, exposing {{ module.* }}.
-  public function resolveFieldTemplates(array $input): array
+  // resolves the create.anchor template, exposing {{ module.* }}. $fields
+  // unused: title and slug follow our rules, not core's.
+  public function resolveFieldTemplates(array $input, array $fields): array
   {
     $create = $this->blueprint()->create();
 
@@ -102,14 +106,14 @@ class ModuleCreateDialog extends PageCreateDialog
     // createChild()'s Url::slug() so submit() can find the page to hide it.
     $slug = Str::slug((string) ($input['slug'] ?? ''));
     $input['slug'] = $slug !== ''
-      ? (ModuleRegistry::uniqueSlug($this->parentId, $slug) ?? $slug)
-      : (ModuleRegistry::generateSlug($this->parentId, (string) $this->template) ?? '');
+      ? (ModuleRegistry::uniqueSlug($this->parent->id(), $slug) ?? $slug)
+      : (ModuleRegistry::generateSlug($this->parent->id(), $this->template()) ?? '');
 
     return $input;
   }
 
   // Skip unrenderable entries so the dialog still loads; guardListedFields()
-  // rejects them at submit.
+  // rejects them at submit (the K6 base throws on them at load instead).
   public function customFields(): array
   {
     $blueprint = $this->blueprint();
@@ -123,7 +127,7 @@ class ModuleCreateDialog extends PageCreateDialog
       $custom[$name] = $field;
     }
 
-    return (new Form(fields: $custom, model: $this->model()))->fields()->toProps();
+    return (new Form(fields: $custom, model: $this->model()))->fields()->toProps(defaults: true);
   }
 
   private function isRenderableField(string $name, array $fields): bool
@@ -134,17 +138,16 @@ class ModuleCreateDialog extends PageCreateDialog
       && !in_array($name, self::RESERVED_FIELDS, true);
   }
 
-  public function load(): array
+  public function load(): Dialog
   {
     if (!$this->hasModuleBlueprints()) {
       throw new NotFoundException(t('modules.create.error.notemplates'));
     }
 
     $blueprints = $this->blueprints();
-    $this->template ??= $blueprints[0]['name'] ?? null;
 
     // Reject a tampered template that isn't a registered module type.
-    if (!ModuleRegistry::hasBlueprint($this->template)) {
+    if (!ModuleRegistry::hasBlueprint($this->template())) {
       throw new NotFoundException(t('modules.create.error.notemplates'));
     }
 
@@ -152,27 +155,25 @@ class ModuleCreateDialog extends PageCreateDialog
     $visible = array_filter($fields, fn($field) => ($field['hidden'] ?? null) !== true);
 
     if ($visible === [] && count($blueprints) < 2) {
-      $response = $this->submit($this->value());
-      Panel::go($response['redirect'] ?? $this->view->panel()->url(true));
+      $response = $this->submit();
+      Panel::go($response['redirect'] ?? Find::parent($this->request->get('view', 'site'))->panel()->url(true));
     }
 
     $status = ModuleSectionRoutes::shouldAutopublish($this->blueprint(), $this->parent instanceof Page ? $this->parent : null)
       ? t('modules.visible')
       : t('modules.hidden');
 
-    return [
-      'component' => 'k-module-create-dialog',
-      'props' => [
-        'blueprints'   => $blueprints,
-        'fields'       => $fields,
-        'submitButton' => tt('page.create', ['status' => $status]),
-        'template'     => $this->template,
-        'value'        => $this->value(),
-      ],
-    ];
+    return new FormDialog(
+      component:    'k-module-create-dialog',
+      blueprints:   $blueprints,
+      fields:       $fields,
+      submitButton: tt('page.create', ['status' => $status]),
+      template:     $this->template(),
+      value:        $this->value(),
+    );
   }
 
-  public function submit(array|null $input = null): array
+  public function submit(): array
   {
     if ($this->parent instanceof Page && $this->parent->isModuleContainer()) {
       HostLock::ensureUnlocked($this->parent->parentModel());
@@ -186,14 +187,12 @@ class ModuleCreateDialog extends PageCreateDialog
     $this->guardListedFields();
     $this->guardRequiredFields();
 
-    $input ??= kirby()->request()->body()->toArray();
-
     // parent::submit() doesn't return the created page, so pre-compute its final
-    // slug to find it afterwards and apply the hidden flag. Idempotent re-run.
-    $finalSlug = $this->sanitize($input)['slug'];
-    $input['slug'] = $finalSlug;
+    // slug to find it afterwards and apply the hidden flag. sanitize() is
+    // deterministic until the page exists, so parent's run computes the same slug.
+    $finalSlug = $this->sanitize($this->request->get())['slug'];
 
-    $response = parent::submit($input);
+    $response = parent::submit();
 
     if ($page = $this->parent->find($finalSlug)) {
       ModuleSectionRoutes::applyAutopublish($page);

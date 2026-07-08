@@ -1,6 +1,6 @@
 <?php
 
-use Kirby\Cms\Blueprint;
+use Kirby\Blueprint\Blueprint;
 use Kirby\Cms\Site;
 use Kirby\Toolkit\I18n;
 use Medienbaecker\Modules\ModuleRegistry;

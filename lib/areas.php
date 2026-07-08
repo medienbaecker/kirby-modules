@@ -14,19 +14,19 @@ return [
     return [
       'dialogs' => [
         'modules/create' => [
-          'controller' => ModuleCreateDialog::class,
+          'action' => ModuleCreateDialog::class,
         ],
         'modules/change-type' => [
           'pattern' => 'modules/change-type/(:any)',
-          'controller' => ModuleChangeTypeDialog::class,
+          'action' => ModuleChangeTypeDialog::class,
         ],
         'modules/change-slug' => [
           'pattern' => 'modules/change-slug/(:any)',
-          'controller' => ModuleChangeSlugDialog::class,
+          'action' => ModuleChangeSlugDialog::class,
         ],
         'modules/visibility' => [
           'pattern' => 'pages/(:any)/visibility',
-          'controller' => ModuleVisibilityDialog::class,
+          'action' => ModuleVisibilityDialog::class,
         ],
       ],
       'buttons' => [

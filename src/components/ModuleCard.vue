@@ -42,12 +42,13 @@
     </div>
 
     <k-toolbar v-if="selected" :buttons="toolbar" data-inline="true" class="k-module-toolbar"
-      @mousedown.native.prevent />
+      @mousedown.prevent />
   </div>
 </template>
 
 <script>
 export default {
+  emits: ["toggle", "toggle-visibility", "select", "input", "add", "remove", "duplicate", "change-type", "change-slug", "sort"],
   props: {
     module: Object,
     expanded: Boolean,
@@ -79,7 +80,7 @@ export default {
 
     this.trackContentRender();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.sideObserver?.disconnect();
     this.contentObserver?.disconnect();
     clearTimeout(this.contentTimeout);
