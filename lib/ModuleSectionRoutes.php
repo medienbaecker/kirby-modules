@@ -13,6 +13,8 @@ use Kirby\Toolkit\Str;
 
 class ModuleSectionRoutes
 {
+  public static array $queried = [];
+
   // Kirby executes route actions with Closure::call($apiInstance), which
   // rebinds both $this and self:: — so the actions reference this class by
   // name and reach the section through the Api instance.
@@ -23,7 +25,11 @@ class ModuleSectionRoutes
         'pattern' => 'fields',
         'method'  => 'POST',
         'action'  => function () {
-          $container = ModuleSectionRoutes::container($this->section());
+          $section = $this->section();
+          $container = ModuleSectionRoutes::container($section);
+
+          ModuleSectionRoutes::$queried[$container->id()] = $section->isQueried();
+
           return ModuleSectionRoutes::loadFieldsBatch($container, $this->requestBody('ids'));
         },
       ],
@@ -57,7 +63,11 @@ class ModuleSectionRoutes
         'pattern' => 'toggle-visibility/(:any)',
         'method'  => 'POST',
         'action'  => function (string $childId) {
-          $container = ModuleSectionRoutes::container($this->section());
+          $section = $this->section();
+          $container = ModuleSectionRoutes::container($section);
+
+          ModuleSectionRoutes::$queried[$container->id()] = $section->isQueried();
+
           return ModuleSectionRoutes::toggleVisibility($container, $childId);
         },
       ],
@@ -103,6 +113,11 @@ class ModuleSectionRoutes
   // ID exists in another container.
   public static function assertChildOf(Page $child, ?Page $container): void
   {
+    $id = $container->id();
+    if (array_key_exists($id, self::$queried) && self::$queried[$id] === true) {
+      return;
+    }
+
     if (!$container || !$child->parent()?->is($container)) {
       throw new NotFoundException('Module not found');
     }
