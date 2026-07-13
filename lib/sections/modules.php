@@ -52,8 +52,7 @@ return [
       return $blueprints;
     },
 
-    'empty' => fn($empty = null) => $empty ?? I18n::translate('modules.empty'),
-    'label' => fn($label = null) => $label ?? I18n::translate('modules.plural'),
+    'empty' => fn($empty = null) => I18n::translate($empty, $empty) ?? I18n::translate('modules.empty'),
 
     'parent' => function ($parent = null) {
       $modelType = $this->model() instanceof Site ? 'site' : 'page';
@@ -100,6 +99,18 @@ return [
 
     'total' => fn() => count($this->modules),
     'add'   => fn() => !$this->isFull(),
+
+    'headline' => function () {
+      if ($this->label) {
+        return $this->model()->toString($this->label);
+      }
+
+      if ($this->headline) {
+        return $this->model()->toString($this->headline);
+      }
+
+      return I18n::translate('modules.plural');
+    },
 
     // Verbatim copy of core's pages section errors computed (sections can't
     // inherit from each other) — keep in sync with
