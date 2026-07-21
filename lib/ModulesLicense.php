@@ -9,6 +9,7 @@ use Kirby\Http\Remote;
 use Kirby\Plugin\License;
 use Kirby\Plugin\LicenseStatus;
 use Kirby\Plugin\Plugin;
+use Kirby\Toolkit\Str;
 
 class ModulesLicense extends License
 {
@@ -128,6 +129,17 @@ class ModulesLicense extends License
         dialog: self::DIALOG
       ),
     };
+  }
+
+  public static function code(bool $obfuscated = false): string|null
+  {
+    $key = self::readKey();
+
+    if ($key !== null && $obfuscated === true) {
+      return Str::substr($key, 0, 10) . str_repeat('X', 22);
+    }
+
+    return $key;
   }
 
   public static function readKey(): string|null
