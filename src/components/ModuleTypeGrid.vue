@@ -7,7 +7,7 @@
       <k-navigate class="k-module-types">
         <button v-for="type in types" :key="type.name" type="button" class="k-module-type"
           :aria-current="type.name === selected" :aria-label="type.title" :disabled="type.disabled"
-          @click="$emit('select', type.name)">
+          :data-autofocus="type.name === selected" @click="$emit('select', type.name)">
           <k-item-image class="k-module-type-image" :image="image(type)" layout="cards" />
           <span class="k-module-type-label">{{ type.title }}</span>
         </button>
