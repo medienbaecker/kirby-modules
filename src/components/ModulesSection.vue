@@ -440,6 +440,7 @@ export default {
       const ids = this.modules.map((m) => m.id);
       try {
         await this.$api.post(this.sectionUrl + "/sort", { ids });
+        this.$events.emit("page.sort");
       } catch (e) {
         this.handleError(e);
       }
@@ -451,6 +452,7 @@ export default {
         await this.$api.post(
           this.sectionUrl + "/toggle-visibility/" + this.encodeId(module.id),
         );
+        this.$events.emit("model.update");
         await this.fetch();
         this.$nextTick(() => {
           const el = this.$el.querySelector(`[data-module-id="${module.id}"]`);

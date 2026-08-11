@@ -199,6 +199,9 @@ class ModuleCreateDialog extends PageCreateDialog
       ModuleSectionRoutes::applyAutopublish($page);
     }
 
+    // core emits page.create, which sibling sections do not listen to
+    $response['event'] = ['page.create', 'model.update'];
+
     return $response;
   }
 

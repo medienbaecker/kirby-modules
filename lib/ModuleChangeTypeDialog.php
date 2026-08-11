@@ -59,7 +59,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
     ];
   }
 
-  public function submit(): bool
+  public function submit(): array
   {
     $target = $this->validateTarget(
       (string) kirby()->request()->body()->get('template')
@@ -67,7 +67,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
 
     if (count($this->module->blueprints()) > 0) {
       $this->module->changeTemplate($target);
-      return true;
+      return ['event' => 'model.update'];
     }
 
     // Missing-blueprint fallback: PageRules::changeTemplate would reject the
@@ -77,7 +77,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
       $this->module->intendedTemplate()->name(),
       $target
     ));
-    return true;
+    return ['event' => 'model.update'];
   }
 
   // A module's container slug equals its owning section's name on the host
