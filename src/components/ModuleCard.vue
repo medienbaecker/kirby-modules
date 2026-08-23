@@ -262,7 +262,7 @@ export default {
   background: var(--module-color-back);
   box-shadow: var(--shadow);
   border-radius: var(--rounded);
-  scroll-margin-block-start: var(--header-sticky-offset);
+  scroll-margin-block-start: 5rem;
 
   &[data-hidden="true"] {
     --module-color-back: repeating-linear-gradient(135deg,

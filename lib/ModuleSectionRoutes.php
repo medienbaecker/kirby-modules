@@ -7,6 +7,7 @@ use Kirby\Cms\ModelWithContent;
 use Kirby\Cms\Page;
 use Kirby\Cms\Section;
 use Kirby\Content\LockedContentException;
+use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
 use Kirby\Form\Form;
 use Kirby\Toolkit\Str;
@@ -163,17 +164,17 @@ class ModuleSectionRoutes
     // what happens when the source was visible.
     $language = kirby()->defaultLanguage()?->code();
     $hidden = $child->isHidden()
+      || self::isInvalid($child)
       || !self::shouldAutopublish($child->blueprint(), $container);
-    // Re-assign $duplicate after each call: changeStatus and update move the
-    // previous instance to immutable storage.
-    kirby()->impersonate('kirby', function () use (&$duplicate, $child, $hidden, $language) {
-      $duplicate = $duplicate->changeStatus('listed', $child->num() + 1);
-      $duplicate = self::writeHidden($duplicate, $hidden ? 'true' : null, $language);
-    });
+    $duplicate = kirby()->impersonate(
+      'kirby',
+      fn() => self::writeHidden($duplicate, $hidden ? 'true' : null, $language)
+    );
+    $duplicate = self::promote($duplicate, $child->num() + 1);
 
     // Carry pending changes via the Version API, not a raw directory copy:
     // raw files carry the source's `Uuid:` and `Lock:`. Skipped when another
-    // user holds the lock; runs after writeHidden so `hidden` syncs here.
+    // user holds the lock.
     if (!$child->lock()?->isLocked()) {
       $sourceChanges = $child->version('changes');
       $codes = kirby()->multilang()
@@ -249,8 +250,22 @@ class ModuleSectionRoutes
   {
     self::ensureModuleAndHostUnlocked($child);
     $hidden = $child->isHidden();
+    if ($hidden && $invalid = self::invalidLanguages($child)) {
+      throw new InvalidArgumentException(
+        message: self::invalidMessage($invalid)
+      );
+    }
     self::writeHidden($child, $hidden ? null : 'true', kirby()->defaultLanguage()?->code());
     return !$hidden;
+  }
+
+  private static function invalidMessage(array $codes): string
+  {
+    if (kirby()->multilang() === false) {
+      return t('error.form.incomplete');
+    }
+    $names = array_map(fn($c) => kirby()->language($c)?->name() ?? $c, $codes);
+    return tt('modules.visibility.invalid', ['languages' => implode(', ', $names)]);
   }
 
   // Mirror to _changes too — Version::publish overwrites latest with the
@@ -258,8 +273,9 @@ class ModuleSectionRoutes
   private static function writeHidden(Page $child, ?string $value, ?string $language): Page
   {
     $language ??= 'default';
+    $writer = $child instanceof ModulePage ? $child->allowHiddenWrite() : $child;
     // Re-assign $child: update() moves the previous instance to immutable storage.
-    $child = $child->update(['hidden' => $value], $language);
+    $child = $writer->update(['hidden' => $value], $language);
 
     $changes = $child->version('changes');
     if ($changes->exists($language)) {
@@ -309,10 +325,12 @@ class ModuleSectionRoutes
     return is_bool($value) ? $value : null;
   }
 
-  // Applies the autopublish option to a freshly created module.
   public static function applyAutopublish(Page $module): Page
   {
-    if (self::shouldAutopublish($module->blueprint(), $module->parent())) {
+    if (
+      self::shouldAutopublish($module->blueprint(), $module->parent())
+      && !self::isInvalid($module)
+    ) {
       return $module;
     }
 
@@ -320,5 +338,44 @@ class ModuleSectionRoutes
       'kirby',
       fn() => self::writeHidden($module, 'true', kirby()->defaultLanguage()?->code())
     );
+  }
+
+  public static function reconcileVisibility(Page $module): Page
+  {
+    if ($module->isHidden() || !self::isInvalid($module)) {
+      return $module;
+    }
+    return kirby()->impersonate(
+      'kirby',
+      fn() => self::writeHidden($module, 'true', kirby()->defaultLanguage()?->code())
+    );
+  }
+
+  public static function promote(Page $module, ?int $position = null): Page
+  {
+    return kirby()->impersonate(
+      'kirby',
+      fn() => $module->publish()->changeStatus('listed', $position)
+    );
+  }
+
+  public static function isInvalid(Page $module): bool
+  {
+    return self::invalidLanguages($module) !== [];
+  }
+
+  public static function invalidLanguages(Page $module): array
+  {
+    $codes = kirby()->multilang() ? kirby()->languages()->codes() : ['current'];
+    $fields = $module->blueprint()->fields();
+    $invalid = [];
+    foreach ($codes as $code) {
+      $form = new Form(fields: $fields, model: $module, language: $code);
+      $form->fill($module->content($code)->toArray());
+      if ($form->errors() !== []) {
+        $invalid[] = $code;
+      }
+    }
+    return $invalid;
   }
 }

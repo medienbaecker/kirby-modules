@@ -153,12 +153,12 @@ class ModuleRegistry
     ];
     $blueprintArray = array_merge($defaults, Data::read($blueprintPath));
 
-    // Force status/redirect (modules are always listed; visibility is the
-    // `hidden` flag) while keeping any author-supplied create config.
+    // draft, not listed: listing validates the full form and blocks types
+    // whose validators the dialog can't satisfy (e.g. min on a structure)
     $create = $blueprintArray['create'] ?? null;
     $create = is_array($create) ? $create : [];
     $blueprintArray['create'] = array_merge($create, [
-      'status'   => 'listed',
+      'status'   => 'draft',
       'redirect' => false,
     ]);
 

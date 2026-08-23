@@ -17,7 +17,7 @@ class ModuleCreateDialog extends PageCreateDialog
   // Field names the create dialog never renders (the page's routing fields;
   // `title` is the type name). Shared by customFields() and guardListedFields()
   // so the skip and the guard can't drift apart.
-  private const RESERVED_FIELDS = ['title', 'slug', 'parent', 'template', 'uuid'];
+  private const RESERVED_FIELDS = ['title', 'slug', 'parent', 'template', 'uuid', 'hidden'];
 
   // Dialog routes call for() with the route arguments (none here); the
   // dialog parameters travel as request data, exactly like the core
@@ -157,6 +157,7 @@ class ModuleCreateDialog extends PageCreateDialog
     }
 
     $status = ModuleSectionRoutes::shouldAutopublish($this->blueprint(), $this->parent instanceof Page ? $this->parent : null)
+      && !$this->bornInvalid()
       ? t('modules.visible')
       : t('modules.hidden');
 
@@ -184,25 +185,32 @@ class ModuleCreateDialog extends PageCreateDialog
       throw new InvalidArgumentException(t('modules.create.error.title'));
     }
     $this->guardListedFields();
-    $this->guardRequiredFields();
 
     $input ??= kirby()->request()->body()->toArray();
 
-    // parent::submit() doesn't return the created page, so pre-compute its final
-    // slug to find it afterwards and apply the hidden flag. Idempotent re-run.
     $finalSlug = $this->sanitize($input)['slug'];
     $input['slug'] = $finalSlug;
 
     $response = parent::submit($input);
 
-    if ($page = $this->parent->find($finalSlug)) {
-      ModuleSectionRoutes::applyAutopublish($page);
+    if ($page = $this->parent->drafts()->find($finalSlug)) {
+      $page = ModuleSectionRoutes::applyAutopublish($page);
+      ModuleSectionRoutes::promote($page);
     }
 
     // core emits page.create, which sibling sections do not listen to
     $response['event'] = ['page.create', 'model.update'];
 
     return $response;
+  }
+
+  private function bornInvalid(): bool
+  {
+    $creatable = array_flip($this->blueprint()->create()['fields'] ?? []);
+    $fields = array_diff_key($this->blueprint()->fields(), $creatable);
+    $form = new Form(fields: $fields, model: $this->model());
+    $form->fill($form->defaults());
+    return $form->errors() !== [];
   }
 
   // A listed field the dialog can't render would silently vanish; name it instead.
@@ -220,35 +228,6 @@ class ModuleCreateDialog extends PageCreateDialog
     if ($invalid !== []) {
       throw new InvalidArgumentException(
         tt('modules.create.error.fields', ['fields' => implode(', ', $invalid)])
-      );
-    }
-  }
-
-  // Forced status:listed makes core validate all fields; a required field the
-  // dialog can't show would fail cryptically. Name the offenders up front.
-  private function guardRequiredFields(): void
-  {
-    $blueprint = $this->blueprint();
-    $included  = $blueprint->create()['fields'] ?? [];
-    $missing   = [];
-
-    foreach ($blueprint->fields() as $name => $field) {
-      if (($field['required'] ?? false) !== true || $name === 'title') {
-        continue;
-      }
-      // A non-empty default satisfies the required check on its own.
-      if (($field['default'] ?? '') !== '') {
-        continue;
-      }
-      $supported = in_array($field['type'] ?? null, static::$fieldTypes, true);
-      if (!$supported || !in_array($name, $included, true)) {
-        $missing[] = $name;
-      }
-    }
-
-    if ($missing !== []) {
-      throw new InvalidArgumentException(
-        tt('modules.create.error.required', ['fields' => implode(', ', $missing)])
       );
     }
   }

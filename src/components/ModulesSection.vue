@@ -554,10 +554,10 @@ export default {
         }
         for (const { id, reason } of otherFailed) {
           const name = this.modules.find((m) => m.id === id)?.moduleName || id;
-          this.$panel.notification.error({
-            message: `${name}: ${reason?.message || this.$t("error")}`,
-            details: reason?.details,
-          });
+          // notification.error keeps a message only from a string or Error
+          this.$panel.notification.error(
+            `${name}: ${reason?.message || this.$t("error")}`,
+          );
         }
 
         if (lockFailed.length > 0 || otherFailed.length > 0) {
@@ -659,8 +659,30 @@ export default {
       if (!this.expanded[id]) await this.toggle(module);
       await this.$nextTick();
       const el = this.$el.querySelector(`[data-module-id="${id}"]`);
-      el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      el?.focus();
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const headerHeight = parseFloat(getComputedStyle(el).scrollMarginBlockStart) || 0;
+      const inView = rect.top >= headerHeight && rect.bottom <= window.innerHeight;
+      if (!inView) el.scrollIntoView({ block: "center", behavior: "smooth" });
+      await this.waitForDialogClose();
+      this.$el
+        .querySelector(`[data-module-id="${id}"]`)
+        ?.focus({ preventScroll: true });
+    },
+    async waitForDialogClose() {
+      if (!this.$panel.dialog.isOpen) return;
+      await new Promise((resolve) => {
+        const unwatch = this.$watch(
+          () => this.$panel.dialog.isOpen,
+          (open) => {
+            if (!open) {
+              unwatch();
+              resolve();
+            }
+          },
+        );
+      });
+      await this.$nextTick();
     },
     onClickOutside(e) {
       const clickedModule = e.target.closest(".k-module");

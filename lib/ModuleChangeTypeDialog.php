@@ -66,17 +66,22 @@ class ModuleChangeTypeDialog extends ModuleDialog
     );
 
     if (count($this->module->blueprints()) > 0) {
-      $this->module->changeTemplate($target);
-      return ['event' => 'model.update'];
+      $module = $this->module->changeTemplate($target);
+    } else {
+      // Missing-blueprint fallback: PageRules::changeTemplate would reject the
+      // change because $this->module->blueprints() is empty. Rename files directly.
+      kirby()->impersonate('kirby', fn() => self::renameTemplateFiles(
+        $this->module->root(),
+        $this->module->intendedTemplate()->name(),
+        $target
+      ));
+      $module = kirby()->page($this->module->id());
     }
 
-    // Missing-blueprint fallback: PageRules::changeTemplate would reject the
-    // change because $this->module->blueprints() is empty. Rename files directly.
-    kirby()->impersonate('kirby', fn() => self::renameTemplateFiles(
-      $this->module->root(),
-      $this->module->intendedTemplate()->name(),
-      $target
-    ));
+    if ($module) {
+      ModuleSectionRoutes::reconcileVisibility($module);
+    }
+
     return ['event' => 'model.update'];
   }
 

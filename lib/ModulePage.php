@@ -8,10 +8,38 @@ use Kirby\Cms\Site;
 use Kirby\Content\Field;
 use Kirby\Content\VersionId;
 use Kirby\Http\Uri;
+use Kirby\Toolkit\Str;
 use Medienbaecker\Modules\ModuleRegistry;
 
 class ModulePage extends Page
 {
+  public function changeTemplate(string $template): static
+  {
+    return ModuleSectionRoutes::reconcileVisibility(parent::changeTemplate($template));
+  }
+
+  private bool $hiddenWriteAllowed = false;
+
+  public function allowHiddenWrite(): static
+  {
+    $this->hiddenWriteAllowed = true;
+    return $this;
+  }
+
+  public function update(
+    array|null $input = null,
+    string|null $languageCode = null,
+    bool $validate = false
+  ): static {
+    $allowed = $this->hiddenWriteAllowed;
+    $this->hiddenWriteAllowed = false;
+    if (!$allowed && is_array($input)) {
+      // match Kirby's key normalization: " hidden", "hidden!" etc. all store as hidden
+      $input = array_filter($input, fn($k) => Str::slug((string) $k) !== 'hidden', ARRAY_FILTER_USE_KEY);
+    }
+    return parent::update($input, $languageCode, $validate && !$this->isHidden());
+  }
+
   public function previewUrl(VersionId|string $versionId = 'latest'): string|null
   {
     if (!$this->isHidden()) {
