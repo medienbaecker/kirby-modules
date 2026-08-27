@@ -63,6 +63,18 @@ class ModuleSectionRoutes
         },
       ],
       [
+        'pattern' => 'move',
+        'method'  => 'POST',
+        'action'  => function () {
+          $section = $this->section();
+          return ModuleSectionRoutes::move(
+            ModuleSectionRoutes::container($section),
+            $this->requestBody('id'),
+            $this->requestBody('ids')
+          );
+        },
+      ],
+      [
         'pattern' => 'create-container',
         'method'  => 'POST',
         'action'  => function () {
@@ -105,6 +117,19 @@ class ModuleSectionRoutes
   public static function assertChildOf(Page $child, ?Page $container): void
   {
     if (!$container || !$child->parent()?->is($container)) {
+      throw new NotFoundException('Module not found');
+    }
+  }
+
+  public static function assertSiblingOf(Page $child, ?Page $container): void
+  {
+    $source = $child->parent();
+
+    if (
+      !$container ||
+      $source?->intendedTemplate()->name() !== 'modules' ||
+      $source->parentModel()->is($container->parentModel()) === false
+    ) {
       throw new NotFoundException('Module not found');
     }
   }
@@ -219,6 +244,42 @@ class ModuleSectionRoutes
         $page->changeStatus('listed', $num++);
       }
     });
+  }
+
+  public static function move(?Page $container, string $childId, array $ids): array
+  {
+    $child = self::resolveModule($childId);
+
+    if ($container && $child->parent()?->is($container)) {
+      self::sort($container, $ids);
+      return ['status' => 'ok', 'id' => $child->id()];
+    }
+
+    self::assertSiblingOf($child, $container);
+    self::ensureModuleAndHostUnlocked($child);
+
+    $source = $child->parent();
+
+    $moved = kirby()->impersonate('kirby', function () use ($child, $container) {
+      // Without the default language this only sets a URL key, not the folder name.
+      $slug = ModuleRegistry::uniqueSlug($container->id(), $child->slug());
+
+      if ($slug !== null && $slug !== $child->slug()) {
+        $child = $child->changeSlug($slug, kirby()->defaultLanguage()?->code());
+      }
+
+      return $child->move($container);
+    });
+
+    self::sort($container, array_map(
+      fn($id) => $id === $childId ? $moved->id() : $id,
+      $ids
+    ));
+
+    $source->purge();
+    self::sort($source, $source->children()->keys());
+
+    return ['status' => 'ok', 'id' => $moved->id()];
   }
 
   public static function deleteAll(?Page $container): void

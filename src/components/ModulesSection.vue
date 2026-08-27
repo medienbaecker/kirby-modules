@@ -3,11 +3,9 @@
     :invalid="isInvalid">
     <k-dropdown-content ref="options" :options="dropdownOptions" align-x="end" />
     <k-loader v-if="isLoading" />
-    <k-empty v-else-if="!modules.length" icon="box" @click="add()">
-      {{ empty }}
-    </k-empty>
-    <k-draggable v-else :list="modules" :options="dragOptions" @sort="onSort" class="k-modules-list"
-      :data-layout="layout">
+    <k-draggable v-else :list="modules" :options="dragOptions" :group="'k-modules:' + parent"
+      :data="{ accepts }" :move="onMove" @change="onDragChange" @start="onDragStart" @end="onDragEnd"
+      class="k-modules-list" :data-layout="layout">
       <k-module-card v-for="module in modules" :key="module.id + ':' + module.template" :module="module"
         :expanded="expanded[module.id] === true" :loading="!!loadingModules[module.id]"
         :selected="selectedModule === module.id" :values="currentValues(module.id)" :page-url="pageUrl(module.id)"
@@ -16,6 +14,9 @@
         @add="addAt(module, $event)" @remove="remove(module)" @duplicate="duplicate(module)"
         @change-type="changeType(module)" @change-slug="changeSlug(module)" @sort="sortModule(module, $event)" />
     </k-draggable>
+    <k-empty v-if="!isLoading" class="k-modules-empty" icon="box" @click="add()">
+      {{ empty }}
+    </k-empty>
     <footer v-if="!isLoading && modules.length && canAdd">
       <k-button icon="add" size="xs" variant="filled" :title="$t('add')" @click="add()" />
     </footer>
@@ -77,11 +78,22 @@ export default {
       selectedModule: null,
       pendingInsertPosition: null,
       pendingFocusInput: false,
-      dragOptions: { handle: ".k-sort-handle" },
+      templates: [],
+      dragScrollShift: 0,
     };
   },
 
   computed: {
+    dragOptions() {
+      return {
+        handle: ".k-sort-handle",
+        draggable: ".k-module",
+        // Grabbing shrinks the page; at the bottom the browser scrolls up. Undo that.
+        fallbackOffset: { x: 0, y: this.dragScrollShift },
+        onChoose: () => (this._scrollAtGrab = window.scrollY),
+        emptyInsertThreshold: 40,
+      };
+    },
     sectionUrl() {
       return this.parent + "/sections/" + this.name;
     },
@@ -169,6 +181,10 @@ export default {
     this._onDiscard = ({ api }) => {
       if (this.isParentApi(api)) this.applyChanges("discard");
     };
+    this._onMoved = ({ parent }) => {
+      if (parent === this.parent) this.fetch();
+    };
+    this.$events.on("modules.moved", this._onMoved);
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
   },
@@ -176,6 +192,7 @@ export default {
     document.addEventListener("mousedown", this.onClickOutside);
   },
   destroyed() {
+    this.$events.off("modules.moved", this._onMoved);
     this.$events.off("content.publish", this._onPublish);
     this.$events.off("content.discard", this._onDiscard);
     document.removeEventListener("mousedown", this.onClickOutside);
@@ -204,6 +221,7 @@ export default {
         this.canAdd = response.options.add;
         this.min = response.options.min;
         this.max = response.options.max;
+        this.templates = response.options.templates ?? [];
 
         for (const module of this.modules) {
           const prev = previousTemplates.get(module.id);
@@ -434,6 +452,41 @@ export default {
       await this.$nextTick();
       const el = this.$el.querySelector(`[data-module-id="${module.id}"] .k-sort-handle`);
       if (el) el.focus();
+    },
+
+    onMove(event) {
+      return event.toData.accepts(event.draggedData.module.template);
+    },
+
+    accepts(template) {
+      return (
+        this.templates.includes(template) &&
+        (!this.max || this.modules.length < this.max)
+      );
+    },
+
+    onDragStart() {
+      this.dragScrollShift = window.scrollY - this._scrollAtGrab;
+    },
+
+    onDragEnd() {
+      this.dragScrollShift = 0;
+    },
+
+    onDragChange(event) {
+      if (event.moved) return this.onSort();
+      if (event.added) return this.onDrop(event.added.element);
+    },
+
+    async onDrop(module) {
+      const ids = this.modules.map((m) => m.id);
+      try {
+        await this.$api.post(this.sectionUrl + "/move", { id: module.id, ids });
+        this.$events.emit("page.sort");
+      } catch (e) {
+        this.handleError(e);
+      }
+      this.$events.emit("modules.moved", { parent: this.parent });
     },
 
     async onSort() {
@@ -726,6 +779,11 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--module-gap, var(--spacing-2));
+}
+
+/* Sortable won't drop into a list with any child element. */
+.k-modules-list:has(.k-module) + .k-modules-empty {
+  display: none;
 }
 
 footer {

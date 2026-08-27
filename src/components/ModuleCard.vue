@@ -254,6 +254,11 @@ export default {
 </script>
 
 <style>
+body:has(.k-module.k-sortable-fallback),
+body:has(.k-module.k-sortable-fallback) * {
+  cursor: grabbing;
+}
+
 .k-module {
   --module-color-back: light-dark(var(--color-white), var(--color-gray-850));
 
@@ -437,6 +442,10 @@ export default {
 
 .k-module[data-selected="true"]>.k-module-toolbar {
   display: flex;
+}
+
+.k-module.k-sortable-ghost .k-module-toolbar {
+  opacity: 0;
 }
 
 .k-module-toolbar>.k-button:not(:last-of-type) {
