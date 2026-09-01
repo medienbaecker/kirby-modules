@@ -9,6 +9,7 @@ use Kirby\Cms\Section;
 use Kirby\Content\LockedContentException;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
+use Kirby\Exception\PermissionException;
 use Kirby\Form\Form;
 use Kirby\Toolkit\Str;
 
@@ -256,7 +257,38 @@ class ModuleSectionRoutes
     }
 
     self::assertSiblingOf($child, $container);
+
+    $moved = self::moveTo($child, $container);
+
+    self::sort($container, array_map(
+      fn($id) => $id === $childId ? $moved->id() : $id,
+      $ids
+    ));
+
+    return ['status' => 'ok', 'id' => $moved->id()];
+  }
+
+  public static function canMove(Page $child): bool
+  {
+    if (isset($child->blueprint()->options()['move'])) {
+      return $child->permissions()->can('move');
+    }
+
+    return kirby()->user()?->role()->permissions()
+      ->for('medienbaecker.modules', 'move') !== false;
+  }
+
+  public static function moveTo(Page $child, Page $container): Page
+  {
+    if (self::canMove($child) === false) {
+      throw new PermissionException(
+        key: 'page.move.permission',
+        data: ['slug' => $child->slug()]
+      );
+    }
+
     self::ensureModuleAndHostUnlocked($child);
+    HostLock::ensureUnlocked($container->parentModel());
 
     $source = $child->parent();
 
@@ -271,15 +303,16 @@ class ModuleSectionRoutes
       return $child->move($container);
     });
 
-    self::sort($container, array_map(
-      fn($id) => $id === $childId ? $moved->id() : $id,
-      $ids
-    ));
+    $container->purge();
+    self::sort($container, [
+      ...array_values(array_diff($container->children()->keys(), [$moved->id()])),
+      $moved->id(),
+    ]);
 
     $source->purge();
     self::sort($source, $source->children()->keys());
 
-    return ['status' => 'ok', 'id' => $moved->id()];
+    return $moved;
   }
 
   public static function deleteAll(?Page $container): void

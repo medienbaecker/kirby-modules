@@ -1,5 +1,6 @@
 <?php
 
+use Kirby\Cms\Page;
 use Kirby\Content\LockedContentException;
 use Kirby\Exception\PermissionException;
 use Kirby\Panel\Panel;
@@ -79,6 +80,10 @@ return [
 
   'page.move:before' => function ($page, $parent) {
     if (!$page->isModule()) return;
+
+    if (!$parent instanceof Page || !$parent->isModuleContainer()) {
+      throw new PermissionException(t('modules.move.notallowed'));
+    }
 
     $host = $parent->parentModel();
     $targetSection = null;

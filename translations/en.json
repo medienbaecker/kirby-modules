@@ -36,5 +36,6 @@
   "license.active.info": "Thank you! Your support means a lot ♥",
   "license.remove.text": "This will remove the licence from this site. You can re-activate it at any time with the same key.",
   "license.remove.submit": "Remove",
-  "license.portal": "Customer Portal"
+  "license.portal": "Customer Portal",
+  "move.headline": "Move module"
 }

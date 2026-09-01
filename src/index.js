@@ -2,6 +2,7 @@ import ModulesSection from "./components/ModulesSection.vue";
 import ModuleTypeGrid from "./components/ModuleTypeGrid.vue";
 import ModuleCreateDialog from "./components/ModuleCreateDialog.vue";
 import ModuleChangeTypeDialog from "./components/ModuleChangeTypeDialog.vue";
+import ModuleMoveDialog from "./components/ModuleMoveDialog.vue";
 import ModulesLicenseDialog from "./components/ModulesLicenseDialog.vue";
 
 panel.plugin("medienbaecker/modules", {
@@ -10,6 +11,7 @@ panel.plugin("medienbaecker/modules", {
     "k-module-type-grid": ModuleTypeGrid,
     "k-module-create-dialog": ModuleCreateDialog,
     "k-module-change-type-dialog": ModuleChangeTypeDialog,
+    "k-module-move-dialog": ModuleMoveDialog,
     "k-modules-license-dialog": ModulesLicenseDialog,
   },
   icons: {

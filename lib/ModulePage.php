@@ -183,6 +183,13 @@ class ModulePage extends Page
     return $parents->filter('intendedTemplate', '!=', 'modules');
   }
 
+  public function isMovableTo(Page|Site $parent): bool
+  {
+    return $parent instanceof Page
+      && $parent->isModuleContainer()
+      && parent::isMovableTo($parent);
+  }
+
   public function metaDefaults(): array
   {
     return ['robotsIndex' => false];

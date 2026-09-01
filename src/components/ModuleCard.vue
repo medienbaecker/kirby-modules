@@ -189,6 +189,12 @@ export default {
               click: () => this.$emit("duplicate"),
               disabled: !p.duplicate,
             },
+            {
+              icon: "parent",
+              label: this.$t("move") + " …",
+              click: () => this.$emit("move"),
+              disabled: !p.move,
+            },
             "-",
             {
               icon: this.expanded ? "collapse" : "expand",

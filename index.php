@@ -33,6 +33,7 @@ Kirby::plugin(
       'modules' => require __DIR__ . '/lib/sections/modules.php'
     ],
     'hooks'        => require __DIR__ . '/lib/hooks.php',
+    'permissions'  => ['move' => true],
     'pageMethods'  => $pageMethods,
     'pagesMethods' => require __DIR__ . '/lib/pages-methods.php',
     'siteMethods'  => [

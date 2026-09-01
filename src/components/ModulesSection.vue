@@ -11,7 +11,7 @@
         :selected="selectedModule === module.id" :values="currentValues(module.id)" :page-url="pageUrl(module.id)"
         :has-error="!!(fieldData[module.id] && fieldData[module.id].error)" @toggle="toggle(module)"
         @toggle-visibility="toggleVisibility(module)" @select="select(module)" @input="onInput(module, $event)"
-        @add="addAt(module, $event)" @remove="remove(module)" @duplicate="duplicate(module)"
+        @add="addAt(module, $event)" @remove="remove(module)" @duplicate="duplicate(module)" @move="moveModule(module)"
         @change-type="changeType(module)" @change-slug="changeSlug(module)" @sort="sortModule(module, $event)" />
     </k-draggable>
     <k-empty v-if="!isLoading" class="k-modules-empty" icon="box" @click="add()">
@@ -181,8 +181,8 @@ export default {
     this._onDiscard = ({ api }) => {
       if (this.isParentApi(api)) this.applyChanges("discard");
     };
-    this._onMoved = ({ parent }) => {
-      if (parent === this.parent) this.fetch();
+    this._onMoved = (event) => {
+      if (!event?.parent || event.parent === this.parent) this.fetch();
     };
     this.$events.on("modules.moved", this._onMoved);
     this.$events.on("content.publish", this._onPublish);
@@ -434,6 +434,10 @@ export default {
         },
       });
     },
+    moveModule(module) {
+      this.$dialog("modules/move/" + this.encodeId(module.id));
+    },
+
     changeSlug(module) {
       this.$dialog("modules/change-slug/" + this.encodeId(module.id));
     },
