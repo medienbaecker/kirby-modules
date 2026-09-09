@@ -3,6 +3,7 @@
 namespace Medienbaecker\Modules;
 
 use Kirby\Cms\Page;
+use Kirby\Cms\PageRules;
 use Kirby\Cms\Pages;
 use Kirby\Cms\Site;
 use Kirby\Content\Field;
@@ -10,6 +11,7 @@ use Kirby\Content\VersionId;
 use Kirby\Http\Uri;
 use Kirby\Toolkit\Str;
 use Medienbaecker\Modules\ModuleRegistry;
+use Throwable;
 
 class ModulePage extends Page
 {
@@ -185,9 +187,17 @@ class ModulePage extends Page
 
   public function isMovableTo(Page|Site $parent): bool
   {
-    return $parent instanceof Page
-      && $parent->isModuleContainer()
-      && parent::isMovableTo($parent);
+    if (!$parent instanceof Page || !$parent->isModuleContainer()) {
+      return false;
+    }
+
+    // A taken slug is no blocker: the move renames the module first.
+    try {
+      PageRules::move($this->clone(['slug' => ModuleRegistry::moveSlug($this, $parent)]), $parent);
+      return true;
+    } catch (Throwable) {
+      return false;
+    }
   }
 
   public function metaDefaults(): array

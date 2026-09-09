@@ -2,6 +2,7 @@
 
 namespace Medienbaecker\Modules;
 
+use Kirby\Cms\Page;
 use Kirby\Data\Data;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Filesystem\Dir;
@@ -187,7 +188,17 @@ class ModuleRegistry
     return self::uniqueSlug($parentId, preg_replace('/-\d+$/', '', $sourceSlug));
   }
 
-  public static function uniqueSlug(string $parentId, string $slug): ?string
+  // The move renames before it relocates, so the slug has to be free in both containers.
+  public static function moveSlug(Page $module, Page $container): string
+  {
+    $reserved = $module->parent()->childrenAndDrafts()
+      ->filter(fn($sibling) => $sibling->id() !== $module->id())
+      ->values(fn($sibling) => $sibling->slug());
+
+    return self::uniqueSlug($container->id(), $module->slug(), $reserved) ?? $module->slug();
+  }
+
+  public static function uniqueSlug(string $parentId, string $slug, array $reserved = []): ?string
   {
     $parentId = str_replace('+', '/', $parentId);
     $parentId = preg_replace('#^pages/#', '', $parentId);
@@ -198,7 +209,7 @@ class ModuleRegistry
 
     // Match PageRules::create(), which checks the slug against drafts too.
     $siblings = $parent->childrenAndDrafts();
-    while ($siblings->findBy('slug', $slug)) {
+    while ($siblings->findBy('slug', $slug) || in_array($slug, $reserved, true)) {
       $slug = Str::increment($slug, '-', 2);
     }
     return $slug;
