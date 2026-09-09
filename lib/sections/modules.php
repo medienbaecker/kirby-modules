@@ -3,6 +3,7 @@
 use Kirby\Cms\Blueprint;
 use Kirby\Cms\Site;
 use Kirby\Toolkit\I18n;
+use Kirby\Toolkit\Str;
 use Medienbaecker\Modules\ModuleRegistry;
 use Medienbaecker\Modules\ModuleSectionRoutes;
 use Medienbaecker\Modules\ModuleSectionItem;
@@ -50,6 +51,36 @@ return [
       }
 
       return $blueprints;
+    },
+
+    // Same shape core builds for a `blocks` field's nested `type: group`
+    // fieldsets (Kirby\Cms\Fieldsets::createFieldsets(), exposed to the
+    // panel as fieldsetGroups): label, open (default true unless the
+    // blueprint sets it to false), sets (member type names). Declared here
+    // instead of on each module type's own blueprint, same as blocks -
+    // groups are the field's concern, not the fieldset's.
+    'fieldsetGroups' => function (array $fieldsetGroups = []) {
+      if (empty($fieldsetGroups)) {
+        return null;
+      }
+
+      $groups = [];
+      foreach ($fieldsetGroups as $key => $group) {
+        if ($group === false) continue;
+
+        $sets = array_map(fn($set) => ModuleRegistry::qualify($set), $group['sets'] ?? []);
+        $sets = array_values(array_intersect($sets, $this->templates));
+        if (empty($sets)) continue;
+
+        $label = $group['label'] ?? Str::label($key);
+        $groups[$key] = [
+          'label' => I18n::translate($label, $label),
+          'open'  => ($group['open'] ?? true) !== false,
+          'sets'  => $sets,
+        ];
+      }
+
+      return $groups ?: null;
     },
 
     'empty' => fn($empty = null) => I18n::translate($empty, $empty) ?? I18n::translate('modules.empty'),

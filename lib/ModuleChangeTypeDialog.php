@@ -2,6 +2,7 @@
 
 namespace Medienbaecker\Modules;
 
+use Kirby\Cms\Section;
 use Kirby\Exception\InvalidArgumentException;
 
 class ModuleChangeTypeDialog extends ModuleDialog
@@ -51,6 +52,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
       'component' => 'k-module-change-type-dialog',
       'props' => [
         'blueprints' => $types,
+        'groups' => $this->ownerSection()?->fieldsetGroups(),
         'value' => [
           'template' => $currentName
         ],
@@ -86,11 +88,12 @@ class ModuleChangeTypeDialog extends ModuleDialog
   }
 
   // A module's container slug equals its owning section's name on the host
-  // page (see hooks.php). Reuse that section's blueprints() so change-type and
-  // create produce an identical list. Fetch the one section by name rather than
-  // iterating sections() — the latter also instantiates the host's other
-  // sections (e.g. files), which can error outside a normal request.
-  private function ownerSectionBlueprints(): ?array
+  // page (see hooks.php). Reuse that section's blueprints()/fieldsetGroups()
+  // so change-type and create produce an identical list. Fetch the one
+  // section by name rather than iterating sections() — the latter also
+  // instantiates the host's other sections (e.g. files), which can error
+  // outside a normal request.
+  private function ownerSection(): ?Section
   {
     $container = $this->module->parent();
     $host = $container?->parentModel();
@@ -98,10 +101,12 @@ class ModuleChangeTypeDialog extends ModuleDialog
       return null;
     }
     $section = $host->blueprint()->section($container->slug());
-    if ($section && $section->type() === 'modules') {
-      return $section->blueprints();
-    }
-    return null;
+    return ($section && $section->type() === 'modules') ? $section : null;
+  }
+
+  private function ownerSectionBlueprints(): ?array
+  {
+    return $this->ownerSection()?->blueprints();
   }
 
   // Restricts the target to a real module blueprint and, when the owning

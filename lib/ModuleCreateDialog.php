@@ -45,6 +45,23 @@ class ModuleCreateDialog extends PageCreateDialog
     );
   }
 
+  // Same section `parent::blueprints()` itself resolves through
+  // ($view->blueprint()->section($sectionId), Kirby's own section-methods
+  // mechanism) - reused here to also read the section's fieldsetGroups.
+  private function groups(): ?array
+  {
+    if (!$this->sectionId) {
+      return null;
+    }
+
+    $section = $this->view->blueprint()->section($this->sectionId);
+    if (!$section || $section->type() !== 'modules') {
+      return null;
+    }
+
+    return $section->fieldsetGroups();
+  }
+
   // No title field (modules are labelled by type or `label`); the anchor is a
   // relabeled slug field, shown unless create.anchor drives the anchor itself.
   public function coreFields(): array
@@ -166,6 +183,7 @@ class ModuleCreateDialog extends PageCreateDialog
       'props' => [
         'blueprints'   => $blueprints,
         'fields'       => $fields,
+        'groups'       => $this->groups(),
         'submitButton' => tt('page.create', ['status' => $status]),
         'template'     => $this->template,
         'value'        => $this->value(),

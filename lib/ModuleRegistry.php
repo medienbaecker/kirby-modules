@@ -106,12 +106,15 @@ class ModuleRegistry
 
   // Preview image URL + icon for a module template (e.g. 'module.text'),
   // used to decorate the type cards in the create/change-type dialogs.
+  // Grouping (fieldsetGroups) is declared on the `modules` section instead,
+  // the same way core keeps block groups on the field, not the fieldset.
   public static function typeVisuals(string $template): array
   {
     $shortName = str_replace('module.', '', $template);
+    $blueprint = self::load()['blueprints']['pages/' . $template] ?? [];
     return [
       'preview' => self::previewImages()[$shortName] ?? null,
-      'icon'    => self::load()['blueprints']['pages/' . $template]['icon'] ?? 'box',
+      'icon'    => $blueprint['icon'] ?? 'box',
     ];
   }
 
