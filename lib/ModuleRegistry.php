@@ -7,6 +7,7 @@ use Kirby\Data\Data;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Filesystem\Dir;
 use Kirby\Filesystem\F;
+use Kirby\Toolkit\I18n;
 use Kirby\Toolkit\Str;
 
 class ModuleRegistry
@@ -110,9 +111,64 @@ class ModuleRegistry
   public static function typeVisuals(string $template): array
   {
     $shortName = str_replace('module.', '', $template);
+    $blueprint = self::load()['blueprints']['pages/' . $template] ?? [];
     return [
       'preview' => self::previewImages()[$shortName] ?? null,
-      'icon'    => self::load()['blueprints']['pages/' . $template]['icon'] ?? 'box',
+      'icon'    => $blueprint['icon'] ?? 'box',
+    ];
+  }
+
+  // Mirrors Kirby\Cms\Fieldsets::createFieldsets(): a `templates` list holds
+  // type names, and a `type: group` entry holds its own nested `templates`.
+  // Returns the flattened type names plus the groups that arrange them.
+  public static function parseTemplates(array $templates): array
+  {
+    $names  = [];
+    $groups = [];
+
+    foreach ($templates as $key => $entry) {
+      if (is_int($key) === true && is_string($entry) === true) {
+        $key   = $entry;
+        $entry = true;
+      }
+
+      if ($entry === false) {
+        continue;
+      }
+
+      if (is_array($entry) === true) {
+        // unlike a blocks fieldset, a module type is always its own blueprint
+        // file, so an entry that is not a group has nothing to contribute
+        if (($entry['type'] ?? null) !== 'group') {
+          continue;
+        }
+
+        $result = self::parseTemplates($entry['templates'] ?? []);
+
+        if ($result['templates'] === []) {
+          continue;
+        }
+
+        $names  = [...$names, ...$result['templates']];
+        $label  = $entry['label'] ?? Str::label($key);
+        $groups[$key] = [
+          'label'     => I18n::translate($label, $label),
+          'open'      => $entry['open'] ?? true,
+          'templates' => $result['templates'],
+        ];
+        continue;
+      }
+
+      if ($entry !== true) {
+        continue;
+      }
+
+      $names[] = self::qualify((string) $key);
+    }
+
+    return [
+      'templates' => array_values(array_unique($names)),
+      'groups'    => $groups,
     ];
   }
 

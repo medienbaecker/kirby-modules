@@ -45,6 +45,20 @@ class ModuleCreateDialog extends PageCreateDialog
     );
   }
 
+  private function groups(): ?array
+  {
+    if (!$this->sectionId) {
+      return null;
+    }
+
+    $section = $this->view->blueprint()->section($this->sectionId);
+    if (!$section || $section->type() !== 'modules') {
+      return null;
+    }
+
+    return $section->templateGroups();
+  }
+
   // No title field (modules are labelled by type or `label`); the anchor is a
   // relabeled slug field, shown unless create.anchor drives the anchor itself.
   public function coreFields(): array
@@ -166,6 +180,7 @@ class ModuleCreateDialog extends PageCreateDialog
       'props' => [
         'blueprints'   => $blueprints,
         'fields'       => $fields,
+        'groups'       => $this->groups(),
         'submitButton' => tt('page.create', ['status' => $status]),
         'template'     => $this->template,
         'value'        => $this->value(),

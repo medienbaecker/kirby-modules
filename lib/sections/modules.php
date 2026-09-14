@@ -3,6 +3,7 @@
 use Kirby\Cms\Blueprint;
 use Kirby\Cms\Site;
 use Kirby\Toolkit\I18n;
+use Kirby\Toolkit\Str;
 use Medienbaecker\Modules\ModuleRegistry;
 use Medienbaecker\Modules\ModuleSectionRoutes;
 use Medienbaecker\Modules\ModuleSectionItem;
@@ -33,9 +34,12 @@ return [
     // Both short ('text') and full ('module.text') names are accepted here,
     // in templatesIgnore and in default.
     'templates' => function ($templates = null) use ($allBlueprints) {
-      $blueprints = $templates
-        ? array_map(fn($name) => ModuleRegistry::qualify($name), $templates)
-        : $allBlueprints;
+      $parsed = $templates ? ModuleRegistry::parseTemplates($templates) : null;
+
+      // stashed for the templateGroups computed, which runs after every prop
+      $this->parsedGroups = $parsed['groups'] ?? [];
+
+      $blueprints = $parsed['templates'] ?? $allBlueprints;
 
       if ($this->templatesIgnore) {
         $ignore = array_map(fn($name) => ModuleRegistry::qualify($name), $this->templatesIgnore);
@@ -84,6 +88,26 @@ return [
   ],
 
   'computed' => [
+    'templateGroups' => function () {
+      $groups = [];
+
+      foreach ($this->parsedGroups as $key => $group) {
+        $templates = array_values(array_intersect($group['templates'], $this->templates));
+
+        if ($templates === []) {
+          continue;
+        }
+
+        $groups[$key] = [
+          'label'     => $group['label'],
+          'open'      => $group['open'] !== false,
+          'templates' => $templates,
+        ];
+      }
+
+      return $groups ?: null;
+    },
+
     // Computed props evaluate in definition order; `modules` must come
     // first because `total` (and through it `add` and `errors`) reads it.
     'modules' => function () {
