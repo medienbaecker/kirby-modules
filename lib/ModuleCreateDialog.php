@@ -45,9 +45,6 @@ class ModuleCreateDialog extends PageCreateDialog
     );
   }
 
-  // Same section `parent::blueprints()` itself resolves through
-  // ($view->blueprint()->section($sectionId), Kirby's own section-methods
-  // mechanism) - reused here to also read the section's fieldsetGroups.
   private function groups(): ?array
   {
     if (!$this->sectionId) {
@@ -59,7 +56,7 @@ class ModuleCreateDialog extends PageCreateDialog
       return null;
     }
 
-    return $section->fieldsetGroups();
+    return $section->templateGroups();
   }
 
   // No title field (modules are labelled by type or `label`); the anchor is a

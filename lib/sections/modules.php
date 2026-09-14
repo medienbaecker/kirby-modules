@@ -34,9 +34,12 @@ return [
     // Both short ('text') and full ('module.text') names are accepted here,
     // in templatesIgnore and in default.
     'templates' => function ($templates = null) use ($allBlueprints) {
-      $blueprints = $templates
-        ? array_map(fn($name) => ModuleRegistry::qualify($name), $templates)
-        : $allBlueprints;
+      $parsed = $templates ? ModuleRegistry::parseTemplates($templates) : null;
+
+      // stashed for the templateGroups computed, which runs after every prop
+      $this->parsedGroups = $parsed['groups'] ?? [];
+
+      $blueprints = $parsed['templates'] ?? $allBlueprints;
 
       if ($this->templatesIgnore) {
         $ignore = array_map(fn($name) => ModuleRegistry::qualify($name), $this->templatesIgnore);
@@ -51,36 +54,6 @@ return [
       }
 
       return $blueprints;
-    },
-
-    // Same shape core builds for a `blocks` field's nested `type: group`
-    // fieldsets (Kirby\Cms\Fieldsets::createFieldsets(), exposed to the
-    // panel as fieldsetGroups): label, open (default true unless the
-    // blueprint sets it to false), sets (member type names). Declared here
-    // instead of on each module type's own blueprint, same as blocks -
-    // groups are the field's concern, not the fieldset's.
-    'fieldsetGroups' => function (array $fieldsetGroups = []) {
-      if (empty($fieldsetGroups)) {
-        return null;
-      }
-
-      $groups = [];
-      foreach ($fieldsetGroups as $key => $group) {
-        if ($group === false) continue;
-
-        $sets = array_map(fn($set) => ModuleRegistry::qualify($set), $group['sets'] ?? []);
-        $sets = array_values(array_intersect($sets, $this->templates));
-        if (empty($sets)) continue;
-
-        $label = $group['label'] ?? Str::label($key);
-        $groups[$key] = [
-          'label' => I18n::translate($label, $label),
-          'open'  => ($group['open'] ?? true) !== false,
-          'sets'  => $sets,
-        ];
-      }
-
-      return $groups ?: null;
     },
 
     'empty' => fn($empty = null) => I18n::translate($empty, $empty) ?? I18n::translate('modules.empty'),
@@ -115,6 +88,26 @@ return [
   ],
 
   'computed' => [
+    'templateGroups' => function () {
+      $groups = [];
+
+      foreach ($this->parsedGroups as $key => $group) {
+        $templates = array_values(array_intersect($group['templates'], $this->templates));
+
+        if ($templates === []) {
+          continue;
+        }
+
+        $groups[$key] = [
+          'label'     => $group['label'],
+          'open'      => $group['open'] !== false,
+          'templates' => $templates,
+        ];
+      }
+
+      return $groups ?: null;
+    },
+
     // Computed props evaluate in definition order; `modules` must come
     // first because `total` (and through it `add` and `errors`) reads it.
     'modules' => function () {

@@ -52,7 +52,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
       'component' => 'k-module-change-type-dialog',
       'props' => [
         'blueprints' => $types,
-        'groups' => $this->ownerSection()?->fieldsetGroups(),
+        'groups' => $this->ownerSection()?->templateGroups(),
         'value' => [
           'template' => $currentName
         ],
@@ -88,11 +88,9 @@ class ModuleChangeTypeDialog extends ModuleDialog
   }
 
   // A module's container slug equals its owning section's name on the host
-  // page (see hooks.php). Reuse that section's blueprints()/fieldsetGroups()
-  // so change-type and create produce an identical list. Fetch the one
-  // section by name rather than iterating sections() — the latter also
-  // instantiates the host's other sections (e.g. files), which can error
-  // outside a normal request.
+  // page (see hooks.php). Fetch that one section by name rather than iterating
+  // sections() — the latter also instantiates the host's other sections
+  // (e.g. files), which can error outside a normal request.
   private function ownerSection(): ?Section
   {
     $container = $this->module->parent();

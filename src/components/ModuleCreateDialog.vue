@@ -19,9 +19,10 @@ export default {
 
 <style scoped>
 .k-module-type-field {
-  /* match native .k-page-template-switch: dashed divider under the type picker */
-  margin-block-end: var(--spacing-6);
-  padding-block-end: var(--spacing-6);
-  border-block-end: 1px dashed var(--color-gray-300);
+  &:has(+ .k-dialog-fields .k-field) {
+    margin-block-end: var(--spacing-8);
+    padding-block-end: var(--spacing-8);
+    border-block-end: 1px dashed light-dark(var(--color-gray-400), var(--color-gray-800));
+  }
 }
 </style>
