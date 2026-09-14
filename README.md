@@ -2,7 +2,7 @@
 
 Modular page building for [Kirby](https://getkirby.com/). Every module is a regular page with its own blueprint and snippet, edited inline on the parent page.
 
-<img width="1089" height="929" alt="Screenshot of the modules section with two modules, a text module with a textarea and a text with buttons module with both a textarea and a structure field for buttons" src=".github/screenshot.webp" />
+<img width="1132" height="802" alt="Screenshot of the modules section with two modules: a hero module whose card title shows its headline, and a selected text module with its toolbar" src=".github/screenshot.webp" />
 
 - Edit module fields inline on the parent page with a blocks-like UI
 - Signed previews for hidden modules
@@ -98,6 +98,8 @@ Modules are edited inline on the parent page: expand or collapse them, sort them
 
 Each module's visibility can be toggled with a single click on its card. Hidden modules stay in place, keeping their sort position and any inline edits, but the frontend skips over them when rendering. The card shows a striped background while a module is hidden.
 
+<img width="1132" height="188" alt="Screenshot of two module cards, one marked Visible and one marked Hidden with a striped background" src=".github/visibility.webp" />
+
 New modules are created hidden, so editors can prepare content before it goes live. Set `autopublish: true` to create them visible instead. The setting closest to a module wins, so you can turn it on for a single type or one section even when everything else stays hidden:
 
 ```yml
@@ -140,7 +142,7 @@ fields:
     type: text
 ```
 
-<img width="455" height="222" alt="Screenshot of a module, showing a text field with This is the label as value, same text is shown in the module card's title" src=".github/label.webp" />
+<img width="1132" height="200" alt="Screenshot of a module whose card title reads Modular page building, the same value as its Headline field" src=".github/label.webp" />
 
 It's a [query](https://getkirby.com/docs/guide/blueprints/query-language) resolved from the module's fields and refreshed on every save, so a text module shows its current headline. An empty result falls back to the title.
 
@@ -193,6 +195,8 @@ fields:
     type: textarea
 ```
 
+<img width="1132" height="584" alt="Screenshot of the module create dialog with a Headline field added below the anchor" src=".github/create-fields.webp" />
+
 Use it for the things worth setting before the module exists; everything else is edited inline afterwards. Only fields that fit in a dialog work here: text, number, select, date, toggle, link and the like. A textarea, blocks or structure field (or the reserved name `title`) can't be shown and raises an error. That's why the example asks only for the `headline`; the `text` body is a textarea, so you fill it in inline. A `required` field has to be listed here or have a `default`. Kirby normally creates a page as a draft to finish later; a module skips that, so every required field must be satisfied at creation.
 
 #### Filling the anchor automatically
@@ -212,13 +216,44 @@ When the anchor is filled this way and the type asks for no `create.fields`, the
 
 Add preview images to make the create and change-type dialogs show a visual grid instead of a dropdown. Drop images into `assets/module-previews/`, named after the module, for example `text.png` for the `text` module. Any image format works; a 16:9 ratio looks best.
 
-<img width="1291" height="802" alt="Screenshot of the module create dialog with an anchor field and 5 module types, 4 with preview images" src=".github/create.webp" />
+<img width="1132" height="636" alt="Screenshot of the module create dialog with 5 module types, 4 with preview images and one falling back to an icon" src=".github/create.webp" />
 
-Types without a matching image fall back to their blueprint `icon`. If no type has a preview image, the dialogs keep the plain dropdown. With a single module type there's nothing to pick, so no picker appears and the dialog goes straight to the fields.
+Types without a matching image fall back to their blueprint `icon`. If no type has a preview image (and you don'tuse groups), the dialogs keep the plain dropdown. With a single module type there's nothing to pick, so no picker appears and the dialog goes straight to the fields.
+
+### Grouping types
+
+Once you have a lot of module types, the picker can get pretty long. Fear not, similar the [blocks field](https://getkirby.com/docs/reference/panel/fields/blocks) you can group them:
+
+```yml
+# site/blueprints/pages/default.yml
+sections:
+  modules:
+    type: modules
+    templates:
+      content:
+        label: Content
+        type: group
+        templates:
+          - text
+          - quote
+      media:
+        label: Media
+        type: group
+        open: false
+        templates:
+          - hero
+          - images
+```
+
+<img width="1132" height="744" alt="Screenshot of the module create dialog with module types grouped under Content and Media headings" src=".github/groups.webp" />
+
+Each group takes a `label` and the `templates` belonging to it. You can also set `open: false` to have it collapsed initially.
 
 ### Concurrent editing
 
 Module edits are unsaved changes, published with the page's own Save button. While someone has unsaved module edits, the whole page is locked for everyone else, using Kirby's native lock: they see who is editing and all fields and modules become read-only.
+
+<img width="1132" height="349" alt="Screenshot of a page locked by another editor, their email in a red lock badge above greyed-out modules" src=".github/lock.webp" />
 
 Kirby releases a lock 10 minutes after the last edit. If someone leaves without saving, their changes wait for the next editor, and the page header names who made them, just like on any other page. Saving publishes them, discarding removes them.
 
@@ -227,7 +262,7 @@ Kirby releases a lock 10 minutes after the last edit. If someone leaves without 
 | Option            | Type     | Description                                                                                                    |
 | ----------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
 | `default`         | `string` | Pre-selected module type in the create dialog                                                                  |
-| `templates`       | `array`  | Manually define available types instead of all                                                                 |
+| `templates`       | `array`  | Manually define available types instead of all, optionally sorted into [groups](#grouping-types)               |
 | `templatesIgnore` | `array`  | Hide specific module types                                                                                     |
 | `min`             | `int`    | Minimum number of modules                                                                                      |
 | `max`             | `int`    | Maximum number of modules                                                                                      |
@@ -271,18 +306,22 @@ Modules render as cards, but the layout is yours. Set `layout` on a section and 
 sections:
   modules:
     type: modules
-    layout: dense
+    layout: grid
 ```
 
 ```css
-.k-modules-list[data-layout~="dense"] {
-  --module-gap: 2px;
+.k-modules-list[data-layout~="grid"] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-2);
 }
 ```
 
-`--module-gap` and `--module-row` (the header row height) cover the common tweaks; target any `.k-module` class to go further.
+<img width="1132" height="188" alt="Screenshot of a modules section laid out in two columns, four collapsed modules in a 2x2 grid" src=".github/layout.webp" />
 
-You can combine layouts too: `layout: dense compact` matches both `[data-layout~="dense"]` and `[data-layout~="compact"]`.
+For smaller tweaks there's `--module-gap` and `--module-row` (the header row height); target any `.k-module` class to go further.
+
+You can combine layouts too: `layout: grid dense` matches both `[data-layout~="grid"]` and `[data-layout~="dense"]`.
 
 ## Rendering
 
