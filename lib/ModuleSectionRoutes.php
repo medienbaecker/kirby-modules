@@ -293,10 +293,10 @@ class ModuleSectionRoutes
     $source = $child->parent();
 
     $moved = kirby()->impersonate('kirby', function () use ($child, $container) {
-      // Without the default language this only sets a URL key, not the folder name.
-      $slug = ModuleRegistry::uniqueSlug($container->id(), $child->slug());
+      $slug = ModuleRegistry::moveSlug($child, $container);
 
-      if ($slug !== null && $slug !== $child->slug()) {
+      if ($slug !== $child->slug()) {
+        // Without the default language this only sets a URL key, not the folder name.
         $child = $child->changeSlug($slug, kirby()->defaultLanguage()?->code());
       }
 
