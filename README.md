@@ -218,11 +218,11 @@ Add preview images to make the create and change-type dialogs show a visual grid
 
 <img width="1132" height="636" alt="Screenshot of the module create dialog with 5 module types, 4 with preview images and one falling back to an icon" src=".github/create.webp" />
 
-Types without a matching image fall back to their blueprint `icon`. If no type has a preview image (and you don'tuse groups), the dialogs keep the plain dropdown. With a single module type there's nothing to pick, so no picker appears and the dialog goes straight to the fields.
+Types without a matching image fall back to their blueprint `icon`. If no type has a preview image (and you don't use groups), the dialogs keep the plain dropdown. With a single module type there's nothing to pick, so no picker appears and the dialog goes straight to the fields.
 
 ### Grouping types
 
-Once you have a lot of module types, the picker can get pretty long. Fear not, similar the [blocks field](https://getkirby.com/docs/reference/panel/fields/blocks) you can group them:
+Once you have a lot of module types, the picker can get pretty long. Fear not, similar to the [blocks field](https://getkirby.com/docs/reference/panel/fields/blocks) you can group them:
 
 ```yml
 # site/blueprints/pages/default.yml
