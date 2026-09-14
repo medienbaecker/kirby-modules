@@ -2,7 +2,6 @@
 
 namespace Medienbaecker\Modules;
 
-use Kirby\Cms\Section;
 use Kirby\Exception\InvalidArgumentException;
 
 class ModuleChangeTypeDialog extends ModuleDialog
@@ -13,7 +12,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
     // and allowed types match the create dialog exactly (same section, same
     // `default`/`templates`/`templatesIgnore`). Fall back to the page's
     // changeTemplate option, then the registry, for edge/recovery cases.
-    $blueprints = $this->ownerSectionBlueprints() ?? $this->module->blueprints();
+    $blueprints = $this->module->blueprints();
     if (empty($blueprints)) {
       foreach (ModuleRegistry::load()['blueprints'] as $name => $props) {
         if (!str_starts_with($name, 'pages/module.')) continue;
@@ -52,7 +51,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
       'component' => 'k-module-change-type-dialog',
       'props' => [
         'blueprints' => $types,
-        'groups' => $this->ownerSection()?->templateGroups(),
+        'groups' => $this->module->ownerSection()?->templateGroups(),
         'value' => [
           'template' => $currentName
         ],
@@ -87,37 +86,14 @@ class ModuleChangeTypeDialog extends ModuleDialog
     return ['event' => 'model.update'];
   }
 
-  // A module's container slug equals its owning section's name on the host
-  // page (see hooks.php). Fetch that one section by name rather than iterating
-  // sections() — the latter also instantiates the host's other sections
-  // (e.g. files), which can error outside a normal request.
-  private function ownerSection(): ?Section
-  {
-    $container = $this->module->parent();
-    $host = $container?->parentModel();
-    if (!$host) {
-      return null;
-    }
-    $section = $host->blueprint()->section($container->slug());
-    return ($section && $section->type() === 'modules') ? $section : null;
-  }
-
-  private function ownerSectionBlueprints(): ?array
-  {
-    return $this->ownerSection()?->blueprints();
-  }
-
-  // Restricts the target to a real module blueprint and, when the owning
-  // section resolves, to the types that section allows.
   private function validateTarget(string $target): string
   {
-    if (!ModuleRegistry::hasBlueprint($target)) {
+    $allowed = array_column($this->module->blueprints(), 'name');
+
+    if (!ModuleRegistry::hasBlueprint($target) || !in_array($target, $allowed, true)) {
       throw new InvalidArgumentException('Invalid module type');
     }
-    $allowed = $this->ownerSectionBlueprints();
-    if ($allowed !== null && !in_array($target, array_column($allowed, 'name'), true)) {
-      throw new InvalidArgumentException('Invalid module type');
-    }
+
     return $target;
   }
 

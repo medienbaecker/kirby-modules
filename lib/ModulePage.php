@@ -4,6 +4,7 @@ namespace Medienbaecker\Modules;
 
 use Kirby\Cms\Page;
 use Kirby\Cms\Pages;
+use Kirby\Cms\Section;
 use Kirby\Cms\Site;
 use Kirby\Content\Field;
 use Kirby\Content\VersionId;
@@ -16,6 +17,45 @@ class ModulePage extends Page
   public function changeTemplate(string $template): static
   {
     return ModuleSectionRoutes::reconcileVisibility(parent::changeTemplate($template));
+  }
+
+  private bool $resolvingSection = false;
+
+  // Kirby derives the change-template list, its permission and its validation
+  // from this one method, so scoping it to the owning section is what keeps a
+  // module from being changed to a type that section does not allow. Building
+  // that section asks its own items for permissions, which lands back here.
+  public function blueprints(string|null $inSection = null): array
+  {
+    if ($this->resolvingSection === true) {
+      return parent::blueprints($inSection);
+    }
+
+    $this->resolvingSection = true;
+
+    try {
+      return $this->ownerSection()?->blueprints() ?? parent::blueprints($inSection);
+    } finally {
+      $this->resolvingSection = false;
+    }
+  }
+
+  // A module's container slug equals its owning section's name on the host
+  // page (see hooks.php). Fetch that one section by name rather than iterating
+  // sections() — the latter also instantiates the host's other sections
+  // (e.g. files), which can error outside a normal request.
+  public function ownerSection(): ?Section
+  {
+    $container = $this->parent();
+    $host = $container?->parentModel();
+
+    if (!$host) {
+      return null;
+    }
+
+    $section = $host->blueprint()->section($container->slug());
+
+    return ($section && $section->type() === 'modules') ? $section : null;
   }
 
   private bool $hiddenWriteAllowed = false;
