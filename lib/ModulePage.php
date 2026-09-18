@@ -27,9 +27,14 @@ class ModulePage extends Page
   // from this one method, so scoping it to the owning section is what keeps a
   // module from being changed to a type that section does not allow. Building
   // that section asks its own items for permissions, which lands back here.
+  //
+  // That shortcut only applies to the unscoped call (changeTemplate). A call
+  // that names a section (e.g. the page-create dialog asking for a "+" button
+  // inside one of the module's own pages sections) must resolve against this
+  // page's own blueprint instead, or it wrongly offers the module-type list.
   public function blueprints(string|null $inSection = null): array
   {
-    if ($this->resolvingSection === true) {
+    if ($inSection !== null || $this->resolvingSection === true) {
       return parent::blueprints($inSection);
     }
 
