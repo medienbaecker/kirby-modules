@@ -73,6 +73,26 @@ return [
     return str_starts_with($this->intendedTemplate()->name(), 'module.');
   },
 
+  // Own pending changes, or any nested module's (accordion > richtext-sub
+  // etc.) - so the "unsaved" indicator on a host page's modules section
+  // reflects edits buried in a child module's own modules section too,
+  // not just changes to the module's own fields.
+  'hasPendingChangesDeep' => function () {
+    if ($this->version('changes')->exists('*')) return true;
+
+    foreach ($this->blueprint()->sections() as $section) {
+      if ($section->type() !== 'modules') continue;
+      $container = $this->find($section->name());
+      if (!$container) continue;
+
+      foreach ($container->children() as $module) {
+        if ($module->hasPendingChangesDeep()) return true;
+      }
+    }
+
+    return false;
+  },
+
   // The hidden page holding a section's modules as children.
   'isModuleContainer' => function () {
     return $this->intendedTemplate()->name() === 'modules';

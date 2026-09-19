@@ -23,7 +23,7 @@ class ModuleSectionItem
       'icon'              => $blueprint ? $blueprint->icon() : 'alert',
       'hidden'            => $child->isHidden(),
       'hasFields'         => $blueprint && !empty($blueprint->fields()),
-      'hasPendingChanges' => $child->version('changes')->exists('*'),
+      'hasPendingChanges' => $child->hasPendingChangesDeep(),
       'tabs'              => $blueprint ? $blueprint->tabs() : [],
       'link'              => $child->panel()->url(),
       'permissions'       => [

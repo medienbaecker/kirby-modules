@@ -72,6 +72,12 @@ export default {
       fieldData: {},
       changes: {},
       serverPendingIds: [],
+      // Ids of our own direct children that have no pending change of their
+      // own, but contain a nested module (any depth) that does - reported by
+      // that descendant's own section instance via the "modules.dirty" event,
+      // since a stale hasPendingChanges fetched at load time won't reflect an
+      // edit made afterward without a reload (see handleDescendantDirty).
+      descendantPendingIds: [],
       loadingModules: {},
 
       isLoading: true,
@@ -184,9 +190,30 @@ export default {
     this._onMoved = (event) => {
       if (!event?.parent || event.parent === this.parent) this.fetch();
     };
+    // A nested section (e.g. an accordion's own modules field) reports its
+    // own dirty state here so it reaches us even without a reload - see
+    // syncDirtyState's emit and handleDescendantDirty below.
+    this._onDescendantDirty = ({ parent, dirty }) => this.handleDescendantDirty(parent, dirty);
+    // An ancestor's cascade just published/discarded a module at or below
+    // `parent` without going through our own applyChanges - forget our
+    // stale local state and refetch (see the comment where this is
+    // emitted, in applyChanges). Matches our own parent OR any deeper
+    // ancestor of it, since the cascade (ModuleChangesCascade) recurses
+    // through every nesting level, not just its immediate children.
+    this._onModulePublished = ({ parent }) => {
+      if (!this.isDescendantApi(parent)) return;
+      this.changes = {};
+      this.fieldData = {};
+      this.serverPendingIds = [];
+      this.descendantPendingIds = [];
+      this._lastReportedDirty = undefined;
+      this.fetch();
+    };
     this.$events.on("modules.moved", this._onMoved);
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
+    this.$events.on("modules.dirty", this._onDescendantDirty);
+    this.$events.on("modules.published", this._onModulePublished);
   },
   mounted() {
     document.addEventListener("mousedown", this.onClickOutside);
@@ -195,6 +222,8 @@ export default {
     this.$events.off("modules.moved", this._onMoved);
     this.$events.off("content.publish", this._onPublish);
     this.$events.off("content.discard", this._onDiscard);
+    this.$events.off("modules.dirty", this._onDescendantDirty);
+    this.$events.off("modules.published", this._onModulePublished);
     document.removeEventListener("mousedown", this.onClickOutside);
   },
 
@@ -272,10 +301,12 @@ export default {
           if (!currentIds.has(id)) this.$delete(map, id);
         }
       }
+      this.descendantPendingIds = this.descendantPendingIds.filter((id) => currentIds.has(id));
 
       // Don't adopt another user's changes while they hold the page lock
       if (this.isHostLocked) {
         this.serverPendingIds = [];
+        this.descendantPendingIds = [];
         this.undirtyParent();
         return;
       }
@@ -573,12 +604,13 @@ export default {
       try {
         const currentIds = new Set(this.modules.map((m) => m.id));
         const changedIds = Object.keys(this.changes);
-        const allIds = [...new Set([...changedIds, ...this.serverPendingIds])]
+        const allIds = [...new Set([...changedIds, ...this.serverPendingIds, ...this.descendantPendingIds])]
           .filter((id) => currentIds.has(id));
 
         if (!allIds.length) {
           this.changes = {};
           this.serverPendingIds = [];
+          this.descendantPendingIds = [];
           this.undirtyParent();
           return;
         }
@@ -605,6 +637,24 @@ export default {
         this.serverPendingIds = this.serverPendingIds.filter(
           (id) => !succeeded.includes(id),
         );
+        this.descendantPendingIds = this.descendantPendingIds.filter(
+          (id) => !succeeded.includes(id),
+        );
+        // A succeeded id may have had no pending change of its own and only
+        // been published/discarded because the server cascade
+        // (ModuleChangesCascade) swept up a nested module's change while
+        // handling this one (serverPendingIds itself is a *deep* check, so
+        // this isn't limited to ids that arrived via descendantPendingIds).
+        // That nested module's own section instance (still mounted) doesn't
+        // know this happened: its local `changes`/`serverPendingIds` stay
+        // stale, and syncDirtyState's change-guard then suppresses reporting
+        // any *further* edit, because as far as it can tell it was already
+        // dirty. Tell every section to drop stale bookkeeping and refetch -
+        // sections that aren't actually nested under a succeeded id just
+        // ignore this (isParentApi won't match).
+        for (const id of succeeded) {
+          this.$events.emit("modules.published", { parent: this.pageUrl(id) });
+        }
 
         if (lockFailed.length > 0) {
           this.$panel.notification.error(this.$t("modules.lock.applyFailed"));
@@ -628,7 +678,11 @@ export default {
             ),
           );
 
-          if (Object.keys(this.changes).length === 0 && this.serverPendingIds.length === 0) {
+          if (
+            Object.keys(this.changes).length === 0 &&
+            this.serverPendingIds.length === 0 &&
+            this.descendantPendingIds.length === 0
+          ) {
             this.undirtyParent();
           }
         }
@@ -653,11 +707,42 @@ export default {
     },
     syncDirtyState() {
       const hasChanges =
-        this.serverPendingIds.length > 0 || Object.keys(this.changes).length > 0;
+        this.serverPendingIds.length > 0 ||
+        Object.keys(this.changes).length > 0 ||
+        this.descendantPendingIds.length > 0;
+
       if (hasChanges) {
         this.dirtyParent();
       } else {
         this.undirtyParent();
+      }
+
+      // Bubble our own dirty state up to whichever section (if any) lists
+      // `this.parent` as one of its own modules - only on actual change,
+      // so this can't loop between the levels it's reported through.
+      if (this._lastReportedDirty !== hasChanges) {
+        this._lastReportedDirty = hasChanges;
+        this.$events.emit("modules.dirty", { parent: this.parent, dirty: hasChanges });
+      }
+    },
+
+    // A module nested one or more levels below us just became dirty/clean
+    // on its own (typed into directly, or itself bubbling up a deeper
+    // descendant) - reflect that on whichever of our own direct modules
+    // contains it, the same way a server-computed hasPendingChanges would,
+    // so it's included in applyChanges without needing this section to
+    // refetch first.
+    handleDescendantDirty(parentApi, dirty) {
+      const owner = this.modules.find((m) => this.isParentApi(parentApi, this.pageUrl(m.id)));
+      if (!owner) return;
+
+      const tracked = this.descendantPendingIds.includes(owner.id);
+      if (dirty && !tracked) {
+        this.descendantPendingIds = [...this.descendantPendingIds, owner.id];
+        this.syncDirtyState();
+      } else if (!dirty && tracked) {
+        this.descendantPendingIds = this.descendantPendingIds.filter((id) => id !== owner.id);
+        this.syncDirtyState();
       }
     },
 
@@ -748,9 +833,20 @@ export default {
       this.selectedModule = null;
     },
 
-    // SiteView passes parent="site" (no slash) but content events use "/site"
-    isParentApi(api) {
-      return api?.replace(/^\//, "") === this.parent.replace(/^\//, "");
+    // SiteView passes parent="site" (no slash) but content events use "/site".
+    // `against` defaults to our own parent; handleDescendantDirty passes a
+    // specific module's pageUrl instead, to check whether it is one of ours.
+    isParentApi(api, against = this.parent) {
+      return api?.replace(/^\//, "") === against.replace(/^\//, "");
+    },
+    // True when `api` is our own parent, or an ancestor of it - ids are
+    // "+"-joined paths (encodeId), so a true ancestor is always followed
+    // by a "+" at that exact point, never a longer sibling segment.
+    isDescendantApi(api) {
+      const own = this.parent.replace(/^\//, "");
+      const candidate = api?.replace(/^\//, "");
+      if (!candidate) return false;
+      return own === candidate || own.startsWith(candidate + "+");
     },
     handleError(e) {
       if (e?.details?.isLocked) {
