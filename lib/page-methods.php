@@ -73,10 +73,6 @@ return [
     return str_starts_with($this->intendedTemplate()->name(), 'module.');
   },
 
-  // Own pending changes, or any nested module's (accordion > richtext-sub
-  // etc.) - so the "unsaved" indicator on a host page's modules section
-  // reflects edits buried in a child module's own modules section too,
-  // not just changes to the module's own fields.
   'hasPendingChangesDeep' => function () {
     if ($this->version('changes')->exists('*')) return true;
 

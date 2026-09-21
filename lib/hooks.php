@@ -24,17 +24,12 @@ return [
   // Mirror every module changes operation onto the host page (see HostLock)
   'route:after' => function ($path, $method, $result) {
     if ($method === 'POST' && $module = HostLock::moduleFromApiPath($path)) {
-      // Publishing/discarding a module only touches its own version - cascade
-      // into any of its own nested modules with pending changes too, so
-      // saving the host page also saves modules nested more than one level
-      // deep (see ModuleChangesCascade).
       if (preg_match('!/changes/(publish|discard)$!', $path, $matches)) {
         try {
           $matches[1] === 'publish'
             ? ModuleChangesCascade::publish($module)
             : ModuleChangesCascade::discard($module);
         } catch (Throwable) {
-          // The cascade must never break the module operation itself
         }
       }
 
