@@ -21,7 +21,8 @@ class ModulePage extends Page
     return ModuleSectionRoutes::reconcileVisibility(parent::changeTemplate($template));
   }
 
-  private bool $resolvingSection = false;
+  private static array $ownerBlueprints = [];
+  private static array $resolving = [];
 
   // Kirby derives the change-template list, its permission and its validation
   // from this one method, so scoping it to the owning section is what keeps a
@@ -34,17 +35,24 @@ class ModulePage extends Page
   // page's own blueprint instead, or it wrongly offers the module-type list.
   public function blueprints(string|null $inSection = null): array
   {
-    if ($inSection !== null || $this->resolvingSection === true) {
+    $container = $this->parent();
+    $key = $container?->parentModel()?->id() . '/' . $container?->slug();
+
+    if ($inSection !== null || $container === null || isset(self::$resolving[$key])) {
       return parent::blueprints($inSection);
     }
 
-    $this->resolvingSection = true;
+    if (array_key_exists($key, self::$ownerBlueprints) === false) {
+      self::$resolving[$key] = true;
 
-    try {
-      return $this->ownerSection()?->blueprints() ?? parent::blueprints($inSection);
-    } finally {
-      $this->resolvingSection = false;
+      try {
+        self::$ownerBlueprints[$key] = $this->ownerSection()?->blueprints();
+      } finally {
+        unset(self::$resolving[$key]);
+      }
     }
+
+    return self::$ownerBlueprints[$key] ?? parent::blueprints($inSection);
   }
 
   // A module's container slug equals its owning section's name on the host
