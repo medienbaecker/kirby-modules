@@ -4,6 +4,8 @@
     @focusin.stop="$emit('select')">
     <div class="k-module-body" :data-collapsed="!expanded || isAwaitingContent">
       <header class="k-module-header" :style="{ '--side-width': sideWidth + 'px' }">
+        <k-sort-handle class="k-item-sort-handle" tabindex="-1" />
+
         <div ref="title" class="k-module-title">
           <button class="k-module-toggle" :aria-expanded="String(expanded)"
             :aria-label="$t('modules.singular') + ' ' + module.moduleName" @click="$emit('toggle')">
@@ -456,5 +458,20 @@ body:has(.k-module.k-sortable-fallback) * {
 
 .k-module-toolbar>.k-button:not(:last-of-type) {
   border-inline-end: 1px solid var(--toolbar-border);
+}
+
+.k-module .k-sort-button {
+  --width: calc(1.5rem + var(--spacing-1));
+
+  position: absolute;
+  z-index: 2;
+  left: calc(-1 * var(--width));
+  height: var(--field-input-height );
+  width: var(--width);
+  opacity: 0;
+}
+
+.k-module:hover .k-sort-button {
+  opacity: 1;
 }
 </style>
