@@ -7,6 +7,7 @@ use Medienbaecker\Modules\ModuleChangeTypeDialog;
 use Medienbaecker\Modules\ModuleCreateDialog;
 use Medienbaecker\Modules\ModulesLicense;
 use Medienbaecker\Modules\ModuleVisibilityButton;
+use Medienbaecker\Modules\ModuleMoveDialog;
 use Medienbaecker\Modules\ModuleVisibilityDialog;
 
 return [
@@ -23,6 +24,10 @@ return [
         'modules/change-slug' => [
           'pattern' => 'modules/change-slug/(:any)',
           'controller' => ModuleChangeSlugDialog::class,
+        ],
+        'modules/move' => [
+          'pattern' => 'modules/move/(:any)',
+          'controller' => ModuleMoveDialog::class,
         ],
         'modules/visibility' => [
           'pattern' => 'pages/(:any)/visibility',
@@ -61,12 +66,13 @@ return [
             $key = ModulesLicense::readKey();
 
             if ($key) {
+              $obfuscated = $kirby->user()?->isAdmin() !== true;
               $version = $kirby->plugin('medienbaecker/modules')->version();
               return [
                 'component' => 'k-modules-license-dialog',
                 'props' => [
                   'license' => [
-                    'code'    => $key,
+                    'code'    => ModulesLicense::code($obfuscated),
                     'version' => $version ? 'v' . $version : null,
                   ],
                   'cancelButton' => false,

@@ -26,9 +26,9 @@ class ModuleChangeSlugDialog extends ModuleDialog
     ];
   }
 
-  public function submit(): bool
+  public function submit(): array
   {
     $this->module->changeSlug(kirby()->request()->body()->get('slug'));
-    return true;
+    return ['event' => 'model.update'];
   }
 }

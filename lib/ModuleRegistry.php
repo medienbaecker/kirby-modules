@@ -2,10 +2,12 @@
 
 namespace Medienbaecker\Modules;
 
+use Kirby\Cms\Page;
 use Kirby\Data\Data;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Filesystem\Dir;
 use Kirby\Filesystem\F;
+use Kirby\Toolkit\I18n;
 use Kirby\Toolkit\Str;
 
 class ModuleRegistry
@@ -109,9 +111,64 @@ class ModuleRegistry
   public static function typeVisuals(string $template): array
   {
     $shortName = str_replace('module.', '', $template);
+    $blueprint = self::load()['blueprints']['pages/' . $template] ?? [];
     return [
       'preview' => self::previewImages()[$shortName] ?? null,
-      'icon'    => self::load()['blueprints']['pages/' . $template]['icon'] ?? 'box',
+      'icon'    => $blueprint['icon'] ?? 'box',
+    ];
+  }
+
+  // Mirrors Kirby\Cms\Fieldsets::createFieldsets(): a `templates` list holds
+  // type names, and a `type: group` entry holds its own nested `templates`.
+  // Returns the flattened type names plus the groups that arrange them.
+  public static function parseTemplates(array $templates): array
+  {
+    $names  = [];
+    $groups = [];
+
+    foreach ($templates as $key => $entry) {
+      if (is_int($key) === true && is_string($entry) === true) {
+        $key   = $entry;
+        $entry = true;
+      }
+
+      if ($entry === false) {
+        continue;
+      }
+
+      if (is_array($entry) === true) {
+        // unlike a blocks fieldset, a module type is always its own blueprint
+        // file, so an entry that is not a group has nothing to contribute
+        if (($entry['type'] ?? null) !== 'group') {
+          continue;
+        }
+
+        $result = self::parseTemplates($entry['templates'] ?? []);
+
+        if ($result['templates'] === []) {
+          continue;
+        }
+
+        $names  = [...$names, ...$result['templates']];
+        $label  = $entry['label'] ?? Str::label($key);
+        $groups[$key] = [
+          'label'     => I18n::translate($label, $label),
+          'open'      => $entry['open'] ?? true,
+          'templates' => $result['templates'],
+        ];
+        continue;
+      }
+
+      if ($entry !== true) {
+        continue;
+      }
+
+      $names[] = self::qualify((string) $key);
+    }
+
+    return [
+      'templates' => array_values(array_unique($names)),
+      'groups'    => $groups,
     ];
   }
 
@@ -153,12 +210,12 @@ class ModuleRegistry
     ];
     $blueprintArray = array_merge($defaults, Data::read($blueprintPath));
 
-    // Force status/redirect (modules are always listed; visibility is the
-    // `hidden` flag) while keeping any author-supplied create config.
+    // draft, not listed: listing validates the full form and blocks types
+    // whose validators the dialog can't satisfy (e.g. min on a structure)
     $create = $blueprintArray['create'] ?? null;
     $create = is_array($create) ? $create : [];
     $blueprintArray['create'] = array_merge($create, [
-      'status'   => 'listed',
+      'status'   => 'draft',
       'redirect' => false,
     ]);
 
@@ -187,7 +244,17 @@ class ModuleRegistry
     return self::uniqueSlug($parentId, preg_replace('/-\d+$/', '', $sourceSlug));
   }
 
-  public static function uniqueSlug(string $parentId, string $slug): ?string
+  // The move renames before it relocates, so the slug has to be free in both containers.
+  public static function moveSlug(Page $module, Page $container): string
+  {
+    $reserved = $module->parent()->childrenAndDrafts()
+      ->filter(fn($sibling) => $sibling->id() !== $module->id())
+      ->values(fn($sibling) => $sibling->slug());
+
+    return self::uniqueSlug($container->id(), $module->slug(), $reserved) ?? $module->slug();
+  }
+
+  public static function uniqueSlug(string $parentId, string $slug, array $reserved = []): ?string
   {
     $parentId = str_replace('+', '/', $parentId);
     $parentId = preg_replace('#^pages/#', '', $parentId);
@@ -198,7 +265,7 @@ class ModuleRegistry
 
     // Match PageRules::create(), which checks the slug against drafts too.
     $siblings = $parent->childrenAndDrafts();
-    while ($siblings->findBy('slug', $slug)) {
+    while ($siblings->findBy('slug', $slug) || in_array($slug, $reserved, true)) {
       $slug = Str::increment($slug, '-', 2);
     }
     return $slug;

@@ -3,19 +3,20 @@
     :invalid="isInvalid">
     <k-dropdown-content ref="options" :options="dropdownOptions" align-x="end" />
     <k-loader v-if="isLoading" />
-    <k-empty v-else-if="!modules.length" icon="box" @click="add()">
-      {{ empty }}
-    </k-empty>
-    <k-draggable v-else :list="modules" :options="dragOptions" @sort="onSort" class="k-modules-list"
-      :data-layout="layout">
+    <k-draggable v-else :list="modules" :options="dragOptions" :group="'k-modules:' + parent"
+      :data="{ accepts }" :move="onMove" @change="onDragChange" @start="onDragStart" @end="onDragEnd"
+      class="k-modules-list" :data-layout="layout">
       <k-module-card v-for="module in modules" :key="module.id + ':' + module.template" :module="module"
         :expanded="expanded[module.id] === true" :loading="!!loadingModules[module.id]"
         :selected="selectedModule === module.id" :values="currentValues(module.id)" :page-url="pageUrl(module.id)"
         :has-error="!!(fieldData[module.id] && fieldData[module.id].error)" @toggle="toggle(module)"
         @toggle-visibility="toggleVisibility(module)" @select="select(module)" @input="onInput(module, $event)"
-        @add="addAt(module, $event)" @remove="remove(module)" @duplicate="duplicate(module)"
+        @add="addAt(module, $event)" @remove="remove(module)" @duplicate="duplicate(module)" @move="moveModule(module)"
         @change-type="changeType(module)" @change-slug="changeSlug(module)" @sort="sortModule(module, $event)" />
     </k-draggable>
+    <k-empty v-if="!isLoading" class="k-modules-empty" icon="box" @click="add()">
+      {{ empty }}
+    </k-empty>
     <footer v-if="!isLoading && modules.length && canAdd">
       <k-button icon="add" size="xs" variant="filled" :title="$t('add')" @click="add()" />
     </footer>
@@ -71,17 +72,29 @@ export default {
       fieldData: {},
       changes: {},
       serverPendingIds: [],
+      descendantPendingIds: [],
       loadingModules: {},
 
       isLoading: true,
       selectedModule: null,
       pendingInsertPosition: null,
       pendingFocusInput: false,
-      dragOptions: { handle: ".k-sort-handle" },
+      templates: [],
+      dragScrollShift: 0,
     };
   },
 
   computed: {
+    dragOptions() {
+      return {
+        handle: ".k-sort-handle",
+        draggable: ".k-module",
+        // Grabbing shrinks the page; at the bottom the browser scrolls up. Undo that.
+        fallbackOffset: { x: 0, y: this.dragScrollShift },
+        onChoose: () => (this._scrollAtGrab = window.scrollY),
+        emptyInsertThreshold: 40,
+      };
+    },
     sectionUrl() {
       return this.parent + "/sections/" + this.name;
     },
@@ -169,15 +182,34 @@ export default {
     this._onDiscard = ({ api }) => {
       if (this.isParentApi(api)) this.applyChanges("discard");
     };
+    this._onMoved = (event) => {
+      if (!event?.parent || event.parent === this.parent) this.fetch();
+    };
+    this._onDescendantDirty = ({ parent, dirty }) => this.handleDescendantDirty(parent, dirty);
+    this._onModulePublished = ({ parent }) => {
+      if (!this.isDescendantApi(parent)) return;
+      this.changes = {};
+      this.fieldData = {};
+      this.serverPendingIds = [];
+      this.descendantPendingIds = [];
+      this._lastReportedDirty = undefined;
+      this.fetch();
+    };
+    this.$events.on("modules.moved", this._onMoved);
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
+    this.$events.on("modules.dirty", this._onDescendantDirty);
+    this.$events.on("modules.published", this._onModulePublished);
   },
   mounted() {
     document.addEventListener("mousedown", this.onClickOutside);
   },
   destroyed() {
+    this.$events.off("modules.moved", this._onMoved);
     this.$events.off("content.publish", this._onPublish);
     this.$events.off("content.discard", this._onDiscard);
+    this.$events.off("modules.dirty", this._onDescendantDirty);
+    this.$events.off("modules.published", this._onModulePublished);
     document.removeEventListener("mousedown", this.onClickOutside);
   },
 
@@ -204,6 +236,7 @@ export default {
         this.canAdd = response.options.add;
         this.min = response.options.min;
         this.max = response.options.max;
+        this.templates = response.options.templates ?? [];
 
         for (const module of this.modules) {
           const prev = previousTemplates.get(module.id);
@@ -254,10 +287,12 @@ export default {
           if (!currentIds.has(id)) this.$delete(map, id);
         }
       }
+      this.descendantPendingIds = this.descendantPendingIds.filter((id) => currentIds.has(id));
 
       // Don't adopt another user's changes while they hold the page lock
       if (this.isHostLocked) {
         this.serverPendingIds = [];
+        this.descendantPendingIds = [];
         this.undirtyParent();
         return;
       }
@@ -416,6 +451,10 @@ export default {
         },
       });
     },
+    moveModule(module) {
+      this.$dialog("modules/move/" + this.encodeId(module.id));
+    },
+
     changeSlug(module) {
       this.$dialog("modules/change-slug/" + this.encodeId(module.id));
     },
@@ -436,10 +475,46 @@ export default {
       if (el) el.focus();
     },
 
+    onMove(event) {
+      return event.toData.accepts(event.draggedData.module.template);
+    },
+
+    accepts(template) {
+      return (
+        this.templates.includes(template) &&
+        (!this.max || this.modules.length < this.max)
+      );
+    },
+
+    onDragStart() {
+      this.dragScrollShift = window.scrollY - this._scrollAtGrab;
+    },
+
+    onDragEnd() {
+      this.dragScrollShift = 0;
+    },
+
+    onDragChange(event) {
+      if (event.moved) return this.onSort();
+      if (event.added) return this.onDrop(event.added.element);
+    },
+
+    async onDrop(module) {
+      const ids = this.modules.map((m) => m.id);
+      try {
+        await this.$api.post(this.sectionUrl + "/move", { id: module.id, ids });
+        this.$events.emit("page.sort");
+      } catch (e) {
+        this.handleError(e);
+      }
+      this.$events.emit("modules.moved", { parent: this.parent });
+    },
+
     async onSort() {
       const ids = this.modules.map((m) => m.id);
       try {
         await this.$api.post(this.sectionUrl + "/sort", { ids });
+        this.$events.emit("page.sort");
       } catch (e) {
         this.handleError(e);
       }
@@ -451,6 +526,7 @@ export default {
         await this.$api.post(
           this.sectionUrl + "/toggle-visibility/" + this.encodeId(module.id),
         );
+        this.$events.emit("model.update");
         await this.fetch();
         this.$nextTick(() => {
           const el = this.$el.querySelector(`[data-module-id="${module.id}"]`);
@@ -514,12 +590,13 @@ export default {
       try {
         const currentIds = new Set(this.modules.map((m) => m.id));
         const changedIds = Object.keys(this.changes);
-        const allIds = [...new Set([...changedIds, ...this.serverPendingIds])]
+        const allIds = [...new Set([...changedIds, ...this.serverPendingIds, ...this.descendantPendingIds])]
           .filter((id) => currentIds.has(id));
 
         if (!allIds.length) {
           this.changes = {};
           this.serverPendingIds = [];
+          this.descendantPendingIds = [];
           this.undirtyParent();
           return;
         }
@@ -546,16 +623,22 @@ export default {
         this.serverPendingIds = this.serverPendingIds.filter(
           (id) => !succeeded.includes(id),
         );
+        this.descendantPendingIds = this.descendantPendingIds.filter(
+          (id) => !succeeded.includes(id),
+        );
+        for (const id of succeeded) {
+          this.$events.emit("modules.published", { parent: this.pageUrl(id) });
+        }
 
         if (lockFailed.length > 0) {
           this.$panel.notification.error(this.$t("modules.lock.applyFailed"));
         }
         for (const { id, reason } of otherFailed) {
           const name = this.modules.find((m) => m.id === id)?.moduleName || id;
-          this.$panel.notification.error({
-            message: `${name}: ${reason?.message || this.$t("error")}`,
-            details: reason?.details,
-          });
+          // notification.error keeps a message only from a string or Error
+          this.$panel.notification.error(
+            `${name}: ${reason?.message || this.$t("error")}`,
+          );
         }
 
         if (lockFailed.length > 0 || otherFailed.length > 0) {
@@ -569,7 +652,11 @@ export default {
             ),
           );
 
-          if (Object.keys(this.changes).length === 0 && this.serverPendingIds.length === 0) {
+          if (
+            Object.keys(this.changes).length === 0 &&
+            this.serverPendingIds.length === 0 &&
+            this.descendantPendingIds.length === 0
+          ) {
             this.undirtyParent();
           }
         }
@@ -594,11 +681,33 @@ export default {
     },
     syncDirtyState() {
       const hasChanges =
-        this.serverPendingIds.length > 0 || Object.keys(this.changes).length > 0;
+        this.serverPendingIds.length > 0 ||
+        Object.keys(this.changes).length > 0 ||
+        this.descendantPendingIds.length > 0;
+
       if (hasChanges) {
         this.dirtyParent();
       } else {
         this.undirtyParent();
+      }
+
+      if (this._lastReportedDirty !== hasChanges) {
+        this._lastReportedDirty = hasChanges;
+        this.$events.emit("modules.dirty", { parent: this.parent, dirty: hasChanges });
+      }
+    },
+
+    handleDescendantDirty(parentApi, dirty) {
+      const owner = this.modules.find((m) => this.isParentApi(parentApi, this.pageUrl(m.id)));
+      if (!owner) return;
+
+      const tracked = this.descendantPendingIds.includes(owner.id);
+      if (dirty && !tracked) {
+        this.descendantPendingIds = [...this.descendantPendingIds, owner.id];
+        this.syncDirtyState();
+      } else if (!dirty && tracked) {
+        this.descendantPendingIds = this.descendantPendingIds.filter((id) => id !== owner.id);
+        this.syncDirtyState();
       }
     },
 
@@ -657,8 +766,30 @@ export default {
       if (!this.expanded[id]) await this.toggle(module);
       await this.$nextTick();
       const el = this.$el.querySelector(`[data-module-id="${id}"]`);
-      el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      el?.focus();
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const headerHeight = parseFloat(getComputedStyle(el).scrollMarginBlockStart) || 0;
+      const inView = rect.top >= headerHeight && rect.bottom <= window.innerHeight;
+      if (!inView) el.scrollIntoView({ block: "center", behavior: "smooth" });
+      await this.waitForDialogClose();
+      this.$el
+        .querySelector(`[data-module-id="${id}"]`)
+        ?.focus({ preventScroll: true });
+    },
+    async waitForDialogClose() {
+      if (!this.$panel.dialog.isOpen) return;
+      await new Promise((resolve) => {
+        const unwatch = this.$watch(
+          () => this.$panel.dialog.isOpen,
+          (open) => {
+            if (!open) {
+              unwatch();
+              resolve();
+            }
+          },
+        );
+      });
+      await this.$nextTick();
     },
     onClickOutside(e) {
       const clickedModule = e.target.closest(".k-module");
@@ -668,8 +799,14 @@ export default {
     },
 
     // SiteView passes parent="site" (no slash) but content events use "/site"
-    isParentApi(api) {
-      return api?.replace(/^\//, "") === this.parent.replace(/^\//, "");
+    isParentApi(api, against = this.parent) {
+      return api?.replace(/^\//, "") === against.replace(/^\//, "");
+    },
+    isDescendantApi(api) {
+      const own = this.parent.replace(/^\//, "");
+      const candidate = api?.replace(/^\//, "");
+      if (!candidate) return false;
+      return own === candidate || own.startsWith(candidate + "+");
     },
     handleError(e) {
       if (e?.details?.isLocked) {
@@ -702,6 +839,11 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--module-gap, var(--spacing-2));
+}
+
+/* Sortable won't drop into a list with any child element. */
+.k-modules-list:has(.k-module) + .k-modules-empty {
+  display: none;
 }
 
 footer {

@@ -16,15 +16,14 @@ return [
 
     $template = ModuleRegistry::template($props['type'] ?? $props['template'] ?? null);
 
-    // createChild always creates a draft; the blueprint's create.status
-    // is Panel-only, so list the module explicitly.
     $module = kirby()->impersonate('kirby', fn() => $modulesContainer->createChild([
       'slug'     => $props['slug'] ?? ModuleRegistry::generateSlug($modulesContainer->id(), $template),
       'template' => $template,
       'content'  => $props['content'] ?? [],
-    ])->changeStatus('listed'));
+    ]));
 
-    return ModuleSectionRoutes::applyAutopublish($module);
+    $module = ModuleSectionRoutes::applyAutopublish($module);
+    return ModuleSectionRoutes::promote($module);
   },
 
   'renderModules' => function (string|array $containerOrParams = 'modules', array $params = []) {
@@ -72,6 +71,22 @@ return [
 
   'isModule' => function () {
     return str_starts_with($this->intendedTemplate()->name(), 'module.');
+  },
+
+  'hasPendingChangesDeep' => function () {
+    if ($this->version('changes')->exists('*')) return true;
+
+    foreach ($this->blueprint()->sections() as $section) {
+      if ($section->type() !== 'modules') continue;
+      $container = $this->find($section->name());
+      if (!$container) continue;
+
+      foreach ($container->children() as $module) {
+        if ($module->hasPendingChangesDeep()) return true;
+      }
+    }
+
+    return false;
   },
 
   // The hidden page holding a section's modules as children.

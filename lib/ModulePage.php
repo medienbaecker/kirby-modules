@@ -3,15 +3,98 @@
 namespace Medienbaecker\Modules;
 
 use Kirby\Cms\Page;
+use Kirby\Cms\PageRules;
 use Kirby\Cms\Pages;
+use Kirby\Cms\Section;
 use Kirby\Cms\Site;
 use Kirby\Content\Field;
 use Kirby\Content\VersionId;
 use Kirby\Http\Uri;
+use Kirby\Toolkit\Str;
 use Medienbaecker\Modules\ModuleRegistry;
+use Throwable;
 
 class ModulePage extends Page
 {
+  public function changeTemplate(string $template): static
+  {
+    return ModuleSectionRoutes::reconcileVisibility(parent::changeTemplate($template));
+  }
+
+  private static array $ownerBlueprints = [];
+  private static array $resolving = [];
+
+  // Kirby derives the change-template list, its permission and its validation
+  // from this one method, so scoping it to the owning section is what keeps a
+  // module from being changed to a type that section does not allow. Building
+  // that section asks its own items for permissions, which lands back here.
+  //
+  // That shortcut only applies to the unscoped call (changeTemplate). A call
+  // that names a section (e.g. the page-create dialog asking for a "+" button
+  // inside one of the module's own pages sections) must resolve against this
+  // page's own blueprint instead, or it wrongly offers the module-type list.
+  public function blueprints(string|null $inSection = null): array
+  {
+    $container = $this->parent();
+    $key = $container?->parentModel()?->id() . '/' . $container?->slug();
+
+    if ($inSection !== null || $container === null || isset(self::$resolving[$key])) {
+      return parent::blueprints($inSection);
+    }
+
+    if (array_key_exists($key, self::$ownerBlueprints) === false) {
+      self::$resolving[$key] = true;
+
+      try {
+        self::$ownerBlueprints[$key] = $this->ownerSection()?->blueprints();
+      } finally {
+        unset(self::$resolving[$key]);
+      }
+    }
+
+    return self::$ownerBlueprints[$key] ?? parent::blueprints($inSection);
+  }
+
+  // A module's container slug equals its owning section's name on the host
+  // page (see hooks.php). Fetch that one section by name rather than iterating
+  // sections() — the latter also instantiates the host's other sections
+  // (e.g. files), which can error outside a normal request.
+  public function ownerSection(): ?Section
+  {
+    $container = $this->parent();
+    $host = $container?->parentModel();
+
+    if (!$host) {
+      return null;
+    }
+
+    $section = $host->blueprint()->section($container->slug());
+
+    return ($section && $section->type() === 'modules') ? $section : null;
+  }
+
+  private bool $hiddenWriteAllowed = false;
+
+  public function allowHiddenWrite(): static
+  {
+    $this->hiddenWriteAllowed = true;
+    return $this;
+  }
+
+  public function update(
+    array|null $input = null,
+    string|null $languageCode = null,
+    bool $validate = false
+  ): static {
+    $allowed = $this->hiddenWriteAllowed;
+    $this->hiddenWriteAllowed = false;
+    if (!$allowed && is_array($input)) {
+      // match Kirby's key normalization: " hidden", "hidden!" etc. all store as hidden
+      $input = array_filter($input, fn($k) => Str::slug((string) $k) !== 'hidden', ARRAY_FILTER_USE_KEY);
+    }
+    return parent::update($input, $languageCode, $validate && !$this->isHidden());
+  }
+
   public function previewUrl(VersionId|string $versionId = 'latest'): string|null
   {
     if (!$this->isHidden()) {
@@ -153,6 +236,21 @@ class ModulePage extends Page
   {
     $parents = parent::parents();
     return $parents->filter('intendedTemplate', '!=', 'modules');
+  }
+
+  public function isMovableTo(Page|Site $parent): bool
+  {
+    if (!$parent instanceof Page || !$parent->isModuleContainer()) {
+      return false;
+    }
+
+    // A taken slug is no blocker: the move renames the module first.
+    try {
+      PageRules::move($this->clone(['slug' => ModuleRegistry::moveSlug($this, $parent)]), $parent);
+      return true;
+    } catch (Throwable) {
+      return false;
+    }
   }
 
   public function metaDefaults(): array

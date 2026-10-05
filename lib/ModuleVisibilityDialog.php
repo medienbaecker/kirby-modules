@@ -38,6 +38,6 @@ class ModuleVisibilityDialog extends ModuleDialog
       ModuleSectionRoutes::flipHidden($this->module);
     }
 
-    return ['event' => 'page.update'];
+    return ['event' => 'model.update'];
   }
 }

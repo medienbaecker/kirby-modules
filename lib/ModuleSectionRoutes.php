@@ -7,8 +7,9 @@ use Kirby\Cms\ModelWithContent;
 use Kirby\Cms\Page;
 use Kirby\Cms\Section;
 use Kirby\Content\LockedContentException;
+use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
-use Kirby\Filesystem\Dir;
+use Kirby\Exception\PermissionException;
 use Kirby\Form\Form;
 use Kirby\Toolkit\Str;
 
@@ -73,6 +74,18 @@ class ModuleSectionRoutes
         },
       ],
       [
+        'pattern' => 'move',
+        'method'  => 'POST',
+        'action'  => function () {
+          $section = $this->section();
+          return ModuleSectionRoutes::move(
+            ModuleSectionRoutes::container($section),
+            $this->requestBody('id'),
+            $this->requestBody('ids')
+          );
+        },
+      ],
+      [
         'pattern' => 'create-container',
         'method'  => 'POST',
         'action'  => function () {
@@ -120,6 +133,19 @@ class ModuleSectionRoutes
     }
 
     if (!$container || !$child->parent()?->is($container)) {
+      throw new NotFoundException('Module not found');
+    }
+  }
+
+  public static function assertSiblingOf(Page $child, ?Page $container): void
+  {
+    $source = $child->parent();
+
+    if (
+      !$container ||
+      $source?->intendedTemplate()->name() !== 'modules' ||
+      $source->parentModel()->is($container->parentModel()) === false
+    ) {
       throw new NotFoundException('Module not found');
     }
   }
@@ -175,26 +201,47 @@ class ModuleSectionRoutes
     );
     $duplicate = $child->duplicate($slug, ['files' => true]);
 
-    // Skip the _changes copy if another user holds the lock — their `Lock:`
-    // field would otherwise be cloned into the duplicate.
-    $changesDir = $child->root() . '/_changes';
-    if (is_dir($changesDir) && !$child->lock()?->isLocked()) {
-      Dir::copy($changesDir, $duplicate->root() . '/_changes');
-    }
-
     // A hidden source always duplicates as hidden; autopublish only decides
     // what happens when the source was visible.
     $language = kirby()->defaultLanguage()?->code();
     $hidden = $child->isHidden()
+      || self::isInvalid($child)
       || !self::shouldAutopublish($child->blueprint(), $container);
-    // Re-assign $duplicate after each call: changeStatus and update move the
-    // previous instance to immutable storage.
-    kirby()->impersonate('kirby', function () use (&$duplicate, $child, $hidden, $language) {
-      $duplicate = $duplicate->changeStatus('listed', $child->num() + 1);
-      $duplicate = self::writeHidden($duplicate, $hidden ? 'true' : null, $language);
-    });
+    $duplicate = kirby()->impersonate(
+      'kirby',
+      fn() => self::writeHidden($duplicate, $hidden ? 'true' : null, $language)
+    );
+    $duplicate = self::promote($duplicate, $child->num() + 1);
 
-    // The copied _changes directory may add pending changes to the host.
+    // Carry pending changes via the Version API, not a raw directory copy:
+    // raw files carry the source's `Uuid:` and `Lock:`. Skipped when another
+    // user holds the lock.
+    if (!$child->lock()?->isLocked()) {
+      $sourceChanges = $child->version('changes');
+      $codes = kirby()->multilang()
+        ? kirby()->languages()->codes()
+        : ['default'];
+      foreach ($codes as $code) {
+        if (!$sourceChanges->exists($code)) continue;
+        $fields = $sourceChanges->read($code) ?? [];
+        // Pin the copy's fresh uuid: publishing replaces latest wholesale.
+        if ($uuid = $duplicate->content($code)->get('uuid')->value()) {
+          $fields['uuid'] = $uuid;
+        } else {
+          unset($fields['uuid']);
+        }
+        if ($code === ($language ?? 'default')) {
+          if ($hidden) {
+            $fields['hidden'] = 'true';
+          } else {
+            unset($fields['hidden']);
+          }
+        }
+        $duplicate->version('changes')->create($fields, $code);
+      }
+    }
+
+    // The copied changes version may add pending changes to the host.
     HostLock::sync($container->parentModel());
 
     return ['status' => 'ok'];
@@ -213,6 +260,74 @@ class ModuleSectionRoutes
         $page->changeStatus('listed', $num++);
       }
     });
+  }
+
+  public static function move(?Page $container, string $childId, array $ids): array
+  {
+    $child = self::resolveModule($childId);
+
+    if ($container && $child->parent()?->is($container)) {
+      self::sort($container, $ids);
+      return ['status' => 'ok', 'id' => $child->id()];
+    }
+
+    self::assertSiblingOf($child, $container);
+
+    $moved = self::moveTo($child, $container);
+
+    self::sort($container, array_map(
+      fn($id) => $id === $childId ? $moved->id() : $id,
+      $ids
+    ));
+
+    return ['status' => 'ok', 'id' => $moved->id()];
+  }
+
+  public static function canMove(Page $child): bool
+  {
+    if (isset($child->blueprint()->options()['move'])) {
+      return $child->permissions()->can('move');
+    }
+
+    return kirby()->user()?->role()->permissions()
+      ->for('medienbaecker.modules', 'move') !== false;
+  }
+
+  public static function moveTo(Page $child, Page $container): Page
+  {
+    if (self::canMove($child) === false) {
+      throw new PermissionException(
+        key: 'page.move.permission',
+        data: ['slug' => $child->slug()]
+      );
+    }
+
+    self::ensureModuleAndHostUnlocked($child);
+    HostLock::ensureUnlocked($container->parentModel());
+
+    $source = $child->parent();
+
+    $moved = kirby()->impersonate('kirby', function () use ($child, $container) {
+      $slug = ModuleRegistry::moveSlug($child, $container);
+
+      if ($slug !== $child->slug()) {
+        // Without the default language this only sets a URL key, not the folder name.
+        $child = $child->changeSlug($slug, kirby()->defaultLanguage()?->code());
+      }
+
+      return $child->move($container);
+    });
+
+    $container->purge();
+    self::sort($container, [
+      ...array_values(array_diff($container->children()->keys(), [$moved->id()])),
+      $moved->id(),
+    ]);
+
+    $source->purge();
+    self::sort($source, $source->children()->keys());
+
+    return $moved;
   }
 
   public static function deleteAll(?Page $container): void
@@ -244,8 +359,22 @@ class ModuleSectionRoutes
   {
     self::ensureModuleAndHostUnlocked($child);
     $hidden = $child->isHidden();
+    if ($hidden && $invalid = self::invalidLanguages($child)) {
+      throw new InvalidArgumentException(
+        message: self::invalidMessage($invalid)
+      );
+    }
     self::writeHidden($child, $hidden ? null : 'true', kirby()->defaultLanguage()?->code());
     return !$hidden;
+  }
+
+  private static function invalidMessage(array $codes): string
+  {
+    if (kirby()->multilang() === false) {
+      return t('error.form.incomplete');
+    }
+    $names = array_map(fn($c) => kirby()->language($c)?->name() ?? $c, $codes);
+    return tt('modules.visibility.invalid', ['languages' => implode(', ', $names)]);
   }
 
   // Mirror to _changes too — Version::publish overwrites latest with the
@@ -253,8 +382,9 @@ class ModuleSectionRoutes
   private static function writeHidden(Page $child, ?string $value, ?string $language): Page
   {
     $language ??= 'default';
+    $writer = $child instanceof ModulePage ? $child->allowHiddenWrite() : $child;
     // Re-assign $child: update() moves the previous instance to immutable storage.
-    $child = $child->update(['hidden' => $value], $language);
+    $child = $writer->update(['hidden' => $value], $language);
 
     $changes = $child->version('changes');
     if ($changes->exists($language)) {
@@ -304,10 +434,12 @@ class ModuleSectionRoutes
     return is_bool($value) ? $value : null;
   }
 
-  // Applies the autopublish option to a freshly created module.
   public static function applyAutopublish(Page $module): Page
   {
-    if (self::shouldAutopublish($module->blueprint(), $module->parent())) {
+    if (
+      self::shouldAutopublish($module->blueprint(), $module->parent())
+      && !self::isInvalid($module)
+    ) {
       return $module;
     }
 
@@ -315,5 +447,44 @@ class ModuleSectionRoutes
       'kirby',
       fn() => self::writeHidden($module, 'true', kirby()->defaultLanguage()?->code())
     );
+  }
+
+  public static function reconcileVisibility(Page $module): Page
+  {
+    if ($module->isHidden() || !self::isInvalid($module)) {
+      return $module;
+    }
+    return kirby()->impersonate(
+      'kirby',
+      fn() => self::writeHidden($module, 'true', kirby()->defaultLanguage()?->code())
+    );
+  }
+
+  public static function promote(Page $module, ?int $position = null): Page
+  {
+    return kirby()->impersonate(
+      'kirby',
+      fn() => $module->publish()->changeStatus('listed', $position)
+    );
+  }
+
+  public static function isInvalid(Page $module): bool
+  {
+    return self::invalidLanguages($module) !== [];
+  }
+
+  public static function invalidLanguages(Page $module): array
+  {
+    $codes = kirby()->multilang() ? kirby()->languages()->codes() : ['current'];
+    $fields = $module->blueprint()->fields();
+    $invalid = [];
+    foreach ($codes as $code) {
+      $form = new Form(fields: $fields, model: $module, language: $code);
+      $form->fill($module->content($code)->toArray());
+      if ($form->errors() !== []) {
+        $invalid[] = $code;
+      }
+    }
+    return $invalid;
   }
 }

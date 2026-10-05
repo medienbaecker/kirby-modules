@@ -189,6 +189,12 @@ export default {
               click: () => this.$emit("duplicate"),
               disabled: !p.duplicate,
             },
+            {
+              icon: "parent",
+              label: this.$t("move") + " …",
+              click: () => this.$emit("move"),
+              disabled: !p.move,
+            },
             "-",
             {
               icon: this.expanded ? "collapse" : "expand",
@@ -254,6 +260,11 @@ export default {
 </script>
 
 <style>
+body:has(.k-module.k-sortable-fallback),
+body:has(.k-module.k-sortable-fallback) * {
+  cursor: grabbing;
+}
+
 .k-module {
   --module-color-back: light-dark(var(--color-white), var(--color-gray-850));
 
@@ -262,7 +273,7 @@ export default {
   background: var(--module-color-back);
   box-shadow: var(--shadow);
   border-radius: var(--rounded);
-  scroll-margin-block-start: var(--header-sticky-offset);
+  scroll-margin-block-start: 5rem;
 
   &[data-hidden="true"] {
     --module-color-back: repeating-linear-gradient(135deg,
@@ -437,6 +448,10 @@ export default {
 
 .k-module[data-selected="true"]>.k-module-toolbar {
   display: flex;
+}
+
+.k-module.k-sortable-ghost .k-module-toolbar {
+  opacity: 0;
 }
 
 .k-module-toolbar>.k-button:not(:last-of-type) {

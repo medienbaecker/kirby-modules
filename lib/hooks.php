@@ -1,9 +1,11 @@
 <?php
 
+use Kirby\Cms\Page;
 use Kirby\Content\LockedContentException;
 use Kirby\Exception\PermissionException;
 use Kirby\Panel\Panel;
 use Medienbaecker\Modules\HostLock;
+use Medienbaecker\Modules\ModuleChangesCascade;
 
 return [
 
@@ -22,6 +24,15 @@ return [
   // Mirror every module changes operation onto the host page (see HostLock)
   'route:after' => function ($path, $method, $result) {
     if ($method === 'POST' && $module = HostLock::moduleFromApiPath($path)) {
+      if (preg_match('!/changes/(publish|discard)$!', $path, $matches)) {
+        try {
+          $matches[1] === 'publish'
+            ? ModuleChangesCascade::publish($module)
+            : ModuleChangesCascade::discard($module);
+        } catch (Throwable) {
+        }
+      }
+
       try {
         if ($host = HostLock::hostOf($module)) {
           HostLock::sync($host);
@@ -79,6 +90,10 @@ return [
 
   'page.move:before' => function ($page, $parent) {
     if (!$page->isModule()) return;
+
+    if (!$parent instanceof Page || !$parent->isModuleContainer()) {
+      throw new PermissionException(t('modules.move.notallowed'));
+    }
 
     $host = $parent->parentModel();
     $targetSection = null;

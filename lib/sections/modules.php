@@ -4,6 +4,7 @@ use Kirby\Cms\Blueprint;
 use Kirby\Cms\Site;
 use Kirby\Query\Query;
 use Kirby\Toolkit\I18n;
+use Kirby\Toolkit\Str;
 use Medienbaecker\Modules\ModuleRegistry;
 use Medienbaecker\Modules\ModuleSectionRoutes;
 use Medienbaecker\Modules\ModuleSectionItem;
@@ -34,9 +35,12 @@ return [
     // Both short ('text') and full ('module.text') names are accepted here,
     // in templatesIgnore and in default.
     'templates' => function ($templates = null) use ($allBlueprints) {
-      $blueprints = $templates
-        ? array_map(fn($name) => ModuleRegistry::qualify($name), $templates)
-        : $allBlueprints;
+      $parsed = $templates ? ModuleRegistry::parseTemplates($templates) : null;
+
+      // stashed for the templateGroups computed, which runs after every prop
+      $this->parsedGroups = $parsed['groups'] ?? [];
+
+      $blueprints = $parsed['templates'] ?? $allBlueprints;
 
       if ($this->templatesIgnore) {
         $ignore = array_map(fn($name) => ModuleRegistry::qualify($name), $this->templatesIgnore);
@@ -53,8 +57,7 @@ return [
       return $blueprints;
     },
 
-    'empty' => fn($empty = null) => $empty ?? I18n::translate('modules.empty'),
-    'label' => fn($label = null) => $label ?? I18n::translate('modules.plural'),
+    'empty' => fn($empty = null) => I18n::translate($empty, $empty) ?? I18n::translate('modules.empty'),
 
     'parent' => function ($parent = null) {
       $modelType = $this->model() instanceof Site ? 'site' : 'page';
@@ -89,6 +92,26 @@ return [
   ],
 
   'computed' => [
+    'templateGroups' => function () {
+      $groups = [];
+
+      foreach ($this->parsedGroups as $key => $group) {
+        $templates = array_values(array_intersect($group['templates'], $this->templates));
+
+        if ($templates === []) {
+          continue;
+        }
+
+        $groups[$key] = [
+          'label'     => $group['label'],
+          'open'      => $group['open'] !== false,
+          'templates' => $templates,
+        ];
+      }
+
+      return $groups ?: null;
+    },
+
     // Computed props evaluate in definition order; `modules` must come
     // first because `total` (and through it `add` and `errors`) reads it.
     'modules' => function () {
@@ -119,6 +142,18 @@ return [
 
     'total' => fn() => count($this->modules),
     'add'   => fn() => !$this->isFull() && !$this->isQueried(),
+
+    'headline' => function () {
+      if ($this->label) {
+        return $this->model()->toString($this->label);
+      }
+
+      if ($this->headline) {
+        return $this->model()->toString($this->headline);
+      }
+
+      return I18n::translate('modules.plural');
+    },
 
     // Verbatim copy of core's pages section errors computed (sections can't
     // inherit from each other) — keep in sync with

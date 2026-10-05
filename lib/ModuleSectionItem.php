@@ -23,12 +23,13 @@ class ModuleSectionItem
       'icon'              => $blueprint ? $blueprint->icon() : 'alert',
       'hidden'            => $child->isHidden(),
       'hasFields'         => $blueprint && !empty($blueprint->fields()),
-      'hasPendingChanges' => $child->version('changes')->exists('*'),
+      'hasPendingChanges' => $child->hasPendingChangesDeep(),
       'tabs'              => $blueprint ? $blueprint->tabs() : [],
       'link'              => $child->panel()->url(),
-      'permissions'       => $child->panel()->options(['preview']),
-      // The host page lock covers the UI; this only guards adoption
-      // in reconcileState() while no mirror exists yet.
+      'permissions'       => [
+        ...$child->panel()->options(['preview']),
+        'move' => ModuleSectionRoutes::canMove($child),
+      ],
       'isLocked'          => $child->lock()?->isLocked() ?? false,
       'previewUrl'        => self::previewUrl($child),
     ];
