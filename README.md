@@ -14,7 +14,12 @@ Modular page building for [Kirby](https://getkirby.com/). Every module is a regu
 
 ## Installation
 
-The plugin requires Kirby 5.
+| Plugin version | Kirby version | PHP version |
+| -------------- | ------------- | ----------- |
+| 6.x            | 6             | 8.3 – 8.5   |
+| 5.x            | 5             | 8.2+        |
+
+Upgrading from Kirby 5? See [Upgrading to Kirby 6](#upgrading-to-kirby-6).
 
 ```
 composer require medienbaecker/kirby-modules
@@ -267,7 +272,7 @@ Kirby releases a lock 10 minutes after the last edit. If someone leaves without 
 | `min`             | `int`    | Minimum number of modules                                                                                      |
 | `max`             | `int`    | Maximum number of modules                                                                                      |
 | `sortable`        | `bool`   | Set to `false` to disable manual sorting                                                                       |
-| `label`           | `string` | Section headline (default: "Modules")                                                                          |
+| `label`           | `string` | Section headline (default: the section name, e.g. "Modules")                                                   |
 | `empty`           | `string` | Empty state text                                                                                               |
 | `autopublish`     | `bool`   | Override the global [`autopublish`](#config-options) for this section (a module's own `autopublish` flag wins) |
 | `layout`          | `string` | Set a `data-layout` value on the list for [custom layouts](#custom-layouts) styled in Panel CSS                |
@@ -464,6 +469,25 @@ return [
   'medienbaecker.modules.model' => CustomModulePage::class,
 ];
 ```
+
+## Upgrading to Kirby 6
+
+Version 6 of the plugin requires Kirby 6 and PHP 8.3+.
+
+Kirby 6 replaced sections with fields. Blueprints still accept sections and convert them to fields, so a `type: modules` section keeps working without changes. You can also add it to `fields` like any other field:
+
+```yml
+fields:
+  modules:
+    type: modules
+```
+
+What changed:
+
+- Without a `label`, the headline falls back to the section name like any Kirby field (`sidebar` shows "Sidebar"). It is no longer translated to "Modules".
+- `$module->ownerSection()` is now `$module->ownerField()` and returns the `Medienbaecker\Modules\ModulesField`. To find the modules fields of a page, use `ModulesField::names($page)` or `ModulesField::for($page, 'modules')`.
+- The Panel component is now `k-modules-field` (formerly `k-modules-section`). Update custom Panel CSS that targets `.k-modules-section`.
+- The create dialog belongs to the field now (`pages/…/fields/{name}/create`) instead of the global `modules/create` dialog.
 
 ## Licensing
 
