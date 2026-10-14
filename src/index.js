@@ -1,4 +1,4 @@
-import ModulesSection from "./components/ModulesSection.vue";
+import ModulesField from "./components/ModulesField.vue";
 import ModuleTypeGrid from "./components/ModuleTypeGrid.vue";
 import ModuleCreateDialog from "./components/ModuleCreateDialog.vue";
 import ModuleChangeTypeDialog from "./components/ModuleChangeTypeDialog.vue";
@@ -7,7 +7,7 @@ import ModulesLicenseDialog from "./components/ModulesLicenseDialog.vue";
 
 panel.plugin("medienbaecker/modules", {
   components: {
-    "k-modules-section": ModulesSection,
+    "k-modules-field": ModulesField,
     "k-module-type-grid": ModuleTypeGrid,
     "k-module-create-dialog": ModuleCreateDialog,
     "k-module-change-type-dialog": ModuleChangeTypeDialog,
