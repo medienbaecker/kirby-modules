@@ -29,6 +29,7 @@ export default {
     groups: { type: [Object, Array], default: null },
     selected: String,
   },
+  emits: ["select"],
   data() {
     return { openedWith: this.selected };
   },

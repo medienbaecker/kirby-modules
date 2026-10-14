@@ -45,7 +45,8 @@ export default {
     submitButton: {
       default: false
     }
-  }
+  },
+  emits: ["cancel"]
 };
 </script>
 
