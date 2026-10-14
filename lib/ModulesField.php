@@ -12,7 +12,6 @@ use Kirby\Form\Mixin;
 use Kirby\Reflection\Attributes\Prop;
 use Kirby\Toolkit\A;
 use Kirby\Toolkit\I18n;
-use Kirby\Toolkit\Str;
 use Throwable;
 
 /**
@@ -270,23 +269,6 @@ class ModulesField extends DisplayField
     }
 
     return $this->total() >= $this->max;
-  }
-
-  /**
-   * The blueprint normalizer falls back to the field name as
-   * label. Sections used the translated plural instead.
-   */
-  public function label(): string
-  {
-    if (
-      $this->label === null ||
-      $this->label === [] ||
-      $this->label === Str::label($this->name ?? '')
-    ) {
-      return I18n::translate('modules.plural');
-    }
-
-    return $this->stringTemplateI18n($this->label);
   }
 
   public function layout(): string|null
