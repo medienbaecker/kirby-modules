@@ -2,6 +2,7 @@
 
 use Kirby\Cms\Page;
 use Kirby\Exception\InvalidArgumentException;
+use Kirby\Toolkit\HtmlString;
 use Medienbaecker\Modules\ModuleChangeSlugDialog;
 use Medienbaecker\Modules\ModuleChangeTypeDialog;
 use Medienbaecker\Modules\ModulesLicense;
@@ -15,19 +16,19 @@ return [
       'dialogs' => [
         'modules/change-type' => [
           'pattern' => 'modules/change-type/(:any)',
-          'controller' => ModuleChangeTypeDialog::class,
+          'action'  => ModuleChangeTypeDialog::class,
         ],
         'modules/change-slug' => [
           'pattern' => 'modules/change-slug/(:any)',
-          'controller' => ModuleChangeSlugDialog::class,
+          'action'  => ModuleChangeSlugDialog::class,
         ],
         'modules/move' => [
           'pattern' => 'modules/move/(:any)',
-          'controller' => ModuleMoveDialog::class,
+          'action'  => ModuleMoveDialog::class,
         ],
         'modules/visibility' => [
           'pattern' => 'pages/(:any)/visibility',
-          'controller' => ModuleVisibilityDialog::class,
+          'action'  => ModuleVisibilityDialog::class,
         ],
       ],
       'buttons' => [
@@ -89,7 +90,8 @@ return [
                 'fields' => [
                   'info' => [
                     'type' => 'info',
-                    'text' => tt('modules.license.info', ['url' => ModulesLicense::BUY_URL])
+                    // plain strings are escaped in Kirby 6, the link is trusted
+                    'text' => new HtmlString(tt('modules.license.info', ['url' => ModulesLicense::BUY_URL]))
                   ],
                   'key' => [
                     'label' => t('modules.license.key'),
