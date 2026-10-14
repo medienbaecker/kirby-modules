@@ -5,7 +5,6 @@ namespace Medienbaecker\Modules;
 use Kirby\Cms\Page;
 use Kirby\Cms\PageRules;
 use Kirby\Cms\Pages;
-use Kirby\Cms\Section;
 use Kirby\Cms\Site;
 use Kirby\Content\Field;
 use Kirby\Content\VersionId;
@@ -25,41 +24,41 @@ class ModulePage extends Page
   private static array $resolving = [];
 
   // Kirby derives the change-template list, its permission and its validation
-  // from this one method, so scoping it to the owning section is what keeps a
-  // module from being changed to a type that section does not allow. Building
-  // that section asks its own items for permissions, which lands back here.
+  // from this one method, so scoping it to the owning field is what keeps a
+  // module from being changed to a type that field does not allow. Building
+  // that field asks its own items for permissions, which lands back here.
   //
   // That shortcut only applies to the unscoped call (changeTemplate). A call
-  // that names a section (e.g. the page-create dialog asking for a "+" button
-  // inside one of the module's own pages sections) must resolve against this
+  // that names a field (e.g. the page-create dialog asking for a "+" button
+  // inside one of the module's own pages fields) must resolve against this
   // page's own blueprint instead, or it wrongly offers the module-type list.
-  public function blueprints(string|null $inSection = null): array
+  public function blueprints(string|null $inField = null): array
   {
     $container = $this->parent();
     $key = $container?->parentModel()?->id() . '/' . $container?->slug();
 
-    if ($inSection !== null || $container === null || isset(self::$resolving[$key])) {
-      return parent::blueprints($inSection);
+    if ($inField !== null || $container === null || isset(self::$resolving[$key])) {
+      return parent::blueprints($inField);
     }
 
     if (array_key_exists($key, self::$ownerBlueprints) === false) {
       self::$resolving[$key] = true;
 
       try {
-        self::$ownerBlueprints[$key] = $this->ownerSection()?->blueprints();
+        self::$ownerBlueprints[$key] = $this->ownerField()?->blueprints();
       } finally {
         unset(self::$resolving[$key]);
       }
     }
 
-    return self::$ownerBlueprints[$key] ?? parent::blueprints($inSection);
+    return self::$ownerBlueprints[$key] ?? parent::blueprints($inField);
   }
 
-  // A module's container slug equals its owning section's name on the host
-  // page (see hooks.php). Fetch that one section by name rather than iterating
-  // sections() — the latter also instantiates the host's other sections
-  // (e.g. files), which can error outside a normal request.
-  public function ownerSection(): ?Section
+  // A module's container slug equals its owning field's name on the host
+  // page. Build that one field by name rather than all of the host's fields,
+  // which also instantiates the others (e.g. files) and can error outside a
+  // normal request.
+  public function ownerField(): ?ModulesField
   {
     $container = $this->parent();
     $host = $container?->parentModel();
@@ -68,9 +67,7 @@ class ModulePage extends Page
       return null;
     }
 
-    $section = $host->blueprint()->section($container->slug());
-
-    return ($section && $section->type() === 'modules') ? $section : null;
+    return ModulesField::for($host, $container->slug());
   }
 
   private bool $hiddenWriteAllowed = false;

@@ -4,6 +4,7 @@ use Kirby\Cms\File;
 use Kirby\Cms\Page;
 use Medienbaecker\Modules\ModuleRegistry;
 use Medienbaecker\Modules\ModuleSectionRoutes;
+use Medienbaecker\Modules\ModulesField;
 use Medienbaecker\Modules\ModulesCollection;
 
 return [
@@ -37,10 +38,7 @@ return [
   },
 
   'hasModules' => function () {
-    foreach ($this->blueprint()->sections() as $section) {
-      if ($section->type() === 'modules') return true;
-    }
-    return false;
+    return ModulesField::names($this) !== [];
   },
 
   // Can't use Page::renderVersionFromRequest()'s token check — it grants
@@ -76,9 +74,8 @@ return [
   'hasPendingChangesDeep' => function () {
     if ($this->version('changes')->exists('*')) return true;
 
-    foreach ($this->blueprint()->sections() as $section) {
-      if ($section->type() !== 'modules') continue;
-      $container = $this->find($section->name());
+    foreach (ModulesField::names($this) as $name) {
+      $container = $this->find($name);
       if (!$container) continue;
 
       foreach ($container->children() as $module) {
@@ -89,7 +86,7 @@ return [
     return false;
   },
 
-  // The hidden page holding a section's modules as children.
+  // The hidden page holding a modules field's modules as children.
   'isModuleContainer' => function () {
     return $this->intendedTemplate()->name() === 'modules';
   },

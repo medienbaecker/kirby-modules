@@ -8,8 +8,8 @@ class ModuleChangeTypeDialog extends ModuleDialog
 {
   public function load(): array
   {
-    // Source the list from the module's owning `modules` section so the order
-    // and allowed types match the create dialog exactly (same section, same
+    // Source the list from the module's owning `modules` field so the order
+    // and allowed types match the create dialog exactly (same field, same
     // `default`/`templates`/`templatesIgnore`). Fall back to the page's
     // changeTemplate option, then the registry, for edge/recovery cases.
     $blueprints = $this->module->blueprints();
@@ -32,7 +32,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
       ];
     }
 
-    // If the current type isn't in the list (blueprint deleted, or the section
+    // If the current type isn't in the list (blueprint deleted, or the field
     // doesn't allow it), prepend it as a disabled card so the grid still shows
     // what the module currently is and the dialog has a valid current value.
     $currentName = $this->module->intendedTemplate()->name();
@@ -51,7 +51,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
       'component' => 'k-module-change-type-dialog',
       'props' => [
         'blueprints' => $types,
-        'groups' => $this->module->ownerSection()?->templateGroups(),
+        'groups' => $this->module->ownerField()?->templateGroups(),
         'value' => [
           'template' => $currentName
         ],

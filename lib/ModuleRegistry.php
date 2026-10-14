@@ -83,6 +83,18 @@ class ModuleRegistry
     return isset(self::load()['blueprints']['pages/' . $template]);
   }
 
+  // Full names of all registered module types, e.g. ['module.text']
+  public static function moduleTemplates(): array
+  {
+    return array_values(array_map(
+      fn(string $name) => substr($name, strlen('pages/')),
+      array_filter(
+        array_keys(self::load()['blueprints']),
+        fn(string $name) => str_starts_with($name, 'pages/module.')
+      )
+    ));
+  }
+
   // Maps a module's short name to a preview image URL by scanning
   // assets/module-previews (e.g. text.png → module type 'text').
   public static function previewImages(): array

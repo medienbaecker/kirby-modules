@@ -11,15 +11,21 @@ spl_autoload_register(function ($class) {
   if (is_file($file)) require $file;
 });
 
+use Kirby\Blueprint\Normalizer;
 use Kirby\Cms\App as Kirby;
 use Kirby\Data\Json;
 use Kirby\Filesystem\Dir;
 use Kirby\Filesystem\F;
 use Kirby\Toolkit\A;
 use Medienbaecker\Modules\ModuleRegistry;
+use Medienbaecker\Modules\ModulesField;
 
 $moduleRegistry = ModuleRegistry::load();
 $pageMethods = require __DIR__ . '/lib/page-methods.php';
+
+// Sections are a legacy shortcut in Kirby 6 blueprints and are
+// mapped onto fields. This keeps `type: modules` sections working.
+Normalizer::$sectionFields['modules'] = 'modules';
 
 Kirby::plugin(
   'medienbaecker/modules',
@@ -29,8 +35,8 @@ Kirby::plugin(
     'snippets'     => $moduleRegistry['snippets'],
     'pageModels'   => $moduleRegistry['pageModels'],
     'blueprints'   => $moduleRegistry['blueprints'],
-    'sections'     => [
-      'modules' => require __DIR__ . '/lib/sections/modules.php'
+    'fields'       => [
+      'modules' => ModulesField::class
     ],
     'hooks'        => require __DIR__ . '/lib/hooks.php',
     'permissions'  => ['move' => true],

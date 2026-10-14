@@ -6,34 +6,28 @@ use Kirby\Cms\Page;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
 use Kirby\Form\Form;
+use Kirby\Panel\Controller\Dialog\PageCreateDialogController;
 use Kirby\Panel\Field;
-use Kirby\Panel\PageCreateDialog;
 use Kirby\Panel\Panel;
+use Kirby\Panel\Ui\Dialog\FormDialog;
 use Kirby\Toolkit\Str;
 use Kirby\Uuid\Uuids;
 
-class ModuleCreateDialog extends PageCreateDialog
+class ModuleCreateDialog extends PageCreateDialogController
 {
   // Field names the create dialog never renders (the page's routing fields;
   // `title` is the type name). Shared by customFields() and guardListedFields()
   // so the skip and the guard can't drift apart.
   private const RESERVED_FIELDS = ['title', 'slug', 'parent', 'template', 'uuid', 'hidden'];
 
-  // Dialog routes call for() with the route arguments (none here); the
-  // dialog parameters travel as request data, exactly like the core
-  // page.create dialog.
-  public static function for(): static
-  {
-    $request = kirby()->request();
-
-    return new static(
-      parentId: $request->get('parent'),
-      sectionId: $request->get('section'),
-      template: $request->get('template'),
-      viewId: $request->get('view'),
-      slug: $request->get('slug'),
-      title: $request->get('title'),
-      uuid: $request->get('uuid'),
+  // The dialog is opened through the modules field's own dialog
+  // route, which creates the container on demand.
+  public function __construct(
+    protected ModulesField $field
+  ) {
+    parent::__construct(
+      parent: $field->container() ?? $field->createContainer(),
+      blueprints: $field->blueprints()
     );
   }
 
@@ -43,20 +37,6 @@ class ModuleCreateDialog extends PageCreateDialog
       fn(array $blueprint) => [...$blueprint, ...ModuleRegistry::typeVisuals($blueprint['name'])],
       parent::blueprints()
     );
-  }
-
-  private function groups(): ?array
-  {
-    if (!$this->sectionId) {
-      return null;
-    }
-
-    $section = $this->view->blueprint()->section($this->sectionId);
-    if (!$section || $section->type() !== 'modules') {
-      return null;
-    }
-
-    return $section->templateGroups();
   }
 
   // No title field (modules are labelled by type or `label`); the anchor is a
@@ -69,13 +49,13 @@ class ModuleCreateDialog extends PageCreateDialog
     if (!array_key_exists('anchor', $create)) {
       $field = Field::slug([
         'required' => false,
-        'path'     => $this->parent instanceof Page ? '/' . $this->parent->id() . '/' : '/',
+        'path'     => '/' . $this->parent->id() . '/',
       ]);
-      $field['label']  = t('modules.create.anchor');
+      $field['label']  = $this->i18n('modules.create.anchor');
       $field['icon']   = false;
       $field['before'] = '#';
       $field['help']   = false;
-      if ($placeholder = ModuleRegistry::generateSlug($this->parentId, (string) $this->template)) {
+      if ($placeholder = ModuleRegistry::generateSlug($this->parent->id(), $this->template())) {
         $field['placeholder'] = $placeholder;
       }
       $fields['slug'] = $field;
@@ -88,38 +68,8 @@ class ModuleCreateDialog extends PageCreateDialog
     return [
       ...$fields,
       'parent'   => Field::hidden(),
-      'section'  => Field::hidden(),
       'template' => Field::hidden(),
-      'view'     => Field::hidden(),
     ];
-  }
-
-  // Stores the type name as title (the card label comes from `label`) and
-  // resolves the create.anchor template, exposing {{ module.* }}.
-  public function resolveFieldTemplates(array $input): array
-  {
-    $create = $this->blueprint()->create();
-
-    $input['title'] = (string) $this->blueprint()->title();
-
-    if (array_key_exists('anchor', $create)) {
-      $anchor = $create['anchor'];
-      if (is_string($anchor)) {
-        $page = $this->model()->clone(['content' => $input]);
-        $input['slug'] = $page->toSafeString($anchor, ['module' => $page]);
-      } else {
-        $input['slug'] = '';
-      }
-    }
-
-    // Normalize + uniquify (empty falls back to the type slug). Must match
-    // createChild()'s Url::slug() so submit() can find the page to hide it.
-    $slug = Str::slug((string) ($input['slug'] ?? ''));
-    $input['slug'] = $slug !== ''
-      ? (ModuleRegistry::uniqueSlug($this->parentId, $slug) ?? $slug)
-      : (ModuleRegistry::generateSlug($this->parentId, (string) $this->template) ?? '');
-
-    return $input;
   }
 
   // Skip unrenderable entries so the dialog still loads; guardListedFields()
@@ -137,7 +87,7 @@ class ModuleCreateDialog extends PageCreateDialog
       $custom[$name] = $field;
     }
 
-    return (new Form(fields: $custom, model: $this->model()))->fields()->toProps();
+    return (new Form(fields: $custom, model: $this->model()))->fields()->toProps(defaults: true);
   }
 
   private function isRenderableField(string $name, array $fields): bool
@@ -148,75 +98,98 @@ class ModuleCreateDialog extends PageCreateDialog
       && !in_array($name, self::RESERVED_FIELDS, true);
   }
 
-  public function load(): array
+  public function load(): FormDialog
   {
-    if (!$this->hasModuleBlueprints()) {
-      throw new NotFoundException(t('modules.create.error.notemplates'));
-    }
-
     $blueprints = $this->blueprints();
-    $this->template ??= $blueprints[0]['name'] ?? null;
-
-    // Reject a tampered template that isn't a registered module type.
-    if (!ModuleRegistry::hasBlueprint($this->template)) {
-      throw new NotFoundException(t('modules.create.error.notemplates'));
-    }
-
-    $fields  = $this->fields();
+    $fields     = $this->fields();
     $visible = array_filter($fields, fn($field) => ($field['hidden'] ?? null) !== true);
 
     if ($visible === [] && count($blueprints) < 2) {
-      $response = $this->submit($this->value());
-      Panel::go($response['redirect'] ?? $this->view->panel()->url(true));
+      $this->submit();
+      Panel::go($this->field->model()->panel()->url(true));
     }
 
-    $status = ModuleSectionRoutes::shouldAutopublish($this->blueprint(), $this->parent instanceof Page ? $this->parent : null)
+    $status = ModuleSectionRoutes::shouldAutopublish($this->blueprint(), $this->parent)
       && !$this->bornInvalid()
-      ? t('modules.visible')
-      : t('modules.hidden');
+      ? $this->i18n('modules.visible')
+      : $this->i18n('modules.hidden');
 
-    return [
-      'component' => 'k-module-create-dialog',
-      'props' => [
-        'blueprints'   => $blueprints,
-        'fields'       => $fields,
-        'groups'       => $this->groups(),
-        'submitButton' => tt('page.create', ['status' => $status]),
-        'template'     => $this->template,
-        'value'        => $this->value(),
-      ],
-    ];
+    return new FormDialog(
+      component:    'k-module-create-dialog',
+      blueprints:   $blueprints,
+      fields:       $fields,
+      groups:       $this->field->templateGroups(),
+      size:         'large',
+      submitButton: $this->i18n('page.create', ['status' => $status]),
+      template:     $this->template(),
+      value:        $this->value()
+    );
   }
 
-  public function submit(array|null $input = null): array
+  // Stores the type name as title (the card label comes from `label`) and
+  // resolves the create.anchor template, exposing {{ module.* }}.
+  public function resolveFieldTemplates(array $input, array $fields): array
   {
-    if ($this->parent instanceof Page && $this->parent->isModuleContainer()) {
-      HostLock::ensureUnlocked($this->parent->parentModel());
+    $create = $this->blueprint()->create();
+
+    $input['title'] = (string) $this->blueprint()->title();
+
+    if (array_key_exists('anchor', $create)) {
+      $anchor = $create['anchor'];
+      if (is_string($anchor)) {
+        $page = $this->model()->clone(['content' => $input]);
+        $input['slug'] = $page->toSafeString($anchor, ['module' => $page]);
+      } else {
+        $input['slug'] = '';
+      }
     }
+
+    // Normalize + uniquify (empty falls back to the type slug). Must match
+    // createChild()'s Url::slug() so the module is created under this slug.
+    $slug = Str::slug((string) ($input['slug'] ?? ''));
+    $input['slug'] = $slug !== ''
+      ? (ModuleRegistry::uniqueSlug($this->parent->id(), $slug) ?? $slug)
+      : (ModuleRegistry::generateSlug($this->parent->id(), $this->template()) ?? '');
+
+    return $input;
+  }
+
+  public function submit(): array
+  {
+    HostLock::ensureUnlocked($this->field->model());
 
     // Guard at submit, not load, so a misconfigured type doesn't block its
     // siblings. create.title is replaced by `label`.
     if (array_key_exists('title', $this->blueprint()->create())) {
-      throw new InvalidArgumentException(t('modules.create.error.title'));
+      throw new InvalidArgumentException($this->i18n('modules.create.error.title'));
     }
     $this->guardListedFields();
 
-    $input ??= kirby()->request()->body()->toArray();
+    // Modules are always created as drafts (see ModuleRegistry::add())
+    // and promoted to listed once their visibility is set.
+    $input = $this->sanitize($this->request->get());
+    $this->validate($input);
 
-    $finalSlug = $this->sanitize($input)['slug'];
-    $input['slug'] = $finalSlug;
+    $page = $this->parent->createChild($input);
+    $page = ModuleSectionRoutes::applyAutopublish($page);
+    ModuleSectionRoutes::promote($page);
 
-    $response = parent::submit($input);
+    // core emits page.create, which sibling fields do not listen to
+    return ['event' => ['page.create', 'model.update']];
+  }
 
-    if ($page = $this->parent->drafts()->find($finalSlug)) {
-      $page = ModuleSectionRoutes::applyAutopublish($page);
-      ModuleSectionRoutes::promote($page);
+  // Rejects a field without module types and a tampered
+  // template that isn't one of the field's module types.
+  public function template(): string
+  {
+    $names    = array_column($this->blueprints, 'name');
+    $template = $this->request->get('template', $names[0] ?? null);
+
+    if (!in_array($template, $names, true)) {
+      throw new NotFoundException($this->i18n('modules.create.error.notemplates'));
     }
 
-    // core emits page.create, which sibling sections do not listen to
-    $response['event'] = ['page.create', 'model.update'];
-
-    return $response;
+    return $template;
   }
 
   private function bornInvalid(): bool
@@ -224,7 +197,7 @@ class ModuleCreateDialog extends PageCreateDialog
     $creatable = array_flip($this->blueprint()->create()['fields'] ?? []);
     $fields = array_diff_key($this->blueprint()->fields(), $creatable);
     $form = new Form(fields: $fields, model: $this->model());
-    $form->fill($form->defaults());
+    $form->fill(input: $form->defaults());
     return $form->errors() !== [];
   }
 
@@ -242,18 +215,8 @@ class ModuleCreateDialog extends PageCreateDialog
 
     if ($invalid !== []) {
       throw new InvalidArgumentException(
-        tt('modules.create.error.fields', ['fields' => implode(', ', $invalid)])
+        $this->i18n('modules.create.error.fields', ['fields' => implode(', ', $invalid)])
       );
     }
-  }
-
-  private function hasModuleBlueprints(): bool
-  {
-    foreach (ModuleRegistry::load()['blueprints'] as $name => $props) {
-      if (str_starts_with($name, 'pages/module.')) {
-        return true;
-      }
-    }
-    return false;
   }
 }

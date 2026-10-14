@@ -6,6 +6,7 @@ use Kirby\Exception\PermissionException;
 use Kirby\Panel\Panel;
 use Medienbaecker\Modules\HostLock;
 use Medienbaecker\Modules\ModuleChangesCascade;
+use Medienbaecker\Modules\ModulesField;
 
 return [
 
@@ -95,20 +96,13 @@ return [
       throw new PermissionException(t('modules.move.notallowed'));
     }
 
-    $host = $parent->parentModel();
-    $targetSection = null;
-    foreach ($host->blueprint()->sections() as $section) {
-      if ($section->type() === 'modules' && $section->name() === $parent->slug()) {
-        $targetSection = $section;
-        break;
-      }
-    }
+    $targetField = ModulesField::for($parent->parentModel(), $parent->slug());
 
-    if (!$targetSection) {
+    if (!$targetField) {
       throw new PermissionException(t('modules.move.notallowed'));
     }
 
-    $allowed = $targetSection->templates();
+    $allowed = $targetField->templates();
     if ($allowed && !in_array($page->intendedTemplate()->name(), $allowed)) {
       throw new PermissionException(t('modules.move.notallowed'));
     }

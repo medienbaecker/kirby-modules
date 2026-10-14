@@ -18,7 +18,7 @@ use Kirby\Content\LockedContentException;
  */
 class HostLock
 {
-  // The page or site whose Panel view hosts the module's section
+  // The page or site whose Panel view hosts the module's field
   public static function hostOf(Page $module): Page|Site|null
   {
     $container = $module->parent();

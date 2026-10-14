@@ -4,7 +4,6 @@ use Kirby\Cms\Page;
 use Kirby\Exception\InvalidArgumentException;
 use Medienbaecker\Modules\ModuleChangeSlugDialog;
 use Medienbaecker\Modules\ModuleChangeTypeDialog;
-use Medienbaecker\Modules\ModuleCreateDialog;
 use Medienbaecker\Modules\ModulesLicense;
 use Medienbaecker\Modules\ModuleVisibilityButton;
 use Medienbaecker\Modules\ModuleMoveDialog;
@@ -14,9 +13,6 @@ return [
   'modules' => function ($kirby) {
     return [
       'dialogs' => [
-        'modules/create' => [
-          'controller' => ModuleCreateDialog::class,
-        ],
         'modules/change-type' => [
           'pattern' => 'modules/change-type/(:any)',
           'controller' => ModuleChangeTypeDialog::class,

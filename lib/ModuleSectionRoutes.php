@@ -2,10 +2,9 @@
 
 namespace Medienbaecker\Modules;
 
-use Kirby\Cms\Blueprint;
+use Kirby\Blueprint\Blueprint;
 use Kirby\Cms\ModelWithContent;
 use Kirby\Cms\Page;
-use Kirby\Cms\Section;
 use Kirby\Content\LockedContentException;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
@@ -15,84 +14,6 @@ use Kirby\Toolkit\Str;
 
 class ModuleSectionRoutes
 {
-  // Kirby executes route actions with Closure::call($apiInstance), which
-  // rebinds both $this and self:: — so the actions reference this class by
-  // name and reach the section through the Api instance.
-  public static function routes(): array
-  {
-    return [
-      [
-        'pattern' => 'fields',
-        'method'  => 'POST',
-        'action'  => function () {
-          $container = ModuleSectionRoutes::container($this->section());
-          return ModuleSectionRoutes::loadFieldsBatch($container, $this->requestBody('ids'));
-        },
-      ],
-      [
-        'pattern' => 'duplicate/(:any)',
-        'method'  => 'POST',
-        'action'  => function (string $childId) {
-          $container = ModuleSectionRoutes::container($this->section());
-          return ModuleSectionRoutes::duplicate($container, $childId);
-        },
-      ],
-      [
-        'pattern' => 'sort',
-        'method'  => 'POST',
-        'action'  => function () {
-          $container = ModuleSectionRoutes::container($this->section());
-          ModuleSectionRoutes::sort($container, $this->requestBody('ids'));
-          return ['status' => 'ok'];
-        },
-      ],
-      [
-        'pattern' => 'deleteAll',
-        'method'  => 'POST',
-        'action'  => function () {
-          $container = ModuleSectionRoutes::container($this->section());
-          ModuleSectionRoutes::deleteAll($container);
-          return ['status' => 'ok'];
-        },
-      ],
-      [
-        'pattern' => 'toggle-visibility/(:any)',
-        'method'  => 'POST',
-        'action'  => function (string $childId) {
-          $container = ModuleSectionRoutes::container($this->section());
-          return ModuleSectionRoutes::toggleVisibility($container, $childId);
-        },
-      ],
-      [
-        'pattern' => 'move',
-        'method'  => 'POST',
-        'action'  => function () {
-          $section = $this->section();
-          return ModuleSectionRoutes::move(
-            ModuleSectionRoutes::container($section),
-            $this->requestBody('id'),
-            $this->requestBody('ids')
-          );
-        },
-      ],
-      [
-        'pattern' => 'create-container',
-        'method'  => 'POST',
-        'action'  => function () {
-          $section = $this->section();
-          ModuleSectionRoutes::createContainer($section->model(), $section->name(), $section->headline());
-          return ['status' => 'ok'];
-        },
-      ],
-    ];
-  }
-
-  // A section's container page shares the section's name as its slug.
-  public static function container(Section $section): ?Page
-  {
-    return $section->model()->find($section->name());
-  }
-
   public static function resolveModule(string $childId): Page
   {
     $child = kirby()->page(str_replace('+', '/', $childId));
@@ -140,10 +61,12 @@ class ModuleSectionRoutes
     $child = self::resolveModule($childId);
     self::assertChildOf($child, $container);
 
-    $language = kirby()->language()?->code() ?? 'default';
-    $form = $child->version('changes')->exists($language)
-      ? Form::for($child, ['values' => $child->version('changes')->content($language)->toArray()])
-      : Form::for($child);
+    $form    = Form::for($child, 'current');
+    $changes = $child->version('changes');
+
+    if ($changes->exists('current')) {
+      $form->fill(input: $changes->content('current')->toArray());
+    }
 
     $fields = $form->fields();
 
@@ -152,8 +75,12 @@ class ModuleSectionRoutes
       // keeps out-of-band content state from riding back through /changes/save.
       'values' => array_diff_key($fields->toFormValues(), $fields->passthrough()),
       // `label` can derive from fields; the client refreshes it from here after
-      // a save, sparing a full section refetch.
+      // a save, sparing a full field refetch.
       'moduleName' => (string) $child->title(),
+      // The columns of each tab with the resolved field props for k-model-form
+      'columns' => $child->blueprint()->tabs()->toArray(
+        fn ($tab) => $tab->columns($fields)
+      ),
     ];
   }
 
@@ -397,21 +324,21 @@ class ModuleSectionRoutes
   public static function shouldAutopublish(?Blueprint $blueprint, ?Page $container): bool
   {
     return self::asBool($blueprint?->autopublish())
-      ?? self::sectionAutopublish($container)
+      ?? self::fieldAutopublish($container)
       ?? option('medienbaecker.modules.autopublish', false) === true;
   }
 
-  private static function sectionAutopublish(?Page $container): ?bool
+  private static function fieldAutopublish(?Page $container): ?bool
   {
     if (!$container || !($host = $container->parentModel())) {
       return null;
     }
     try {
-      $section = $host->blueprint()->section($container->slug());
+      $field = ModulesField::for($host, $container->slug());
     } catch (\Throwable) {
       return null;
     }
-    return $section?->type() === 'modules' ? self::asBool($section->autopublish()) : null;
+    return $field?->autopublish();
   }
 
   private static function asBool(mixed $value): ?bool

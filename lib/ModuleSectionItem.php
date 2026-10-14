@@ -24,7 +24,7 @@ class ModuleSectionItem
       'hidden'            => $child->isHidden(),
       'hasFields'         => $blueprint && !empty($blueprint->fields()),
       'hasPendingChanges' => $child->hasPendingChangesDeep(),
-      'tabs'              => $blueprint ? $blueprint->tabs() : [],
+      'tabs'              => $blueprint ? $blueprint->tabs()->toButtonsProps() : [],
       'link'              => $child->panel()->url(),
       'permissions'       => [
         ...$child->panel()->options(['preview']),

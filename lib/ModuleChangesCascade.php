@@ -9,9 +9,8 @@ class ModuleChangesCascade
 {
   private static function descendants(Page $module): Generator
   {
-    foreach ($module->blueprint()->sections() as $section) {
-      if ($section->type() !== 'modules') continue;
-      $container = $module->find($section->name());
+    foreach (ModulesField::names($module) as $name) {
+      $container = $module->find($name);
       if (!$container) continue;
 
       foreach ($container->children() as $child) {
