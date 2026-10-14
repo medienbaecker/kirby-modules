@@ -33,8 +33,10 @@
         <k-empty v-if="module.hasTemplate === false" v-show="expanded" icon="alert" layout="cardlets">
           {{ $t("modules.missingTemplate.info") }}
         </k-empty>
-        <k-sections v-else v-for="tab in module.tabs" v-show="expanded && activeTab === tab.name" :key="tab.name"
-          :parent="pageUrl" :tab="tab" :content="values" @input="$emit('input', $event)" />
+        <template v-else>
+          <k-model-form v-for="tab in module.tabs" v-show="expanded && activeTab === tab.name" :key="tab.name"
+            :api="pageUrl" :columns="columns?.[tab.name]" :content="values" @input="$emit('input', { ...$event })" />
+        </template>
       </div>
       <k-empty v-if="hasError" icon="alert" layout="cardlets" class="k-module-error">
         {{ $t("error") }}
@@ -42,13 +44,15 @@
     </div>
 
     <k-toolbar v-if="selected" :buttons="toolbar" data-inline="true" class="k-module-toolbar"
-      @mousedown.native.prevent />
+      @mousedown.prevent />
   </div>
 </template>
 
 <script>
 export default {
   props: {
+    // Resolved field props per tab, loaded with the values
+    columns: Object,
     module: Object,
     expanded: Boolean,
     loading: Boolean,
@@ -57,6 +61,19 @@ export default {
     pageUrl: String,
     hasError: Boolean,
   },
+  emits: [
+    "add",
+    "change-slug",
+    "change-type",
+    "duplicate",
+    "input",
+    "move",
+    "remove",
+    "select",
+    "sort",
+    "toggle",
+    "toggle-visibility",
+  ],
   data() {
     return {
       currentTab: null,
@@ -79,7 +96,7 @@ export default {
 
     this.trackContentRender();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.sideObserver?.disconnect();
     this.contentObserver?.disconnect();
     clearTimeout(this.contentTimeout);
@@ -228,8 +245,8 @@ export default {
     switchTab(tabName) {
       this.currentTab = tabName;
     },
-    // A FieldsSection renders nothing until its request resolves; wait for the
-    // mounted .k-section so the card reveals fields, not an empty padding box.
+    // Wait for the mounted form so the card reveals fields,
+    // not an empty padding box.
     trackContentRender() {
       if (this.contentRendered) return;
       if (!this.contentReady || !this.module.hasFields || this.module.hasTemplate === false) {
@@ -245,13 +262,13 @@ export default {
           clearTimeout(this.contentTimeout);
         };
 
-        if (content.querySelector(".k-section")) return done();
+        if (content.querySelector(".k-model-form")) return done();
 
         this.contentObserver = new MutationObserver(() => {
-          if (content.querySelector(".k-section")) done();
+          if (content.querySelector(".k-model-form")) done();
         });
         this.contentObserver.observe(content, { childList: true, subtree: true });
-        // Reveal anyway if a section errors and never renders.
+        // Reveal anyway if the form errors and never renders.
         this.contentTimeout = setTimeout(done, 5000);
       });
     },
@@ -295,7 +312,7 @@ body:has(.k-module.k-sortable-fallback) * {
   }
 }
 
-.k-module[data-disabled="true"] .k-fields-section {
+.k-module[data-disabled="true"] .k-model-form {
   opacity: 0.2;
   pointer-events: none;
 }
