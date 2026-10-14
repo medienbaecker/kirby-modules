@@ -1,10 +1,14 @@
 {
   "name": "kirby-modules",
+  "type": "module",
   "scripts": {
     "dev": "kirbyup src/index.js --watch",
     "build": "kirbyup src/index.js"
   },
   "devDependencies": {
-    "kirbyup": "^3.4.1"
+    "kirbyup": "4.0.0-alpha.9"
+  },
+  "overrides": {
+    "rolldown": "1.2.12"
   }
 }
