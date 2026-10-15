@@ -105,6 +105,7 @@ export default {
       expanded: {},
       fieldData: {},
       changes: {},
+      drafts: {},
       serverPendingIds: [],
       descendantPendingIds: [],
       loadingModules: {},
@@ -452,8 +453,9 @@ export default {
         // Flush any pending client-side edits so they land in the server's
         // _changes/ before the duplicate endpoint copies that directory.
         // Without this, a fast "type then duplicate" produces an empty copy.
-        const pending = this.changes[module.id];
-        if (pending) {
+        const pending = this.drafts[module.id] ?? this.changes[module.id];
+        const original = this.fieldData[module.id]?.original;
+        if (pending && JSON.stringify(pending) !== original) {
           await this.queueChanges(module.id, () =>
             this.$api.post(this.pageUrl(module.id) + "/changes/save", pending, { silent: true }),
           );
@@ -589,13 +591,22 @@ export default {
     // then published/discarded when the parent page is saved/discarded.
     async onInput(module, values) {
       const data = this.fieldData[module.id];
-      const unchanged = data?.original && JSON.stringify(values) === data.original;
+      const isOriginal = (v) => data?.original && JSON.stringify(v) === data.original;
 
-      if (unchanged) {
+      // The form shows these values right away. Saves are queued, so the
+      // form would otherwise snap back to older values while typing.
+      this.drafts[module.id] = values;
+      this._draftSeq ??= {};
+      const seq = (this._draftSeq[module.id] = (this._draftSeq[module.id] ?? 0) + 1);
+      const settle = () => {
+        if (this._draftSeq[module.id] === seq) delete this.drafts[module.id];
+      };
+
+      if (isOriginal(values)) {
         delete this.changes[module.id];
         this.queueChanges(module.id, () =>
           this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }),
-        ).catch(() => { });
+        ).catch(() => { }).finally(settle);
       } else {
         try {
           await this.queueChanges(module.id, () =>
@@ -603,11 +614,15 @@ export default {
           );
           // Commit local state only after the server accepts; otherwise a
           // 423 leaves the parent dirty with nothing the user can publish.
-          this.changes[module.id] = values;
+          if (!isOriginal(this.drafts[module.id] ?? values)) {
+            this.changes[module.id] = values;
+          }
         } catch (e) {
+          settle();
           this.handleError(e);
           return;
         }
+        settle();
       }
 
       this.syncDirtyState();
@@ -697,7 +712,8 @@ export default {
     },
 
     currentValues(moduleId) {
-      return this.changes[moduleId]
+      return this.drafts[moduleId]
+        || this.changes[moduleId]
         || this.fieldData[moduleId]?.values
         || {};
     },
