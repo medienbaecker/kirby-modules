@@ -5,7 +5,7 @@
     <div class="k-module-body" :data-collapsed="!expanded || isAwaitingContent">
       <header class="k-module-header" :style="{ '--side-width': sideWidth + 'px' }">
         <div ref="title" class="k-module-title">
-          <button class="k-module-toggle" :aria-expanded="String(expanded)"
+          <button type="button" class="k-module-toggle" :aria-expanded="String(expanded)"
             :aria-label="$t('modules.singular') + ' ' + module.moduleName" @click="$emit('toggle')">
             <k-icon v-if="loading || isAwaitingContent" type="loader" />
             <span v-else class="k-module-icon">
@@ -14,7 +14,7 @@
             </span>
           </button>
           <span class="k-module-name" v-html="module.moduleName"></span>
-          <button class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug"
+          <button type="button" class="k-module-anchor" :aria-label="$t('modules.changeAnchor') + ': ' + module.slug"
             :disabled="!permissions.changeSlug" @click="$emit('change-slug')">
             <span class="k-module-anchor-text">
               #{{ module.slug }}
@@ -22,7 +22,7 @@
           </button>
         </div>
         <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="switchTab" />
-        <button ref="visibility" class="k-module-visibility" :data-hidden="module.hidden"
+        <button ref="visibility" type="button" class="k-module-visibility" :data-hidden="module.hidden"
           :aria-label="module.hidden ? $t('publish') : $t('modules.unpublish')" :disabled="!permissions.update"
           @click.stop="$emit('toggle-visibility')">
           <span>{{ module.hidden ? $t('modules.hidden') : $t('modules.visible') }}</span>
