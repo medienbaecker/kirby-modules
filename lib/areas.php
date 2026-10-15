@@ -9,8 +9,16 @@ use Medienbaecker\Modules\ModulesLicense;
 use Medienbaecker\Modules\ModuleVisibilityButton;
 use Medienbaecker\Modules\ModuleMoveDialog;
 use Medienbaecker\Modules\ModuleVisibilityDialog;
+use Medienbaecker\Modules\PageDeleteDialog;
 
 return [
+  'site' => fn () => [
+    'dialogs' => [
+      'page.delete' => [
+        'action' => PageDeleteDialog::class,
+      ],
+    ],
+  ],
   'modules' => function ($kirby) {
     return [
       'dialogs' => [

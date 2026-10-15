@@ -295,6 +295,7 @@ export default {
 
         this.loadFieldsBatch(toLoad, true);
       } catch (e) {
+        if (e?.response?.status === 404) return;
         this.handleError(e);
       } finally {
         this.isLoading = false;
