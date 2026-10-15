@@ -116,7 +116,8 @@ export default {
     },
     contentReady() {
       if (!this.module.hasFields) return true;
-      return !!this.values && Object.keys(this.values).length > 0;
+      // Modules with display fields only (pagelist, filelist, modules) have no values
+      return !!this.columns;
     },
     isAwaitingContent() {
       if (!this.expanded || !this.module.hasFields || this.module.hasTemplate === false) {
