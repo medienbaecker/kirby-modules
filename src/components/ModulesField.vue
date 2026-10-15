@@ -241,6 +241,7 @@ export default {
     this.$events.on("content.discard", this._onDiscard);
     this.$events.on("modules.dirty", this._onDescendantDirty);
     this.$events.on("modules.published", this._onModulePublished);
+    this.$events.on("page.delete", this.notifyPreview);
   },
   mounted() {
     document.addEventListener("mousedown", this.onClickOutside);
@@ -254,6 +255,7 @@ export default {
     this.$events.off("content.discard", this._onDiscard);
     this.$events.off("modules.dirty", this._onDescendantDirty);
     this.$events.off("modules.published", this._onModulePublished);
+    this.$events.off("page.delete", this.notifyPreview);
     document.removeEventListener("mousedown", this.onClickOutside);
   },
 
@@ -480,6 +482,7 @@ export default {
             delete this.changes[module.id];
             this.$panel.dialog.close();
             this.fetch();
+            this.notifyPreview();
           },
         },
       });
@@ -599,7 +602,9 @@ export default {
       this._draftSeq ??= {};
       const seq = (this._draftSeq[module.id] = (this._draftSeq[module.id] ?? 0) + 1);
       const settle = () => {
-        if (this._draftSeq[module.id] === seq) delete this.drafts[module.id];
+        if (this._draftSeq[module.id] !== seq) return;
+        delete this.drafts[module.id];
+        this.notifyPreview();
       };
 
       if (isOriginal(values)) {
@@ -868,6 +873,12 @@ export default {
     encodeId(id) {
       return id.replace(/\//g, "+");
     },
+    // Kirby's preview view only reloads on content and model events. The
+    // field's own api matches no view, so nothing else reacts to it.
+    notifyPreview() {
+      this.$panel.content.emit("save", {}, { api: this.fieldUrl });
+    },
+
     pageUrl(moduleId) {
       return "pages/" + this.encodeId(moduleId);
     },
