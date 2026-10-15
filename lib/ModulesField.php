@@ -241,6 +241,18 @@ class ModulesField extends DisplayField
   }
 
   /**
+   * The modules field a module belongs to. Works for modules
+   * whose blueprint is missing, which are plain pages.
+   */
+  public static function forModule(Page $module): static|null
+  {
+    $container = $module->parent();
+    $host      = $container?->parentModel();
+
+    return $host ? static::for($host, $container->slug()) : null;
+  }
+
+  /**
    * Finds the modules field with the given name
    * in the blueprint of a page or the site
    */

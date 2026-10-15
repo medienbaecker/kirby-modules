@@ -12,7 +12,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
     // and allowed types match the create dialog exactly (same field, same
     // `default`/`templates`/`templatesIgnore`). Fall back to the page's
     // changeTemplate option, then the registry, for edge/recovery cases.
-    $blueprints = $this->module->blueprints();
+    $blueprints = $this->allowedBlueprints();
     if (empty($blueprints)) {
       foreach (ModuleRegistry::load()['blueprints'] as $name => $props) {
         if (!str_starts_with($name, 'pages/module.')) continue;
@@ -51,7 +51,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
       'component' => 'k-module-change-type-dialog',
       'props' => [
         'blueprints' => $types,
-        'groups' => $this->module->ownerField()?->templateGroups(),
+        'groups' => ModulesField::forModule($this->module)?->templateGroups(),
         'value' => [
           'template' => $currentName
         ],
@@ -86,9 +86,17 @@ class ModuleChangeTypeDialog extends ModuleDialog
     return ['event' => 'model.update'];
   }
 
+  // Modules without a blueprint are plain pages, whose blueprints()
+  // knows nothing about the owning modules field
+  private function allowedBlueprints(): array
+  {
+    return ModulesField::forModule($this->module)?->blueprints()
+      ?? $this->module->blueprints();
+  }
+
   private function validateTarget(string $target): string
   {
-    $allowed = array_column($this->module->blueprints(), 'name');
+    $allowed = array_column($this->allowedBlueprints(), 'name');
 
     if (!ModuleRegistry::hasBlueprint($target) || !in_array($target, $allowed, true)) {
       throw new InvalidArgumentException('Invalid module type');

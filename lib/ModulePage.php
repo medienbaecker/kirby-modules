@@ -60,14 +60,7 @@ class ModulePage extends Page
   // normal request.
   public function ownerField(): ?ModulesField
   {
-    $container = $this->parent();
-    $host = $container?->parentModel();
-
-    if (!$host) {
-      return null;
-    }
-
-    return ModulesField::for($host, $container->slug());
+    return ModulesField::forModule($this);
   }
 
   private bool $hiddenWriteAllowed = false;

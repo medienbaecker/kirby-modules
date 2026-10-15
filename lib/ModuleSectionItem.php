@@ -26,13 +26,25 @@ class ModuleSectionItem
       'hasPendingChanges' => $child->hasPendingChangesDeep(),
       'tabs'              => $blueprint ? $blueprint->tabs()->toButtonsProps() : [],
       'link'              => $child->panel()->url(),
-      'permissions'       => [
-        ...$child->panel()->options(['preview']),
-        'move' => ModuleSectionRoutes::canMove($child),
-      ],
+      'permissions'       => self::permissions($child, $hasTemplate),
       'isLocked'          => $child->lock()?->isLocked() ?? false,
       'previewUrl'        => self::previewUrl($child),
     ];
+  }
+
+  private static function permissions(Page $child, bool $hasTemplate): array
+  {
+    $options = $child->panel()->options(['preview']);
+    $options['move'] = ModuleSectionRoutes::canMove($child);
+
+    // Kirby disables changeTemplate without a blueprint, but changing
+    // the type is the way to recover such a module
+    if ($hasTemplate === false) {
+      $options['changeTemplate'] = $options['update'] === true
+        && !empty(ModulesField::forModule($child)?->blueprints());
+    }
+
+    return $options;
   }
 
   private static function previewUrl(Page $child): ?string
