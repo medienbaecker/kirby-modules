@@ -9,6 +9,7 @@ use Kirby\Content\LockedContentException;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
 use Kirby\Exception\PermissionException;
+use Kirby\Filesystem\Dir;
 use Kirby\Form\Form;
 use Kirby\Toolkit\Str;
 
@@ -111,7 +112,8 @@ class ModuleSectionRoutes
       $child->parent()->id(),
       $child->slug()
     );
-    $duplicate = $child->duplicate($slug, ['files' => true]);
+    $duplicate = $child->duplicate($slug, ['children' => true, 'files' => true]);
+    self::removeCopiedChanges($duplicate->root());
 
     // A hidden source always duplicates as hidden; autopublish only decides
     // what happens when the source was visible.
@@ -128,28 +130,14 @@ class ModuleSectionRoutes
     // Carry pending changes via the Version API, not a raw directory copy:
     // raw files carry the source's `Uuid:` and `Lock:`. Skipped when another
     // user holds the lock.
-    if (!$child->lock()?->isLocked()) {
-      $sourceChanges = $child->version('changes');
-      $codes = kirby()->multilang()
-        ? kirby()->languages()->codes()
-        : ['default'];
-      foreach ($codes as $code) {
-        if (!$sourceChanges->exists($code)) continue;
-        $fields = $sourceChanges->read($code) ?? [];
-        // Pin the copy's fresh uuid: publishing replaces latest wholesale.
-        if ($uuid = $duplicate->content($code)->get('uuid')->value()) {
-          $fields['uuid'] = $uuid;
-        } else {
-          unset($fields['uuid']);
-        }
-        if ($code === ($language ?? 'default')) {
-          if ($hidden) {
-            $fields['hidden'] = 'true';
-          } else {
-            unset($fields['hidden']);
-          }
-        }
-        $duplicate->version('changes')->create($fields, $code);
+    self::carryChanges($child, $duplicate, $hidden, $language);
+    $copies = [];
+    foreach ($duplicate->index(true) as $copy) {
+      $copies[substr($copy->id(), strlen($duplicate->id()))] = $copy;
+    }
+    foreach ($child->index(true) as $source) {
+      if ($copy = $copies[substr($source->id(), strlen($child->id()))] ?? null) {
+        self::carryChanges($source, $copy, null, $language);
       }
     }
 
@@ -157,6 +145,58 @@ class ModuleSectionRoutes
     HostLock::sync($container->parentModel());
 
     return ['status' => 'ok'];
+  }
+
+  // `$hidden` null leaves the hidden flag of the changes as it is
+  private static function carryChanges(Page $source, Page $copy, ?bool $hidden, ?string $language): void
+  {
+    if ($source->lock()?->isLocked()) {
+      return;
+    }
+
+    $sourceChanges = $source->version('changes');
+    $codes = kirby()->multilang()
+      ? kirby()->languages()->codes()
+      : ['default'];
+
+    foreach ($codes as $code) {
+      if (!$sourceChanges->exists($code)) continue;
+      $fields = $sourceChanges->read($code) ?? [];
+      // Pin the copy's fresh uuid: publishing replaces latest wholesale.
+      if ($uuid = $copy->content($code)->get('uuid')->value()) {
+        $fields['uuid'] = $uuid;
+      } else {
+        unset($fields['uuid']);
+      }
+      if ($hidden !== null && $code === ($language ?? 'default')) {
+        if ($hidden) {
+          $fields['hidden'] = 'true';
+        } else {
+          unset($fields['hidden']);
+        }
+      }
+      $copy->version('changes')->create($fields, $code);
+    }
+  }
+
+  // Kirby copies child folders as they are, `_changes` included
+  private static function removeCopiedChanges(string $root): void
+  {
+    $iterator = new \RecursiveIteratorIterator(
+      new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+      \RecursiveIteratorIterator::SELF_FIRST
+    );
+
+    $dirs = [];
+    foreach ($iterator as $item) {
+      if ($item->isDir() && $item->getFilename() === '_changes') {
+        $dirs[] = $item->getPathname();
+      }
+    }
+
+    foreach ($dirs as $dir) {
+      Dir::remove($dir);
+    }
   }
 
   public static function sort(?Page $container, array $ids): void
