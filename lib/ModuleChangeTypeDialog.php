@@ -69,7 +69,7 @@ class ModuleChangeTypeDialog extends ModuleDialog
     if (count($this->module->blueprints()) > 0) {
       $module = $this->module->changeTemplate($target);
     } else {
-      // Missing-blueprint fallback: PageRules::changeTemplate would reject the
+      // Missing-blueprint fallback: the changeTemplate guard would reject the
       // change because $this->module->blueprints() is empty. Rename files directly.
       kirby()->impersonate('kirby', fn() => self::renameTemplateFiles(
         $this->module->root(),

@@ -3,7 +3,6 @@
 namespace Medienbaecker\Modules;
 
 use Kirby\Cms\Page;
-use Kirby\Cms\PageRules;
 use Kirby\Cms\Pages;
 use Kirby\Cms\Site;
 use Kirby\Content\Field;
@@ -91,7 +90,7 @@ class ModulePage extends Page
       return parent::previewUrl($versionId);
     }
 
-    if ($this->permissions()->can('preview') !== true) {
+    if ($this->guards()->isAvailable('preview') === false) {
       return null;
     }
 
@@ -236,7 +235,7 @@ class ModulePage extends Page
 
     // A taken slug is no blocker: the move renames the module first.
     try {
-      PageRules::move($this->clone(['slug' => ModuleRegistry::moveSlug($this, $parent)]), $parent);
+      $this->clone(['slug' => ModuleRegistry::moveSlug($this, $parent)])->guards()->ensureExecutable('move', $parent);
       return true;
     } catch (Throwable) {
       return false;

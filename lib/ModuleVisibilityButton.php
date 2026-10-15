@@ -11,7 +11,7 @@ class ModuleVisibilityButton extends ViewButton
   public function __construct(Page $page)
   {
     $hidden = $page->isHidden();
-    $disabled = $page->permissions()->cannot('update');
+    $disabled = $page->guards()->isAvailable('update') === false;
 
     $text = I18n::translate($hidden ? 'modules.hidden' : 'modules.visible');
     $title = I18n::translate('modules.visibility') . ': ' . $text;

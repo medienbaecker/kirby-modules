@@ -23,7 +23,7 @@ class ModuleChangesCascade
   public static function publish(Page $module): void
   {
     foreach (static::descendants($module) as $child) {
-      if ($child->permissions()->can('update') !== true) continue;
+      if ($child->guards()->isAvailable('update') === false) continue;
       $changes = $child->version('changes');
       if ($changes->exists('current')) {
         $changes->publish(language: 'current');
@@ -34,7 +34,7 @@ class ModuleChangesCascade
   public static function discard(Page $module): void
   {
     foreach (static::descendants($module) as $child) {
-      if ($child->permissions()->can('update') !== true) continue;
+      if ($child->guards()->isAvailable('update') === false) continue;
       $changes = $child->version('changes');
       if ($changes->exists('current')) {
         $changes->delete('current');

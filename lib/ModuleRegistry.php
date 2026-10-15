@@ -275,7 +275,7 @@ class ModuleRegistry
       return null;
     }
 
-    // Match PageRules::create(), which checks the slug against drafts too.
+    // Match the create guard, which checks the slug against drafts too.
     $siblings = $parent->childrenAndDrafts();
     while ($siblings->findBy('slug', $slug) || in_array($slug, $reserved, true)) {
       $slug = Str::increment($slug, '-', 2);

@@ -238,7 +238,7 @@ class ModuleSectionRoutes
   public static function canMove(Page $child): bool
   {
     if (isset($child->blueprint()->options()['move'])) {
-      return $child->permissions()->can('move');
+      return $child->guards()->isAvailable('move');
     }
 
     return kirby()->user()?->role()->permissions()
