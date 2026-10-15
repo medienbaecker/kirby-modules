@@ -1,34 +1,26 @@
 <template>
   <k-dialog class="k-modules-license-dialog" size="large" :cancel-button="cancelButton" :submit-button="submitButton"
     :visible="true" @cancel="$emit('cancel')">
-    <k-bar class="k-modules-license-header">
-      <h2 class="k-headline">
-        Kirby Modules
-      </h2>
+    <k-stack>
+      <k-bar>
+        <h2 class="k-headline">
+          Kirby Modules
+        </h2>
 
-      <k-button :text="$t('remove')" icon="trash" size="xs" variant="filled" dialog="modules/remove-license" />
-    </k-bar>
+        <k-button :text="$t('remove')" icon="trash" size="xs" variant="filled" dialog="modules/remove-license" />
+      </k-bar>
 
-    <div class="k-table">
-      <table class="k-modules-license-table">
-        <tbody>
-          <tr v-if="license.code">
-            <th data-mobile="true">{{ $t("license.code") }}</th>
-            <td data-mobile="true" class="k-text">
-              <code>{{ license.code }}</code>
-            </td>
-          </tr>
-          <tr v-if="license.version">
-            <th data-mobile="true">{{ $t("version") }}</th>
-            <td data-mobile="true">{{ license.version }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <k-definitions>
+        <k-definition v-if="license.code" :term="$t('license.code')">
+          <k-code-token type="pink">{{ license.code }}</k-code-token>
+        </k-definition>
+        <k-definition v-if="license.version" :term="$t('version')" :description="license.version" />
+      </k-definitions>
 
-    <p class="k-modules-license-thanks">
-      {{ $t("modules.license.active.info") }}
-    </p>
+      <p class="k-modules-license-thanks">
+        {{ $t("modules.license.active.info") }}
+      </p>
+    </k-stack>
   </k-dialog>
 </template>
 
@@ -51,16 +43,7 @@ export default {
 </script>
 
 <style>
-.k-modules-license-header {
-  margin-block-end: var(--spacing-2);
-}
-
-.k-modules-license-table {
-  table-layout: auto;
-}
-
 .k-modules-license-thanks {
-  margin-block-start: var(--spacing-3);
   font-size: var(--text-xs);
   color: var(--color-text-dimmed);
 }
