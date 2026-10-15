@@ -229,7 +229,7 @@ export default {
     this._onDescendantDirty = ({ parent, dirty }) => this.handleDescendantDirty(parent, dirty);
     this._onModulePublished = async ({ parent }) => {
       if (!this.isDescendantApi(parent)) return;
-      this.changes = {};
+      for (const id of Object.keys(this.changes)) this.markPublished(id);
       this.serverPendingIds = [];
       this.descendantPendingIds = [];
       this._lastReportedDirty = undefined;
@@ -673,7 +673,10 @@ export default {
           else otherFailed.push({ id, reason: result.reason });
         });
 
-        for (const id of succeeded) delete this.changes[id];
+        for (const id of succeeded) {
+          if (action === "publish") this.markPublished(id);
+          else delete this.changes[id];
+        }
         this.serverPendingIds = this.serverPendingIds.filter(
           (id) => !succeeded.includes(id),
         );
@@ -717,6 +720,16 @@ export default {
       } finally {
         this._isApplying = false;
       }
+    },
+
+    markPublished(moduleId) {
+      const data = this.fieldData[moduleId];
+      const values = this.changes[moduleId];
+      if (data && values) {
+        data.values = values;
+        data.original = JSON.stringify(values);
+      }
+      delete this.changes[moduleId];
     },
 
     currentValues(moduleId) {

@@ -35,7 +35,7 @@
         </k-empty>
         <template v-else>
           <k-model-form v-for="tab in module.tabs" v-show="expanded && activeTab === tab.name" :key="tab.name"
-            :api="pageUrl" :columns="columns?.[tab.name]" :content="values" @input="$emit('input', { ...$event })" />
+            :api="pageUrl" :columns="columns?.[tab.name]" :content="{ ...values }" @input="$emit('input', { ...$event })" />
         </template>
       </div>
       <k-empty v-if="hasError" icon="alert" layout="cardlets" class="k-module-error">
