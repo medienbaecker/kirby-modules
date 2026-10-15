@@ -227,14 +227,16 @@ export default {
       if (!event?.parent || event.parent === this.parent) this.fetch();
     };
     this._onDescendantDirty = ({ parent, dirty }) => this.handleDescendantDirty(parent, dirty);
-    this._onModulePublished = ({ parent }) => {
+    this._onModulePublished = async ({ parent }) => {
       if (!this.isDescendantApi(parent)) return;
       this.changes = {};
-      this.fieldData = {};
       this.serverPendingIds = [];
       this.descendantPendingIds = [];
       this._lastReportedDirty = undefined;
-      this.fetch();
+      await this.fetch();
+      await this.loadFieldsBatch(
+        this.modules.filter((m) => this.expanded[m.id] && m.hasFields && this.fieldData[m.id]),
+      );
     };
     this.$events.on("modules.moved", this._onMoved);
     this.$events.on("content.publish", this._onPublish);
