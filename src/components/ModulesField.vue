@@ -881,3 +881,15 @@ export default {
   margin-block-start: var(--spacing-3);
 }
 </style>
+
+<style>
+.k-modules-field:not(:has(.k-modules-validator:invalid)) > .k-field-header > .k-label {
+  abbr.k-label-invalid {
+    display: none;
+  }
+
+  abbr:has(+ abbr.k-label-invalid) {
+    display: inline;
+  }
+}
+</style>
