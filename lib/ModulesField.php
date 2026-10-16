@@ -224,14 +224,14 @@ class ModulesField extends DisplayField
     $errors = [];
 
     if ($this->validateMax() === false) {
-      $errors['max'] = I18n::template('error.field.pagelist.max.' . I18n::form($this->max), [
+      $errors['max'] = I18n::template('modules.error.max.' . I18n::form($this->max), [
         'field' => $this->label(),
         'max'   => $this->max,
       ]);
     }
 
     if ($this->validateMin() === false) {
-      $errors['min'] = I18n::template('error.field.pagelist.min.' . I18n::form($this->min), [
+      $errors['min'] = I18n::template('modules.error.min.' . I18n::form($this->min), [
         'field' => $this->label(),
         'min'   => $this->min,
       ]);

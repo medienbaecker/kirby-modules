@@ -37,5 +37,9 @@
   "license.remove.text": "This will remove the licence from this site. You can re-activate it at any time with the same key.",
   "license.remove.submit": "Remove",
   "license.portal": "Customer Portal",
-  "move.headline": "Move module"
+  "move.headline": "Move module",
+  "error.max.plural": "You must not add more than {max} modules to the \"{field}\" field",
+  "error.max.singular": "You must not add more than one module to the \"{field}\" field",
+  "error.min.plural": "The \"{field}\" field requires at least {min} modules",
+  "error.min.singular": "The \"{field}\" field requires at least one module"
 }
