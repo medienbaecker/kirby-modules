@@ -1,6 +1,6 @@
 <template>
   <div class="k-module-type-field">
-    <template v-if="hasPreviews || hasGroups">
+    <template v-if="showsCards">
       <header class="k-field-header">
         <label class="k-label k-field-label"><span class="k-label-text">{{ $t("modules.create.type") }}</span></label>
       </header>
@@ -17,12 +17,13 @@
         </k-navigate>
       </component>
     </template>
-    <k-select-field v-else :label="$t('modules.create.type')" :options="typeOptions" :value="selected" :empty="false"
-      :required="true" @input="$emit('select', $event)" />
+    <k-select-field v-else v-bind="selectField" :value="selected" @input="$emit('select', $event)" />
   </div>
 </template>
 
 <script>
+import { showsTypeCards, typeSelectField } from "../helpers/typePicker.js";
+
 export default {
   props: {
     types: { type: Array, default: () => [] },
@@ -34,11 +35,8 @@ export default {
     return { openedWith: this.selected };
   },
   computed: {
-    hasPreviews() {
-      return this.types.some((type) => type.preview);
-    },
-    hasGroups() {
-      return this.resolvedGroups.some((group) => group.label);
+    showsCards() {
+      return showsTypeCards(this.types, this.groups);
     },
     // Mirrors k-block-selector: with groups declared it renders those and only
     // those, so a type in no group is not offered. Without them, one unlabelled
@@ -71,12 +69,8 @@ export default {
 
       return groups;
     },
-    typeOptions() {
-      return this.types.map((type) => ({
-        value: type.name,
-        text: type.title,
-        disabled: type.disabled,
-      }));
+    selectField() {
+      return typeSelectField(this.types);
     },
   },
   methods: {
