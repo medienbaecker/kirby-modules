@@ -60,6 +60,7 @@ export default {
     values: Object,
     pageUrl: String,
     hasError: Boolean,
+    isFull: Boolean,
   },
   emits: [
     "add",
@@ -150,6 +151,7 @@ export default {
           icon: "add",
           title: this.$t("modules.addBelow"),
           click: () => this.$emit("add", 1),
+          disabled: this.isFull,
         },
         {
           icon: "trash",
@@ -205,7 +207,7 @@ export default {
               icon: "copy",
               label: this.$t("duplicate"),
               click: () => this.$emit("duplicate"),
-              disabled: !p.duplicate,
+              disabled: !p.duplicate || this.isFull,
             },
             {
               icon: "parent",
@@ -224,11 +226,13 @@ export default {
               icon: "add-module-above",
               label: this.$t("modules.addAbove"),
               click: () => this.$emit("add", 0),
+              disabled: this.isFull,
             },
             {
               icon: "add-module-below",
               label: this.$t("modules.addBelow"),
               click: () => this.$emit("add", 1),
+              disabled: this.isFull,
             },
             "-",
             {

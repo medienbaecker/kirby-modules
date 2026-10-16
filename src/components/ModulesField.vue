@@ -14,7 +14,7 @@
           :expanded="expanded[module.id] === true" :loading="!!loadingModules[module.id]"
           :selected="selectedModule === module.id" :values="currentValues(module.id)"
           :columns="fieldData[module.id]?.columns" :page-url="pageUrl(module.id)"
-          :has-error="!!(fieldData[module.id] && fieldData[module.id].error)" @toggle="toggle(module)"
+          :has-error="!!(fieldData[module.id] && fieldData[module.id].error)" :is-full="!canAdd" @toggle="toggle(module)"
           @toggle-visibility="toggleVisibility(module)" @select="select(module)" @input="onInput(module, $event)"
           @add="addAt(module, $event)" @remove="remove(module)" @duplicate="duplicate(module)"
           @move="moveModule(module)" @change-type="changeType(module)" @change-slug="changeSlug(module)"
@@ -452,6 +452,7 @@ export default {
       this.add(index + offset);
     },
     async duplicate(module) {
+      if (!this.canAdd) return;
       try {
         // Clear any stale focus intent from a previously cancelled Add.
         this.pendingFocusInput = false;
