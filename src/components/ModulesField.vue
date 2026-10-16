@@ -5,8 +5,7 @@
       <k-button-group :buttons="buttons" size="xs" variant="filled" />
     </template>
     <k-dropdown ref="options" :options="dropdownOptions" align-x="end" />
-    <k-icon v-if="isLoading" class="k-modules-loader" type="loader" />
-    <k-validator v-else class="k-modules-validator" :count="modules.length" :max="max" :min="min">
+    <k-validator v-if="!isLoading" class="k-modules-validator" :count="modules.length" :max="max" :min="min">
       <k-draggable :list="modules" :options="dragOptions" :group="'k-modules:' + parent" :data="{ accepts }"
         :move="onMove" @change="onDragChange" @start="onDragStart" @end="onDragEnd" class="k-modules-list"
         :data-layout="layout">
@@ -21,7 +20,10 @@
           @sort="sortModule(module, $event)" />
       </k-draggable>
     </k-validator>
-    <k-empty v-if="!isLoading" class="k-modules-empty" icon="box" @click="add()">
+    <k-empty v-if="isLoading" class="k-modules-empty" icon="loader">
+      {{ $t("loading") }}
+    </k-empty>
+    <k-empty v-else class="k-modules-empty" icon="box" @click="add()">
       {{ empty ?? $t("modules.empty") }}
     </k-empty>
     <footer v-if="!isLoading && modules.length && canAdd && !isLocked" class="k-modules-footer">
@@ -145,7 +147,7 @@ export default {
       return this.disabled || this.isHostLocked;
     },
     buttons() {
-      if (this.isLocked) return [];
+      if (this.isLocked || this.isLoading) return [];
       const buttons = [
         { icon: "cog", title: this.$t("options"), click: () => this.$refs.options?.toggle() },
       ];
@@ -904,10 +906,6 @@ export default {
 </script>
 
 <style scoped>
-.k-modules-loader {
-  color: var(--color-text-dimmed);
-}
-
 .k-modules-list {
   display: flex;
   flex-direction: column;
