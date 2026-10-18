@@ -240,6 +240,18 @@ export default {
         this.modules.filter((m) => this.expanded[m.id] && m.hasFields && this.fieldData[m.id]),
       );
     };
+    this._onRemoteUpdate = ({ api, values }) => {
+      const module = this.modules.find((m) => this.isParentApi(api, this.pageUrl(m.id)));
+      if (!module || !this.fieldData[module.id]?.columns) return;
+      this.onInput(module, { ...this.currentValues(module.id), ...values }, true);
+    };
+    this._onRemoteMerge = ({ api, values }) => {
+      const module = this.modules.find((m) => this.isParentApi(api, this.pageUrl(m.id)));
+      if (!module || !this.fieldData[module.id]?.columns) return;
+      this.mergeValues(module, { ...this.currentValues(module.id), ...values });
+    };
+    this.$events.on("modules.update", this._onRemoteUpdate);
+    this.$events.on("modules.merge", this._onRemoteMerge);
     this.$events.on("modules.moved", this._onMoved);
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
@@ -254,6 +266,8 @@ export default {
     for (const event of REFRESH_EVENTS) {
       this.$events.off(event, this._onRefresh);
     }
+    this.$events.off("modules.update", this._onRemoteUpdate);
+    this.$events.off("modules.merge", this._onRemoteMerge);
     this.$events.off("modules.moved", this._onMoved);
     this.$events.off("content.publish", this._onPublish);
     this.$events.off("content.discard", this._onDiscard);
@@ -441,6 +455,15 @@ export default {
           this.fieldData[module.id] = { error: true };
         }
       }
+      for (const module of modules) {
+        const columns = this.fieldData[module.id]?.columns;
+        if (!columns) continue;
+        this.$events.emit("modules.load", {
+          ...this.eventPayload(module),
+          values: this.currentValues(module.id),
+          columns: Object.values(columns).flatMap((tab) => Object.values(tab)),
+        });
+      }
     },
 
     add(position = -1) {
@@ -598,7 +621,9 @@ export default {
 
     // Module changes are saved to each module's _changes version immediately,
     // then published/discarded when the parent page is saved/discarded.
-    async onInput(module, values) {
+    async onInput(module, values, remote = false) {
+      if (!remote) this.$events.emit("modules.input", { ...this.eventPayload(module), values });
+
       const data = this.fieldData[module.id];
       const isOriginal = (v) => data?.original && JSON.stringify(v) === data.original;
 
@@ -639,6 +664,16 @@ export default {
       this.syncDirtyState();
     },
 
+    mergeValues(module, values) {
+      if (JSON.stringify(values) === this.fieldData[module.id]?.original) {
+        delete this.changes[module.id];
+      } else {
+        this.changes[module.id] = values;
+      }
+      if (this.drafts[module.id]) this.drafts[module.id] = values;
+      this.syncDirtyState();
+    },
+
     // Triggered by parent page Save/Discard.
     async applyChanges(action) {
       if (this._isApplying) return;
@@ -647,7 +682,7 @@ export default {
       try {
         const currentIds = new Set(this.modules.map((m) => m.id));
         const changedIds = Object.keys(this.changes);
-        const allIds = [...new Set([...changedIds, ...this.serverPendingIds, ...this.descendantPendingIds])]
+        const allIds = [...new Set([...changedIds, ...Object.keys(this.drafts), ...this.serverPendingIds, ...this.descendantPendingIds])]
           .filter((id) => currentIds.has(id));
 
         if (!allIds.length) {
@@ -900,6 +935,16 @@ export default {
 
     pageUrl(moduleId) {
       return "pages/" + this.encodeId(moduleId);
+    },
+
+    eventPayload(module) {
+      return {
+        field: this.name,
+        parent: this.parent,
+        id: module.id,
+        api: this.pageUrl(module.id),
+        template: module.template,
+      };
     },
   },
 };
