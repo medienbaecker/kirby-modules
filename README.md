@@ -457,6 +457,36 @@ The second argument targets a named container:
 $page->createModule($props, 'sidebar');
 ```
 
+### Panel events
+
+Other Panel plugins can work with module values through `panel.events`, without overriding any Kirby component. The modules field emits:
+
+- `modules.load` when a module's fields are ready, again after publishing, discarding, changing the language or the type
+- `modules.input` when an editor changes a module's values
+
+Both events carry the field name, the host page and the module:
+
+```js
+panel.events.on("modules.load", ({ field, parent, id, api, template, values, columns }) => {
+  // field: "modules", parent: "pages/home", id: "home/modules/intro",
+  // api: "pages/home+modules+intro", columns: [{ width, fields }]
+});
+```
+
+`modules.input` carries the same, minus `columns`.
+
+To set values from outside, emit an event with the module's `api` and only the fields that change:
+
+```js
+// Applies the values and saves them, like panel.content.update()
+panel.events.emit("modules.update", { api: "pages/home+modules+intro", values: { headline: "Hello" } });
+
+// Applies the values without saving them, like panel.content.merge()
+panel.events.emit("modules.merge", { api: "pages/home+modules+intro", values: { headline: "Hello" } });
+```
+
+Either way the page becomes dirty and its Save button publishes the module. Modules whose fields haven't loaded yet ignore both events.
+
 ### Config options
 
 ```php
