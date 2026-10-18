@@ -783,7 +783,9 @@ export default {
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: String(Date.now()) });
     },
     undirtyParent() {
-      this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: undefined });
+      const versions = this.$panel.content.versions();
+      delete versions.changes[`_modulesChanged_${this.name}`];
+      delete versions.latest[`_modulesChanged_${this.name}`];
     },
     syncDirtyState() {
       const hasChanges =
