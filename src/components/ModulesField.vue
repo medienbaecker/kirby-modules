@@ -67,6 +67,9 @@ function keepDirtyMarkersOutOfPayloads(panel) {
   content.request._stripsMarkers = true;
 }
 
+const runningApplies = new Set();
+let appliesStarted = 0;
+
 export default {
   components: {
     "k-module-card": ModuleCard,
@@ -211,7 +214,10 @@ export default {
     // Field name = container slug; create it on first mount if missing.
     this.$api.post(this.fieldUrl + "/create-container").then(() => this.fetch());
 
-    this._onRefresh = this.$helper.debounce(() => this.fetch(), 0);
+    this._onRefresh = this.$helper.debounce(async () => {
+      await Promise.all(runningApplies);
+      this.fetch();
+    }, 0);
 
     for (const event of REFRESH_EVENTS) {
       this.$events.on(event, this._onRefresh);
@@ -291,7 +297,12 @@ export default {
         const previousIds = new Set(this.modules.map((m) => m.id));
         const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
 
+        const started = appliesStarted;
         const response = await this.$api.get(this.fieldUrl);
+        if (appliesStarted !== started) {
+          this._onRefresh();
+          return;
+        }
         this.modules = response.modules;
         this.canAdd = response.add;
 
@@ -675,88 +686,94 @@ export default {
     },
 
     // Triggered by parent page Save/Discard.
-    async applyChanges(action) {
-      if (this._isApplying) return;
-      this._isApplying = true;
+    applyChanges(action) {
+      if (!this._applying) {
+        const apply = this.sendChanges(action).finally(() => {
+          runningApplies.delete(apply);
+          this._applying = null;
+        });
+        runningApplies.add(apply);
+        appliesStarted++;
+        this._applying = apply;
+      }
+      return this._applying;
+    },
 
-      try {
-        const currentIds = new Set(this.modules.map((m) => m.id));
-        const changedIds = Object.keys(this.changes);
-        const allIds = [...new Set([...changedIds, ...Object.keys(this.drafts), ...this.serverPendingIds, ...this.descendantPendingIds])]
-          .filter((id) => currentIds.has(id));
+    async sendChanges(action) {
+      const currentIds = new Set(this.modules.map((m) => m.id));
+      const changedIds = Object.keys(this.changes);
+      const allIds = [...new Set([...changedIds, ...Object.keys(this.drafts), ...this.serverPendingIds, ...this.descendantPendingIds])]
+        .filter((id) => currentIds.has(id));
 
-        if (!allIds.length) {
-          this.changes = {};
-          this.serverPendingIds = [];
-          this.descendantPendingIds = [];
-          this.undirtyParent();
-          return;
-        }
+      if (!allIds.length) {
+        this.changes = {};
+        this.serverPendingIds = [];
+        this.descendantPendingIds = [];
+        this.undirtyParent();
+        return;
+      }
 
-        const results = await Promise.allSettled(
-          allIds.map((moduleId) =>
-            this.queueChanges(moduleId, () =>
-              this.$api.post(this.pageUrl(moduleId) + "/changes/" + action),
-            ),
+      const results = await Promise.allSettled(
+        allIds.map((moduleId) =>
+          this.queueChanges(moduleId, () =>
+            this.$api.post(this.pageUrl(moduleId) + "/changes/" + action),
+          ),
+        ),
+      );
+
+      const succeeded = [];
+      const lockFailed = [];
+      const otherFailed = [];
+      results.forEach((result, i) => {
+        const id = allIds[i];
+        if (result.status === "fulfilled") succeeded.push(id);
+        else if (result.reason?.details?.isLocked) lockFailed.push(id);
+        else otherFailed.push({ id, reason: result.reason });
+      });
+
+      for (const id of succeeded) {
+        if (action === "publish") this.markPublished(id);
+        else delete this.changes[id];
+      }
+      this.serverPendingIds = this.serverPendingIds.filter(
+        (id) => !succeeded.includes(id),
+      );
+      this.descendantPendingIds = this.descendantPendingIds.filter(
+        (id) => !succeeded.includes(id),
+      );
+      for (const id of succeeded) {
+        this.$events.emit("modules.published", { parent: this.pageUrl(id) });
+      }
+
+      if (lockFailed.length > 0) {
+        this.$panel.notification.error(this.$t("modules.lock.applyFailed"));
+      }
+      for (const { id, reason } of otherFailed) {
+        const name = this.modules.find((m) => m.id === id)?.moduleName || id;
+        // notification.error keeps a message only from a string or Error
+        this.$panel.notification.error(
+          `${name}: ${reason?.message || this.$t("error")}`,
+        );
+      }
+
+      if (lockFailed.length > 0 || otherFailed.length > 0) {
+        await this.fetch();
+        const firstFailed = lockFailed[0] || otherFailed[0]?.id;
+        if (firstFailed) this.revealModule(firstFailed);
+      } else {
+        await this.loadFieldsBatch(
+          this.modules.filter(
+            (m) => succeeded.includes(m.id) && this.expanded[m.id] && m.hasFields,
           ),
         );
 
-        const succeeded = [];
-        const lockFailed = [];
-        const otherFailed = [];
-        results.forEach((result, i) => {
-          const id = allIds[i];
-          if (result.status === "fulfilled") succeeded.push(id);
-          else if (result.reason?.details?.isLocked) lockFailed.push(id);
-          else otherFailed.push({ id, reason: result.reason });
-        });
-
-        for (const id of succeeded) {
-          if (action === "publish") this.markPublished(id);
-          else delete this.changes[id];
+        if (
+          Object.keys(this.changes).length === 0 &&
+          this.serverPendingIds.length === 0 &&
+          this.descendantPendingIds.length === 0
+        ) {
+          this.undirtyParent();
         }
-        this.serverPendingIds = this.serverPendingIds.filter(
-          (id) => !succeeded.includes(id),
-        );
-        this.descendantPendingIds = this.descendantPendingIds.filter(
-          (id) => !succeeded.includes(id),
-        );
-        for (const id of succeeded) {
-          this.$events.emit("modules.published", { parent: this.pageUrl(id) });
-        }
-
-        if (lockFailed.length > 0) {
-          this.$panel.notification.error(this.$t("modules.lock.applyFailed"));
-        }
-        for (const { id, reason } of otherFailed) {
-          const name = this.modules.find((m) => m.id === id)?.moduleName || id;
-          // notification.error keeps a message only from a string or Error
-          this.$panel.notification.error(
-            `${name}: ${reason?.message || this.$t("error")}`,
-          );
-        }
-
-        if (lockFailed.length > 0 || otherFailed.length > 0) {
-          await this.fetch();
-          const firstFailed = lockFailed[0] || otherFailed[0]?.id;
-          if (firstFailed) this.revealModule(firstFailed);
-        } else {
-          await this.loadFieldsBatch(
-            this.modules.filter(
-              (m) => succeeded.includes(m.id) && this.expanded[m.id] && m.hasFields,
-            ),
-          );
-
-          if (
-            Object.keys(this.changes).length === 0 &&
-            this.serverPendingIds.length === 0 &&
-            this.descendantPendingIds.length === 0
-          ) {
-            this.undirtyParent();
-          }
-        }
-      } finally {
-        this._isApplying = false;
       }
     },
 
