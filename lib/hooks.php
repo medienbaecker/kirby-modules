@@ -112,8 +112,7 @@ return [
       throw new PermissionException(t('modules.move.notallowed'));
     }
 
-    $allowed = $targetField->templates();
-    if ($allowed && !in_array($page->intendedTemplate()->name(), $allowed)) {
+    if (!in_array($page->intendedTemplate()->name(), $targetField->templates())) {
       throw new PermissionException(t('modules.move.notallowed'));
     }
   },

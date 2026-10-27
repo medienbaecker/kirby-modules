@@ -507,7 +507,40 @@ export default {
       });
     },
     moveModule(module) {
-      this.$dialog("modules/move/" + this.$api.pages.id(module.id));
+      this.$dialog("modules/move/" + this.$api.pages.id(module.id), {
+        on: { submit: ({ items }) => this.moveTo(module, items[0]) },
+      });
+    },
+    moveTo(module, target) {
+      if (!target) return;
+      if (target.fields.length === 0) return this.$panel.dialog.close();
+      if (target.fields.length === 1) return this.moveInto(module, target.api, target.fields[0].name);
+
+      this.$panel.dialog.open({
+        component: "k-form-dialog",
+        props: {
+          fields: {
+            field: {
+              type: "select",
+              label: this.$t("modules.move.field"),
+              options: target.fields.map((field) => ({ value: field.name, text: field.label })),
+              required: true,
+            },
+          },
+          value: { field: target.fields[0].name },
+          submitButton: { icon: "parent", text: this.$t("move") },
+        },
+        on: { submit: ({ field }) => this.moveInto(module, target.api, field) },
+      });
+    },
+    async moveInto(module, api, field) {
+      try {
+        await this.$api.post(api + "/fields/" + field + "/move", { id: module.id, ids: [] });
+        this.$panel.dialog.close(true);
+        this.$events.emit("modules.moved");
+      } catch (e) {
+        this.handleError(e);
+      }
     },
 
     changeSlug(module) {

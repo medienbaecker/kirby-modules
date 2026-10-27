@@ -45,18 +45,6 @@ class ModuleSectionRoutes
     }
   }
 
-  public static function assertSiblingOf(Page $child, Page|Site $host): void
-  {
-    $source = $child->parent();
-
-    if (
-      $source?->intendedTemplate()->name() !== 'modules' ||
-      $source->parentModel()->is($host) === false
-    ) {
-      throw new NotFoundException('Module not found');
-    }
-  }
-
   public static function loadFields(?Page $container, string $childId): array
   {
     $child = self::resolveModule($childId);
@@ -226,8 +214,16 @@ class ModuleSectionRoutes
       return ['status' => 'ok'];
     }
 
-    self::assertSiblingOf($child, $field->model());
-    self::assertMovable($child, $field->model());
+    $host = $field->model();
+    if (
+      $child->isModule() === false ||
+      $host->is($child) ||
+      ($host instanceof Page && $host->isDescendantOf($child))
+    ) {
+      throw new NotFoundException('Module not found');
+    }
+
+    self::assertMovable($child, $host);
     $field->ensureRoom();
 
     $container ??= $field->createContainer();
@@ -264,10 +260,8 @@ class ModuleSectionRoutes
     HostLock::ensureUnlocked($targetHost);
   }
 
-  public static function moveTo(Page $child, Page $container): Page
+  private static function moveTo(Page $child, Page $container): Page
   {
-    self::assertMovable($child, $container->parentModel());
-
     $source = $child->parent();
 
     $moved = kirby()->impersonate('kirby', function () use ($child, $container) {

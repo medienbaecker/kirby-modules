@@ -36,12 +36,12 @@
   "license.remove.text": "Die Lizenz wird von dieser Seite entfernt. Du kannst sie jederzeit mit demselben Lizenzschlüssel erneut aktivieren.",
   "license.remove.submit": "Entfernen",
   "license.portal": "Kundenportal",
-  "move.headline": "Modul bewegen",
   "error.max.plural": "Das Feld „{field}“ darf höchstens {max} Module enthalten",
   "error.max.singular": "Das Feld „{field}“ darf höchstens ein Modul enthalten",
   "error.min.plural": "Das Feld „{field}“ braucht mindestens {min} Module",
   "error.min.singular": "Das Feld „{field}“ braucht mindestens ein Modul",
   "picker.empty": "Keine Module ausgewählt",
   "picker.empty.single": "Kein Modul ausgewählt",
-  "publish.invalid": "Behebe die Fehler in diesen Modulen, bevor du speicherst: {{ modules }}"
+  "publish.invalid": "Behebe die Fehler in diesen Modulen, bevor du speicherst: {{ modules }}",
+  "move.field": "Modulfeld"
 }
