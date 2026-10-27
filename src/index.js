@@ -7,7 +7,6 @@ import ModulesLicenseDialog from "./components/ModulesLicenseDialog.vue";
 panel.plugin("medienbaecker/modules", {
   components: {
     "k-modules-field": ModulesField,
-    "k-modulepicker-field": { extends: "k-pagepicker-field" },
     "k-module-type-grid": ModuleTypeGrid,
     "k-module-create-dialog": ModuleCreateDialog,
     "k-module-change-type-dialog": ModuleChangeTypeDialog,
