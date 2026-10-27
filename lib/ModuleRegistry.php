@@ -64,6 +64,7 @@ class ModuleRegistry
         'changeSlug' => false,
         'changeStatus' => false,
         'changeTemplate' => false,
+        'list' => false,
       ],
       'sections' => [
         'pages' => [
