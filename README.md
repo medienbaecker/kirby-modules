@@ -550,7 +550,6 @@ What changed:
 - `$module->ownerSection()` is now `$module->ownerField()` and returns the `Medienbaecker\Modules\ModulesField`. To find the modules fields of a page, use `ModulesField::names($page)` or `ModulesField::for($page, 'modules')`.
 - The Panel component is now `k-modules-field` (formerly `k-modules-section`). Update custom Panel CSS that targets `.k-modules-section`.
 - The create dialog belongs to the field now (`pages/…/fields/{name}/create`) instead of the global `modules/create` dialog.
-- Module containers are hidden from page lists, page pickers and the Panel search (`list: false`). `$page->children()` in templates still includes them.
 
 ## Licensing
 
