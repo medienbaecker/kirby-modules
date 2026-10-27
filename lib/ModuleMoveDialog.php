@@ -36,6 +36,7 @@ class ModuleMoveDialog extends ModuleDialog
   private function accepts(ModulesField $field): bool
   {
     return
+      $field->model()->guards()->isAvailable('update') &&
       $field->container()?->is($this->module->parent()) !== true &&
       in_array($this->module->intendedTemplate()->name(), $field->templates()) &&
       ($field->max() === null || $field->total() < $field->max());

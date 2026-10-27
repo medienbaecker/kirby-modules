@@ -223,6 +223,10 @@ class ModuleSectionRoutes
       throw new NotFoundException('Module not found');
     }
 
+    if ($host->guards()->isAvailable('update') === false) {
+      throw new PermissionException();
+    }
+
     self::assertMovable($child, $host);
     $field->ensureRoom();
 
