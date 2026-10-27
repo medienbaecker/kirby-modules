@@ -18,6 +18,7 @@ use Kirby\Filesystem\Dir;
 use Kirby\Filesystem\F;
 use Kirby\Toolkit\A;
 use Medienbaecker\Modules\ModuleRegistry;
+use Medienbaecker\Modules\ModulePickerField;
 use Medienbaecker\Modules\ModulesField;
 
 $moduleRegistry = ModuleRegistry::load();
@@ -36,7 +37,8 @@ Kirby::plugin(
     'pageModels'   => $moduleRegistry['pageModels'],
     'blueprints'   => $moduleRegistry['blueprints'],
     'fields'       => [
-      'modules' => ModulesField::class
+      'modules'      => ModulesField::class,
+      'modulepicker' => ModulePickerField::class
     ],
     'hooks'        => require __DIR__ . '/lib/hooks.php',
     'permissions'  => ['move' => true],

@@ -369,6 +369,29 @@ The same method works on a page collection: `$pages->modules()` merges the modul
 
 ## Advanced
 
+### Picking a module
+
+The `modulepicker` field picks a module from any page, for example to show the same module in two places. It works like Kirby's `pagepicker` field. You open a page to see its modules, and only modules can be picked. Hidden modules and the module that holds the field are left out.
+
+```yml
+# site/blueprints/modules/proxy.yml
+fields:
+  target:
+    type: modulepicker
+    info: "{{ page.page.title }}"
+```
+
+The field stores the module's UUID, so `toPage()` returns it. A module hidden after it was picked is still returned, so check for it:
+
+```php
+// site/snippets/modules/proxy.php
+<?php if (($target = $module->target()->toPage()) && $target->isHidden() === false): ?>
+  <?= $target->toHtml() ?>
+<?php endif ?>
+```
+
+`multiple` is off by default. All other options of the `pagepicker` field work the same, except `query` and `subpages`.
+
 ### File pools
 
 By default, a files field in a module sees only that module's own files. That's okay if you want to add a files section to the module, too. Most of the time, however, you want to use the (grand)parent page's file pool.
