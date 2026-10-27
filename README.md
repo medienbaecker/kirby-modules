@@ -179,6 +179,10 @@ Add your own styles in your [Panel CSS](https://getkirby.com/docs/reference/syst
 
 "Change type" in the toolbar's dropdown switches a module to another type. Fields keep their content when the new blueprint has a field with the same name and type.
 
+### Moving modules
+
+Drag a module to another modules field on the same page. To move it to another page, use "Move" in the toolbar's dropdown and pick the page. Pages without a modules field that takes the module's type are greyed out. When the page has several such fields, the dialog asks which one.
+
 ### Customizing the create dialog
 
 By default the create dialog asks for the module's type (when there's more than one) and its [anchor](#anchors), nothing more. Add a `create` block to a module blueprint, like [Kirby's page creation dialog](https://getkirby.com/docs/reference/panel/blueprints/page#page-creation-dialog), to ask for fields up front or fill the anchor automatically.
@@ -546,6 +550,7 @@ What changed:
 - `$module->ownerSection()` is now `$module->ownerField()` and returns the `Medienbaecker\Modules\ModulesField`. To find the modules fields of a page, use `ModulesField::names($page)` or `ModulesField::for($page, 'modules')`.
 - The Panel component is now `k-modules-field` (formerly `k-modules-section`). Update custom Panel CSS that targets `.k-modules-section`.
 - The create dialog belongs to the field now (`pages/…/fields/{name}/create`) instead of the global `modules/create` dialog.
+- Module containers are hidden from page lists, page pickers and the Panel search (`list: false`). `$page->children()` in templates still includes them.
 
 ## Licensing
 
