@@ -58,14 +58,6 @@ class ModulesField extends DisplayField
   protected array|null $parsedTemplates = null;
 
   /**
-   * Whether new modules can be added
-   */
-  public function add(): bool
-  {
-    return $this->isFull() === false;
-  }
-
-  /**
    * The modules are not part of the form values, so the field
    * loads and changes them through its own endpoints. Inside
    * the actions, `$this` is the API instance.
@@ -274,15 +266,6 @@ class ModulesField extends DisplayField
     return $field instanceof static ? $field : null;
   }
 
-  public function isFull(): bool
-  {
-    if ($this->max === null) {
-      return false;
-    }
-
-    return $this->total() >= $this->max;
-  }
-
   public function layout(): string|null
   {
     return $this->layout ?: null;
@@ -298,13 +281,7 @@ class ModulesField extends DisplayField
    */
   public function modules(): array
   {
-    $modules = [];
-
-    foreach ($this->container()?->children() ?? [] as $child) {
-      $modules[] = ModuleSectionItem::for($child);
-    }
-
-    return $modules;
+    return $this->container()?->children()->values(ModuleSectionItem::for(...)) ?? [];
   }
 
   /**
@@ -350,7 +327,6 @@ class ModulesField extends DisplayField
   public function state(): array
   {
     return [
-      'add'     => $this->add(),
       'modules' => $this->modules(),
     ];
   }

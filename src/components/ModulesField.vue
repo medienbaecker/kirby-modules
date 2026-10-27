@@ -12,7 +12,7 @@
         <k-module-card v-for="module in modules" :key="module.id + ':' + module.template" :module="module"
           :expanded="expanded[module.id] === true" :loading="!!loadingModules[module.id]"
           :selected="selectedModule === module.id" :values="currentValues(module.id)"
-          :columns="fieldData[module.id]?.columns" :page-url="pageUrl(module.id)"
+          :columns="fieldData[module.id]?.columns" :page-url="$api.pages.url(module.id)"
           :has-error="!!(fieldData[module.id] && fieldData[module.id].error)" :is-full="!canAdd" @toggle="toggle(module)"
           @toggle-visibility="toggleVisibility(module)" @select="select(module)" @input="onInput(module, $event)"
           @add="addAt(module, $event)" @remove="remove(module)" @duplicate="duplicate(module)"
@@ -24,7 +24,7 @@
       {{ $t("loading") }}
     </k-empty>
     <k-empty v-else class="k-modules-empty" icon="box" @click="add()">
-      {{ empty ?? $t("modules.empty") }}
+      {{ empty }}
     </k-empty>
     <footer v-if="!isLoading && modules.length && canAdd && !isLocked" class="k-modules-footer">
       <k-button icon="add" size="xs" variant="filled" :title="$t('add')" @click="add()" />
@@ -111,7 +111,6 @@ export default {
   data() {
     return {
       modules: [],
-      canAdd: true,
 
       expanded: {},
       fieldData: {},
@@ -123,8 +122,7 @@ export default {
 
       isLoading: true,
       selectedModule: null,
-      pendingInsertPosition: null,
-      pendingFocusInput: false,
+      pendingInsert: null,
       dragScrollShift: 0,
     };
   },
@@ -140,7 +138,12 @@ export default {
         emptyInsertThreshold: 40,
       };
     },
-    // The field endpoint replaces the former section endpoint
+    storageKey() {
+      return "kirby-modules:" + this.parent + ":" + this.name;
+    },
+    canAdd() {
+      return !this.max || this.modules.length < this.max;
+    },
     fieldUrl() {
       return this.endpoints.field;
     },
@@ -208,14 +211,13 @@ export default {
 
   watch: {
     "$panel.language.code"() {
+      this.fieldData = {};
+      this.changes = {};
       this.fetch();
     },
   },
   created() {
     wrapContentRequest(this.$panel);
-
-    // Captured for cache invalidation on language switch in fetch().
-    this._language = this.$panel.language?.code;
 
     // Field name = container slug; create it on first mount if missing.
     this.$api.post(this.fieldUrl + "/create-container").then(() => this.fetch());
@@ -236,13 +238,13 @@ export default {
     };
     this._onDescendantDirty = ({ parent, dirty }) => this.handleDescendantDirty(parent, dirty);
     this._onRemoteUpdate = ({ api, values }) => {
-      const module = this.modules.find((m) => this.isParentApi(api, this.pageUrl(m.id)));
-      if (!module || !this.fieldData[module.id]?.columns) return;
+      const module = this.moduleByApi(api);
+      if (!this.fieldData[module?.id]?.columns) return;
       this.onInput(module, { ...this.currentValues(module.id), ...values }, true);
     };
     this._onRemoteMerge = ({ api, values }) => {
-      const module = this.modules.find((m) => this.isParentApi(api, this.pageUrl(m.id)));
-      if (!module || !this.fieldData[module.id]?.columns) return;
+      const module = this.moduleByApi(api);
+      if (!this.fieldData[module?.id]?.columns) return;
       this.mergeValues(module, { ...this.currentValues(module.id), ...values });
     };
     this.$events.on("modules.update", this._onRemoteUpdate);
@@ -274,13 +276,6 @@ export default {
 
     async fetch() {
       try {
-        const lang = this.$panel.language?.code;
-        if (this._language !== undefined && this._language !== lang) {
-          this.fieldData = {};
-          this.changes = {};
-        }
-        this._language = lang;
-
         const previousIds = new Set(this.modules.map((m) => m.id));
         const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
 
@@ -291,7 +286,6 @@ export default {
           return;
         }
         this.modules = response.modules;
-        this.canAdd = response.add;
 
         for (const module of this.modules) {
           const prev = previousTemplates.get(module.id);
@@ -299,7 +293,7 @@ export default {
             delete this.fieldData[module.id];
             delete this.changes[module.id];
             module.hasPendingChanges = false;
-            this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }).catch(() => { });
+            this.$api.post(this.$api.pages.url(module.id, "changes/discard"), {}, { silent: true }).catch(() => { });
           }
         }
 
@@ -362,33 +356,23 @@ export default {
     },
 
     positionNewModule(previousIds) {
-      if (this.pendingInsertPosition == null) return;
+      if (!this.pendingInsert) return;
+      const { position, focusInput } = this.pendingInsert;
+      this.pendingInsert = null;
 
       const newModule = this.modules.find((m) => !previousIds.has(m.id));
-      if (newModule) {
-        const ids = this.modules
-          .map((m) => m.id)
-          .filter((id) => id !== newModule.id);
-        if (this.pendingInsertPosition >= 0) {
-          ids.splice(this.pendingInsertPosition, 0, newModule.id);
-        } else {
-          ids.push(newModule.id);
-        }
-        this.modules = ids.map((id) =>
-          this.modules.find((m) => m.id === id),
-        );
-        this.onSort();
-        this.$nextTick(() => {
-          const el = this.$el.querySelector(`[data-module-id="${newModule.id}"]`);
-          if (el) el.focus();
+      if (!newModule) return;
 
-          if (this.pendingFocusInput && el) {
-            this.pendingFocusInput = false;
-            this.focusFirstInput(el);
-          }
-        });
-      }
-      this.pendingInsertPosition = null;
+      const others = this.modules.filter((m) => m !== newModule);
+      others.splice(position >= 0 ? position : others.length, 0, newModule);
+      this.modules = others;
+      this.onSort();
+      this.$nextTick(() => {
+        const el = this.$el.querySelector(`[data-module-id="${newModule.id}"]`);
+        if (!el) return;
+        el.focus();
+        if (focusInput) this.focusFirstInput(el);
+      });
     },
 
     // Mirror Kirby's internal drawer/dialog focus priority: explicit
@@ -445,7 +429,7 @@ export default {
             values: entry.values,
             original: JSON.stringify(entry.original),
           };
-          if (entry.moduleName !== undefined) module.moduleName = entry.moduleName;
+          module.moduleName = entry.moduleName;
         }
       } catch (e) {
         this.handleError(e);
@@ -466,8 +450,7 @@ export default {
 
     add(position = -1) {
       if (!this.canAdd || this.isLocked) return;
-      this.pendingInsertPosition = position;
-      this.pendingFocusInput = true;
+      this.pendingInsert = { position, focusInput: true };
       this.$dialog(this.fieldUrl + "/create");
     },
     addAt(module, offset) {
@@ -475,10 +458,7 @@ export default {
       this.add(index + offset);
     },
     async duplicate(module) {
-      if (!this.canAdd) return;
       try {
-        // Clear any stale focus intent from a previously cancelled Add.
-        this.pendingFocusInput = false;
         // Flush any pending client-side edits so they land in the server's
         // _changes/ before the duplicate endpoint copies that directory.
         // Without this, a fast "type then duplicate" produces an empty copy.
@@ -486,27 +466,23 @@ export default {
         const original = this.fieldData[module.id]?.original;
         if (pending && JSON.stringify(pending) !== original) {
           await this.queueChanges(module.id, () =>
-            this.$api.post(this.pageUrl(module.id) + "/changes/save", pending, { silent: true }),
+            this.$api.post(this.$api.pages.url(module.id, "changes/save"), pending, { silent: true }),
           );
         }
         await this.$api.post(
-          this.fieldUrl + "/duplicate/" + this.encodeId(module.id),
+          this.fieldUrl + "/duplicate/" + this.$api.pages.id(module.id),
         );
         const index = this.modules.findIndex((m) => m.id === module.id);
-        this.pendingInsertPosition = index >= 0 ? index + 1 : -1;
+        this.pendingInsert = { position: index >= 0 ? index + 1 : -1, focusInput: false };
         this.fetch();
       } catch (e) {
         this.handleError(e);
       }
     },
     changeType(module) {
-      this.$dialog("modules/change-type/" + this.encodeId(module.id), {
+      this.$dialog("modules/change-type/" + this.$api.pages.id(module.id), {
         on: {
-          // Clear cached fields before refetch so the old form unmounts
-          // instead of rendering the old template's fields against the new one.
           success: () => {
-            delete this.fieldData[module.id];
-            delete this.changes[module.id];
             this.$panel.dialog.close();
             this.fetch();
             this.notifyPreview();
@@ -515,11 +491,11 @@ export default {
       });
     },
     moveModule(module) {
-      this.$dialog("modules/move/" + this.encodeId(module.id));
+      this.$dialog("modules/move/" + this.$api.pages.id(module.id));
     },
 
     changeSlug(module) {
-      this.$dialog("modules/change-slug/" + this.encodeId(module.id));
+      this.$dialog("modules/change-slug/" + this.$api.pages.id(module.id));
     },
 
     async sortModule(module, direction) {
@@ -543,10 +519,7 @@ export default {
     },
 
     accepts(template) {
-      return (
-        this.templates.includes(template) &&
-        (!this.max || this.modules.length < this.max)
-      );
+      return this.templates.includes(template) && this.canAdd;
     },
 
     onDragStart() {
@@ -587,7 +560,7 @@ export default {
     async toggleVisibility(module) {
       try {
         await this.$api.post(
-          this.fieldUrl + "/toggle-visibility/" + this.encodeId(module.id),
+          this.fieldUrl + "/toggle-visibility/" + this.$api.pages.id(module.id),
         );
         this.$events.emit("model.update");
         await this.fetch();
@@ -601,7 +574,7 @@ export default {
     },
 
     remove(module) {
-      this.$dialog(this.pageUrl(module.id) + "/delete", {
+      this.$dialog(this.$api.pages.url(module.id, "delete"), {
         query: {
           redirect: this.parent,
         },
@@ -625,7 +598,7 @@ export default {
       if (!remote) this.$events.emit("modules.input", { ...this.eventPayload(module), values });
 
       const data = this.fieldData[module.id];
-      const isOriginal = (v) => data?.original && JSON.stringify(v) === data.original;
+      const isOriginal = (v) => JSON.stringify(v) === data.original;
 
       // The form shows these values right away. Saves are queued, so the
       // form would otherwise snap back to older values while typing.
@@ -641,12 +614,12 @@ export default {
       if (isOriginal(values)) {
         delete this.changes[module.id];
         this.queueChanges(module.id, () =>
-          this.$api.post(this.pageUrl(module.id) + "/changes/discard", {}, { silent: true }),
+          this.$api.post(this.$api.pages.url(module.id, "changes/discard"), {}, { silent: true }),
         ).catch(() => { }).finally(settle);
       } else {
         try {
           await this.queueChanges(module.id, () =>
-            this.$api.post(this.pageUrl(module.id) + "/changes/save", values, { silent: true }),
+            this.$api.post(this.$api.pages.url(module.id, "changes/save"), values, { silent: true }),
           );
           // Commit local state only after the server accepts; otherwise a
           // 423 leaves the parent dirty with nothing the user can publish.
@@ -740,7 +713,7 @@ export default {
     },
 
     handleDescendantDirty(parentApi, dirty) {
-      const owner = this.modules.find((m) => this.isParentApi(parentApi, this.pageUrl(m.id)));
+      const owner = this.moduleByApi(parentApi);
       if (!owner) return;
 
       const tracked = this.descendantPendingIds.includes(owner.id);
@@ -755,28 +728,22 @@ export default {
 
     // Collapsed state persists in localStorage per page + field name.
     async toggle(module) {
-      if (this.expanded[module.id]) {
-        this.expanded[module.id] = false;
-        this.saveCollapsedState();
-        return;
-      }
-      if (module.hasFields && !this.fieldData[module.id]) {
+      const expand = !this.expanded[module.id];
+      if (expand && module.hasFields && !this.fieldData[module.id]) {
         await this.loadFieldsBatch([module]);
       }
-      this.expanded[module.id] = true;
+      this.expanded[module.id] = expand;
       this.saveCollapsedState();
     },
     saveCollapsedState() {
-      const key = "kirby-modules:" + this.parent + ":" + this.name;
       const ids = Object.keys(this.expanded).filter(
         (id) => !this.expanded[id],
       );
-      localStorage.setItem(key, JSON.stringify(ids));
+      localStorage.setItem(this.storageKey, JSON.stringify(ids));
     },
     loadCollapsedState() {
-      const key = "kirby-modules:" + this.parent + ":" + this.name;
       try {
-        const stored = localStorage.getItem(key);
+        const stored = localStorage.getItem(this.storageKey);
         return stored ? JSON.parse(stored) : [];
       } catch (e) {
         return [];
@@ -809,9 +776,9 @@ export default {
       this.selectedModule = null;
     },
 
-    // Content events use "/site" and "/pages/…", module ids "pages/…"
-    isParentApi(api, against = this.parent) {
-      return api?.replace(/^\//, "") === against.replace(/^\//, "");
+    moduleByApi(api) {
+      api = api?.replace(/^\//, "");
+      return this.modules.find((m) => this.$api.pages.url(m.id) === api);
     },
     handleError(e) {
       if (e?.details?.isLocked) {
@@ -821,10 +788,7 @@ export default {
         return;
       }
       // notification.error unwraps Error/RequestError objects itself
-      this.$panel.notification.error(e || this.$t("error"));
-    },
-    encodeId(id) {
-      return id.replace(/\//g, "+");
+      this.$panel.notification.error(e);
     },
     // Kirby's preview view only reloads on content and model events. The
     // field's own api matches no view, so nothing else reacts to it.
@@ -832,16 +796,12 @@ export default {
       this.$panel.content.emit("save", {}, { api: this.fieldUrl });
     },
 
-    pageUrl(moduleId) {
-      return "pages/" + this.encodeId(moduleId);
-    },
-
     eventPayload(module) {
       return {
         field: this.name,
         parent: this.parent,
         id: module.id,
-        api: this.pageUrl(module.id),
+        api: this.$api.pages.url(module.id),
         template: module.template,
       };
     },

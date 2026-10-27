@@ -2,12 +2,12 @@
   <div class="k-module" :data-module-id="module.id" :data-hidden="module.hidden" :data-selected="selected"
     :data-disabled="disabled" tabindex="-1" role="group" :aria-label="$t('modules.singular') + ' ' + module.moduleName"
     @focusin.stop="$emit('select')">
-    <div class="k-module-body" :data-collapsed="!expanded || isAwaitingContent">
+    <div class="k-module-body" :data-collapsed="!expanded">
       <header class="k-module-header" :style="{ '--side-width': sideWidth + 'px' }">
         <div ref="title" class="k-module-title">
           <button type="button" class="k-module-toggle" :aria-expanded="String(expanded)"
             :aria-label="$t('modules.singular') + ' ' + module.moduleName" @click="$emit('toggle')">
-            <k-icon v-if="loading || isAwaitingContent" type="loader" />
+            <k-icon v-if="loading" type="loader" />
             <span v-else class="k-module-icon">
               <k-icon v-if="module.icon" :type="module.icon" />
               <k-icon :type="expanded ? 'angle-up' : 'angle-down'" />
@@ -21,7 +21,7 @@
             </span>
           </button>
         </div>
-        <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="switchTab" />
+        <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="currentTab = $event" />
         <button ref="visibility" type="button" class="k-module-visibility" :data-hidden="module.hidden"
           :aria-label="module.hidden ? $t('publish') : $t('modules.unpublish')" :disabled="!permissions.update"
           @click.stop="$emit('toggle-visibility')">
@@ -79,7 +79,6 @@ export default {
     return {
       currentTab: null,
       sideWidth: 0,
-      contentRendered: false,
     };
   },
   mounted() {
@@ -94,23 +93,13 @@ export default {
     this.sideObserver.observe(this.$refs.title);
     this.sideObserver.observe(this.$refs.visibility);
     this.sideObserver.observe(header);
-
-    this.trackContentRender();
   },
   beforeUnmount() {
     this.sideObserver?.disconnect();
-    this.contentObserver?.disconnect();
-    clearTimeout(this.contentTimeout);
-  },
-  watch: {
-    contentReady(ready) {
-      if (ready) this.trackContentRender();
-      else this.contentRendered = false;
-    },
   },
   computed: {
     permissions() {
-      return this.module.permissions || {};
+      return this.module.permissions;
     },
     disabled() {
       return !this.permissions.update;
@@ -120,14 +109,8 @@ export default {
       // Modules with display fields only (pagelist, filelist, modules) have no values
       return !!this.columns;
     },
-    isAwaitingContent() {
-      if (!this.expanded || !this.module.hasFields || this.module.hasTemplate === false) {
-        return false;
-      }
-      return this.contentReady && !this.contentRendered;
-    },
     activeTab() {
-      return this.currentTab || (this.module.tabs[0] && this.module.tabs[0].name);
+      return this.currentTab ?? this.module.tabs[0]?.name;
     },
     tabs() {
       return this.module.tabs.map(({ link, ...tab }) => tab);
@@ -244,38 +227,6 @@ export default {
           ],
         },
       ];
-    },
-  },
-  methods: {
-    switchTab(tabName) {
-      this.currentTab = tabName;
-    },
-    // Wait for the mounted form so the card reveals fields,
-    // not an empty padding box.
-    trackContentRender() {
-      if (this.contentRendered) return;
-      if (!this.contentReady || !this.module.hasFields || this.module.hasTemplate === false) {
-        return;
-      }
-      this.$nextTick(() => {
-        const content = this.$el?.querySelector(".k-module-content");
-        if (!content) return;
-
-        const done = () => {
-          this.contentRendered = true;
-          this.contentObserver?.disconnect();
-          clearTimeout(this.contentTimeout);
-        };
-
-        if (content.querySelector(".k-model-form")) return done();
-
-        this.contentObserver = new MutationObserver(() => {
-          if (content.querySelector(".k-model-form")) done();
-        });
-        this.contentObserver.observe(content, { childList: true, subtree: true });
-        // Reveal anyway if the form errors and never renders.
-        this.contentTimeout = setTimeout(done, 5000);
-      });
     },
   },
 };

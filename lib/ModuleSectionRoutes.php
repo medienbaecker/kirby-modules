@@ -95,7 +95,7 @@ class ModuleSectionRoutes
     foreach ($ids as $childId) {
       try {
         $result[$childId] = self::loadFields($container, $childId);
-      } catch (\Throwable $e) {
+      } catch (\Throwable) {
         $result[$childId] = ['error' => true];
       }
     }
@@ -222,7 +222,7 @@ class ModuleSectionRoutes
 
     if ($container && $child->parent()?->is($container)) {
       self::sort($container, $ids);
-      return ['status' => 'ok', 'id' => $child->id()];
+      return ['status' => 'ok'];
     }
 
     self::assertSiblingOf($child, $container);
@@ -234,7 +234,7 @@ class ModuleSectionRoutes
       $ids
     ));
 
-    return ['status' => 'ok', 'id' => $moved->id()];
+    return ['status' => 'ok'];
   }
 
   public static function canMove(Page $child): bool
