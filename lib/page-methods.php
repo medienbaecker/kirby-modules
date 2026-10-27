@@ -41,7 +41,7 @@ return [
     return ModulesField::names($this) !== [];
   },
 
-  // Can't use Page::renderVersionFromRequest()'s token check — it grants
+  // Can't use Page::renderVersionFromRequest()'s token check: it grants
   // token-less access to any listed page, but hidden modules are listed
   // too and must stay unaddressable without proof of access.
   'modules' => function (string $container = 'modules') {
@@ -72,7 +72,7 @@ return [
   },
 
   'hasPendingChangesDeep' => function () {
-    if ($this->version('changes')->exists('*')) return true;
+    if ($this->version('changes')->exists('current')) return true;
 
     foreach (ModulesField::names($this) as $name) {
       $container = $this->find($name);
@@ -91,7 +91,7 @@ return [
     return $this->intendedTemplate()->name() === 'modules';
   },
 
-  // Hidden state lives on the default language only — content(null) would
+  // Hidden state lives on the default language only. content(null) would
   // read the current Panel language instead.
   'isHidden' => function () {
     $language = kirby()->defaultLanguage()?->code();
