@@ -17,10 +17,14 @@ return [
     if ($method !== 'POST') return;
 
     [$model, $action] = HostLock::changesRequest($path) ?? [null, null];
-    if ($action === 'unlock' || !$model instanceof Page || !$model->isModule()) return;
+    if (!$model || $action === 'unlock') return;
 
-    if ($host = HostLock::hostOf($model)) {
+    if ($model instanceof Page && $model->isModule() && $host = HostLock::hostOf($model)) {
       HostLock::ensureUnlocked($host);
+    }
+
+    if ($action === 'publish') {
+      ModuleChangesCascade::validate($model);
     }
   },
 

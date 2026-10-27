@@ -42,5 +42,6 @@
   "error.min.plural": "Das Feld „{field}“ braucht mindestens {min} Module",
   "error.min.singular": "Das Feld „{field}“ braucht mindestens ein Modul",
   "picker.empty": "Keine Module ausgewählt",
-  "picker.empty.single": "Kein Modul ausgewählt"
+  "picker.empty.single": "Kein Modul ausgewählt",
+  "publish.invalid": "Behebe die Fehler in diesen Modulen, bevor du speicherst: {{ modules }}"
 }
