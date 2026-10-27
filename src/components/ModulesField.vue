@@ -49,26 +49,32 @@ const REFRESH_EVENTS = [
   "page.duplicate",
 ];
 
+const moduleRequests = new Set();
+const pageRequests = new Set();
+let pageRequestsStarted = 0;
+
 // The dirty marker (see dirtyParent) must never reach the server:
 // unknown fields in a save/publish payload pass through into the
-// content file. This wraps panel.content.request() once.
-function keepDirtyMarkersOutOfPayloads(panel) {
+// content file. Publishing and discarding wait for module saves.
+function wrapContentRequest(panel) {
   const content = panel.content;
-  if (!content || typeof content.request !== "function" || content.request._stripsMarkers) {
-    return;
-  }
+  if (content.request._wrapped) return;
   const original = content.request.bind(content);
-  content.request = (method, values = {}, env = {}) => {
+  content.request = (method = "save", values = {}, env = {}) => {
     const clean = Object.fromEntries(
       Object.entries(values).filter(([key]) => !key.startsWith("_modulesChanged_")),
     );
-    return original(method, clean, env);
-  };
-  content.request._stripsMarkers = true;
-}
+    if (method === "save") return original(method, clean, env);
 
-const runningApplies = new Set();
-let appliesStarted = 0;
+    const request = Promise.allSettled(moduleRequests)
+      .then(() => original(method, clean, env))
+      .finally(() => pageRequests.delete(request));
+    pageRequests.add(request);
+    pageRequestsStarted++;
+    return request;
+  };
+  content.request._wrapped = true;
+}
 
 export default {
   components: {
@@ -206,7 +212,7 @@ export default {
     },
   },
   created() {
-    keepDirtyMarkersOutOfPayloads(this.$panel);
+    wrapContentRequest(this.$panel);
 
     // Captured for cache invalidation on language switch in fetch().
     this._language = this.$panel.language?.code;
@@ -215,7 +221,7 @@ export default {
     this.$api.post(this.fieldUrl + "/create-container").then(() => this.fetch());
 
     this._onRefresh = this.$helper.debounce(async () => {
-      await Promise.all(runningApplies);
+      await Promise.allSettled(pageRequests);
       this.fetch();
     }, 0);
 
@@ -223,29 +229,12 @@ export default {
       this.$events.on(event, this._onRefresh);
     }
 
-    // Bridge module changes into the parent page's publish/discard flow.
-    // The { api } guard ensures only this field's parent triggers it.
-    this._onPublish = ({ api }) => {
-      if (this.isParentApi(api)) this.applyChanges("publish");
-    };
-    this._onDiscard = ({ api }) => {
-      if (this.isParentApi(api)) this.applyChanges("discard");
-    };
+    this._onPublish = () => this.settleChanges("publish");
+    this._onDiscard = () => this.settleChanges("discard");
     this._onMoved = (event) => {
       if (!event?.parent || event.parent === this.parent) this.fetch();
     };
     this._onDescendantDirty = ({ parent, dirty }) => this.handleDescendantDirty(parent, dirty);
-    this._onModulePublished = async ({ parent }) => {
-      if (!this.isDescendantApi(parent)) return;
-      for (const id of Object.keys(this.changes)) this.markPublished(id);
-      this.serverPendingIds = [];
-      this.descendantPendingIds = [];
-      this._lastReportedDirty = undefined;
-      await this.fetch();
-      await this.loadFieldsBatch(
-        this.modules.filter((m) => this.expanded[m.id] && m.hasFields && this.fieldData[m.id]),
-      );
-    };
     this._onRemoteUpdate = ({ api, values }) => {
       const module = this.modules.find((m) => this.isParentApi(api, this.pageUrl(m.id)));
       if (!module || !this.fieldData[module.id]?.columns) return;
@@ -262,7 +251,6 @@ export default {
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
     this.$events.on("modules.dirty", this._onDescendantDirty);
-    this.$events.on("modules.published", this._onModulePublished);
     this.$events.on("page.delete", this.notifyPreview);
   },
   mounted() {
@@ -278,7 +266,6 @@ export default {
     this.$events.off("content.publish", this._onPublish);
     this.$events.off("content.discard", this._onDiscard);
     this.$events.off("modules.dirty", this._onDescendantDirty);
-    this.$events.off("modules.published", this._onModulePublished);
     this.$events.off("page.delete", this.notifyPreview);
     document.removeEventListener("mousedown", this.onClickOutside);
   },
@@ -297,9 +284,9 @@ export default {
         const previousIds = new Set(this.modules.map((m) => m.id));
         const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
 
-        const started = appliesStarted;
+        const started = pageRequestsStarted;
         const response = await this.$api.get(this.fieldUrl);
-        if (appliesStarted !== started) {
+        if (pageRequestsStarted !== started) {
           this._onRefresh();
           return;
         }
@@ -627,6 +614,8 @@ export default {
       const chains = (this._changesChains ??= {});
       const next = (chains[moduleId] || Promise.resolve()).then(request, request);
       chains[moduleId] = next.catch(() => { });
+      moduleRequests.add(next);
+      next.finally(() => moduleRequests.delete(next)).catch(() => { });
       return next;
     },
 
@@ -685,96 +674,24 @@ export default {
       this.syncDirtyState();
     },
 
-    // Triggered by parent page Save/Discard.
-    applyChanges(action) {
-      if (!this._applying) {
-        const apply = this.sendChanges(action).finally(() => {
-          runningApplies.delete(apply);
-          this._applying = null;
-        });
-        runningApplies.add(apply);
-        appliesStarted++;
-        this._applying = apply;
-      }
-      return this._applying;
-    },
-
-    async sendChanges(action) {
-      const currentIds = new Set(this.modules.map((m) => m.id));
-      const changedIds = Object.keys(this.changes);
-      const allIds = [...new Set([...changedIds, ...Object.keys(this.drafts), ...this.serverPendingIds, ...this.descendantPendingIds])]
-        .filter((id) => currentIds.has(id));
-
-      if (!allIds.length) {
-        this.changes = {};
-        this.serverPendingIds = [];
-        this.descendantPendingIds = [];
-        this.undirtyParent();
-        return;
-      }
-
-      const results = await Promise.allSettled(
-        allIds.map((moduleId) =>
-          this.queueChanges(moduleId, () =>
-            this.$api.post(this.pageUrl(moduleId) + "/changes/" + action),
-          ),
-        ),
-      );
-
-      const succeeded = [];
-      const lockFailed = [];
-      const otherFailed = [];
-      results.forEach((result, i) => {
-        const id = allIds[i];
-        if (result.status === "fulfilled") succeeded.push(id);
-        else if (result.reason?.details?.isLocked) lockFailed.push(id);
-        else otherFailed.push({ id, reason: result.reason });
-      });
-
-      for (const id of succeeded) {
+    async settleChanges(action) {
+      const ids = new Set([
+        ...Object.keys(this.changes),
+        ...this.serverPendingIds,
+        ...this.descendantPendingIds,
+      ]);
+      for (const id of Object.keys(this.changes)) {
         if (action === "publish") this.markPublished(id);
         else delete this.changes[id];
       }
-      this.serverPendingIds = this.serverPendingIds.filter(
-        (id) => !succeeded.includes(id),
+      this.serverPendingIds = [];
+      this.descendantPendingIds = [];
+      this.syncDirtyState();
+
+      await this.fetch();
+      await this.loadFieldsBatch(
+        this.modules.filter((m) => ids.has(m.id) && this.expanded[m.id] && m.hasFields),
       );
-      this.descendantPendingIds = this.descendantPendingIds.filter(
-        (id) => !succeeded.includes(id),
-      );
-      for (const id of succeeded) {
-        this.$events.emit("modules.published", { parent: this.pageUrl(id) });
-      }
-
-      if (lockFailed.length > 0) {
-        this.$panel.notification.error(this.$t("modules.lock.applyFailed"));
-      }
-      for (const { id, reason } of otherFailed) {
-        const name = this.modules.find((m) => m.id === id)?.moduleName || id;
-        // notification.error keeps a message only from a string or Error
-        this.$panel.notification.error(
-          `${name}: ${reason?.message || this.$t("error")}`,
-        );
-      }
-
-      if (lockFailed.length > 0 || otherFailed.length > 0) {
-        await this.fetch();
-        const firstFailed = lockFailed[0] || otherFailed[0]?.id;
-        if (firstFailed) this.revealModule(firstFailed);
-      } else {
-        await this.loadFieldsBatch(
-          this.modules.filter(
-            (m) => succeeded.includes(m.id) && this.expanded[m.id] && m.hasFields,
-          ),
-        );
-
-        if (
-          Object.keys(this.changes).length === 0 &&
-          this.serverPendingIds.length === 0 &&
-          this.descendantPendingIds.length === 0
-        ) {
-          this.undirtyParent();
-        }
-      }
     },
 
     markPublished(moduleId) {
@@ -795,7 +712,7 @@ export default {
     },
 
     // Field-scoped key — multiple modules fields dirty independently.
-    // Never persisted: keepDirtyMarkersOutOfPayloads() strips it.
+    // Never persisted: wrapContentRequest() strips it.
     dirtyParent() {
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: String(Date.now()) });
     },
@@ -885,37 +802,6 @@ export default {
     select(module) {
       this.selectedModule = module.id;
     },
-    async revealModule(id) {
-      const module = this.modules.find((m) => m.id === id);
-      if (!module) return;
-      if (!this.expanded[id]) await this.toggle(module);
-      await this.$nextTick();
-      const el = this.$el.querySelector(`[data-module-id="${id}"]`);
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const headerHeight = parseFloat(getComputedStyle(el).scrollMarginBlockStart) || 0;
-      const inView = rect.top >= headerHeight && rect.bottom <= window.innerHeight;
-      if (!inView) el.scrollIntoView({ block: "center", behavior: "smooth" });
-      await this.waitForDialogClose();
-      this.$el
-        .querySelector(`[data-module-id="${id}"]`)
-        ?.focus({ preventScroll: true });
-    },
-    async waitForDialogClose() {
-      if (!this.$panel.dialog.isOpen) return;
-      await new Promise((resolve) => {
-        const unwatch = this.$watch(
-          () => this.$panel.dialog.isOpen,
-          (open) => {
-            if (!open) {
-              unwatch();
-              resolve();
-            }
-          },
-        );
-      });
-      await this.$nextTick();
-    },
     onClickOutside(e) {
       const clickedModule = e.target.closest(".k-module");
       if (clickedModule && this.$el.contains(clickedModule)) return;
@@ -926,12 +812,6 @@ export default {
     // Content events use "/site" and "/pages/…", module ids "pages/…"
     isParentApi(api, against = this.parent) {
       return api?.replace(/^\//, "") === against.replace(/^\//, "");
-    },
-    isDescendantApi(api) {
-      const own = this.parent.replace(/^\//, "");
-      const candidate = api?.replace(/^\//, "");
-      if (!candidate) return false;
-      return own === candidate || own.startsWith(candidate + "+");
     },
     handleError(e) {
       if (e?.details?.isLocked) {

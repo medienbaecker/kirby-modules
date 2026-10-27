@@ -4,13 +4,14 @@ namespace Medienbaecker\Modules;
 
 use Generator;
 use Kirby\Cms\Page;
+use Kirby\Cms\Site;
 
 class ModuleChangesCascade
 {
-  private static function descendants(Page $module): Generator
+  private static function descendants(Page|Site $model): Generator
   {
-    foreach (ModulesField::names($module) as $name) {
-      $container = $module->find($name);
+    foreach (ModulesField::names($model) as $name) {
+      $container = $model->find($name);
       if (!$container) continue;
 
       foreach ($container->children() as $child) {
@@ -20,9 +21,9 @@ class ModuleChangesCascade
     }
   }
 
-  public static function publish(Page $module): void
+  public static function publish(Page|Site $model): void
   {
-    foreach (static::descendants($module) as $child) {
+    foreach (static::descendants($model) as $child) {
       if ($child->guards()->isAvailable('update') === false) continue;
       $changes = $child->version('changes');
       if ($changes->exists('current')) {
@@ -31,9 +32,9 @@ class ModuleChangesCascade
     }
   }
 
-  public static function discard(Page $module): void
+  public static function discard(Page|Site $model): void
   {
-    foreach (static::descendants($module) as $child) {
+    foreach (static::descendants($model) as $child) {
       if ($child->guards()->isAvailable('update') === false) continue;
       $changes = $child->version('changes');
       if ($changes->exists('current')) {

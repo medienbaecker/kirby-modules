@@ -59,7 +59,7 @@ class HostLock
 
     // The identity check spares real unsaved field changes. isIdentical
     // reads raw storage and can't succeed while the language has no
-    // translation file yet — compare the fallback content instead,
+    // translation file yet. Compare the fallback content instead,
     // ignoring lock and uuid like core does.
     $strip = fn(array $fields) => array_diff_key($fields, ['lock' => null, 'uuid' => null]);
     $identical = $latest->exists($language)
@@ -105,33 +105,22 @@ class HostLock
     return false;
   }
 
-  // Resolves a module from a path like `api/pages/a+modules+b/changes/save`
-  public static function moduleFromApiPath(string $path): ?Page
+  // Resolves the page or site and the action from a path like
+  // `api/pages/a+modules+b/changes/save`
+  public static function changesRequest(string $path): ?array
   {
-    $api = App::instance()->option('api.slug', 'api');
-    $pattern = '!^' . preg_quote($api, '!') . '/pages/([^/]+)/changes/(?:save|discard|publish)$!';
+    $api = preg_quote(App::instance()->option('api.slug', 'api'), '!');
+    $pattern = '!^' . $api . '/(site|pages/([^/]+))/changes/(save|discard|publish|unlock)$!';
 
     if (!preg_match($pattern, $path, $matches)) {
       return null;
     }
 
-    $page = App::instance()->page(str_replace('+', '/', $matches[1]));
-    return $page?->isModule() ? $page : null;
-  }
+    $model = $matches[1] === 'site'
+      ? App::instance()->site()
+      : App::instance()->page(str_replace('+', '/', $matches[2]));
 
-  public static function modelFromUnlockPath(string $path): Page|Site|null
-  {
-    $api = App::instance()->option('api.slug', 'api');
-
-    if (preg_match('!^' . preg_quote($api, '!') . '/site/changes/unlock$!', $path)) {
-      return App::instance()->site();
-    }
-
-    if (preg_match('!^' . preg_quote($api, '!') . '/pages/([^/]+)/changes/unlock$!', $path, $matches)) {
-      return App::instance()->page(str_replace('+', '/', $matches[1]));
-    }
-
-    return null;
+    return $model ? [$model, $matches[3]] : null;
   }
 
   // A module lock and its host mirror are separate models, so 5.5's per-view

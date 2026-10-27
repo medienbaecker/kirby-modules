@@ -3,6 +3,7 @@
 use Kirby\Cms\Page;
 use Kirby\Content\LockedContentException;
 use Kirby\Exception\PermissionException;
+use Kirby\Http\Response;
 use Kirby\Panel\Panel;
 use Medienbaecker\Modules\HostLock;
 use Medienbaecker\Modules\ModuleChangesCascade;
@@ -11,44 +12,49 @@ use Medienbaecker\Modules\ModulesField;
 return [
 
   // Module changes operations get a 423 while another user holds the
-  // host page's lock — the module's own lock can't cover that case.
+  // host page's lock. The module's own lock can't cover that case.
   'route:before' => function ($path, $method) {
-    if ($method !== 'POST' || !preg_match('!/changes/(save|discard|publish)$!', $path)) {
-      return;
-    }
-    $module = HostLock::moduleFromApiPath($path);
-    if ($module && $host = HostLock::hostOf($module)) {
+    if ($method !== 'POST') return;
+
+    [$model, $action] = HostLock::changesRequest($path) ?? [null, null];
+    if ($action === 'unlock' || !$model instanceof Page || !$model->isModule()) return;
+
+    if ($host = HostLock::hostOf($model)) {
       HostLock::ensureUnlocked($host);
     }
   },
 
-  // Mirror every module changes operation onto the host page (see HostLock)
   'route:after' => function ($path, $method, $result) {
-    if ($method === 'POST' && $module = HostLock::moduleFromApiPath($path)) {
-      if (preg_match('!/changes/(publish|discard)$!', $path, $matches)) {
-        try {
-          $matches[1] === 'publish'
-            ? ModuleChangesCascade::publish($module)
-            : ModuleChangesCascade::discard($module);
-        } catch (Throwable) {
-        }
-      }
-
-      try {
-        if ($host = HostLock::hostOf($module)) {
-          HostLock::sync($host);
-        }
-      } catch (Throwable) {
-        // The mirror must never break the module operation itself
-      }
+    if ($method !== 'POST' || ($result instanceof Response && $result->code() >= 400)) {
+      return $result;
     }
 
-    // Separate from the sync branch above: sync re-locks the host as the
+    [$model, $action] = HostLock::changesRequest($path) ?? [null, null];
+    if (!$model) return $result;
+
+    // Separate from the sync below: sync re-locks the host as the
     // leaving user, which would undo the auto-unlock.
-    if ($method === 'POST' && $model = HostLock::modelFromUnlockPath($path)) {
+    if ($action === 'unlock') {
       try {
         HostLock::cascadeUnlock($model);
       } catch (Throwable) {
+      }
+      return $result;
+    }
+
+    $isModule = $model instanceof Page && $model->isModule();
+    $host = $isModule ? HostLock::hostOf($model) : $model;
+
+    try {
+      if ($action === 'publish') ModuleChangesCascade::publish($model);
+      if ($action === 'discard') ModuleChangesCascade::discard($model);
+    } finally {
+      try {
+        if ($host && ($isModule || ModulesField::names($host) !== [])) {
+          HostLock::sync($host);
+        }
+      } catch (Throwable) {
+        // The mirror must never break the changes operation itself
       }
     }
 
