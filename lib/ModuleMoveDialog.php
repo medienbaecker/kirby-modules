@@ -30,6 +30,7 @@ class ModuleMoveDialog extends ModuleDialog
       throw new NotFoundException('Module not found');
     }
 
+    ModulesField::for($target->parentModel(), $target->slug())?->ensureRoom();
     ModuleSectionRoutes::moveTo($this->module, $target);
 
     return ['event' => 'modules.moved'];

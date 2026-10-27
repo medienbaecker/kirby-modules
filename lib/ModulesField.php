@@ -6,6 +6,7 @@ use Kirby\Api\Api;
 use Kirby\Blueprint\Blueprint;
 use Kirby\Cms\ModelWithContent;
 use Kirby\Cms\Page;
+use Kirby\Exception\InvalidArgumentException;
 use Kirby\Form\Field\DisplayField;
 use Kirby\Form\Fields;
 use Kirby\Form\Mixin;
@@ -73,14 +74,6 @@ class ModulesField extends DisplayField
         'action'  => fn (): array => $field->state(),
       ],
       [
-        'pattern' => 'create-container',
-        'method'  => 'POST',
-        'action'  => function () use ($field): array {
-          $field->createContainer();
-          return ['status' => 'ok'];
-        },
-      ],
-      [
         'pattern' => 'deleteAll',
         'method'  => 'POST',
         'action'  => function () use ($field): array {
@@ -91,10 +84,13 @@ class ModulesField extends DisplayField
       [
         'pattern' => 'duplicate/(:any)',
         'method'  => 'POST',
-        'action'  => fn (string $childId): array => ModuleSectionRoutes::duplicate(
-          container: $field->container(),
-          childId: $childId
-        ),
+        'action'  => function (string $childId) use ($field): array {
+          $field->ensureRoom();
+          return ModuleSectionRoutes::duplicate(
+            container: $field->container(),
+            childId: $childId
+          );
+        },
       ],
       [
         'pattern' => 'fields',
@@ -113,7 +109,7 @@ class ModulesField extends DisplayField
         'action'  => function () use ($field): array {
           /** @var Api $this */
           return ModuleSectionRoutes::move(
-            container: $field->container(),
+            field: $field,
             childId: $this->requestBody('id'),
             ids: $this->requestBody('ids')
           );
@@ -216,10 +212,7 @@ class ModulesField extends DisplayField
     $errors = [];
 
     if ($this->validateMax() === false) {
-      $errors['max'] = I18n::template('modules.error.max.' . I18n::form($this->max), [
-        'field' => $this->label(),
-        'max'   => $this->max,
-      ]);
+      $errors['max'] = $this->maxMessage();
     }
 
     if ($this->validateMin() === false) {
@@ -264,6 +257,21 @@ class ModulesField extends DisplayField
     ))->get($name);
 
     return $field instanceof static ? $field : null;
+  }
+
+  public function ensureRoom(): void
+  {
+    if ($this->max !== null && $this->total() >= $this->max) {
+      throw new InvalidArgumentException($this->maxMessage());
+    }
+  }
+
+  private function maxMessage(): string
+  {
+    return I18n::template('modules.error.max.' . I18n::form($this->max), [
+      'field' => $this->label(),
+      'max'   => $this->max,
+    ]);
   }
 
   public function layout(): string|null

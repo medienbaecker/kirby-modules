@@ -157,6 +157,7 @@ class ModuleCreateDialog extends PageCreateDialogController
   public function submit(): array
   {
     HostLock::ensureUnlocked($this->field->model());
+    $this->field->ensureRoom();
 
     // Guard at submit, not load, so a misconfigured type doesn't block its
     // siblings. create.title is replaced by `label`.
@@ -175,7 +176,7 @@ class ModuleCreateDialog extends PageCreateDialogController
     ModuleSectionRoutes::promote($page);
 
     // core emits page.create, which sibling fields do not listen to
-    return ['event' => ['page.create', 'model.update']];
+    return ['event' => ['page.create', 'model.update'], 'id' => $page->id()];
   }
 
   // Rejects a field without module types and a tampered

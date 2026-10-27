@@ -5,6 +5,7 @@ namespace Medienbaecker\Modules;
 use Kirby\Blueprint\Blueprint;
 use Kirby\Cms\ModelWithContent;
 use Kirby\Cms\Page;
+use Kirby\Cms\Site;
 use Kirby\Content\LockedContentException;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
@@ -44,14 +45,13 @@ class ModuleSectionRoutes
     }
   }
 
-  public static function assertSiblingOf(Page $child, ?Page $container): void
+  public static function assertSiblingOf(Page $child, Page|Site $host): void
   {
     $source = $child->parent();
 
     if (
-      !$container ||
       $source?->intendedTemplate()->name() !== 'modules' ||
-      $source->parentModel()->is($container->parentModel()) === false
+      $source->parentModel()->is($host) === false
     ) {
       throw new NotFoundException('Module not found');
     }
@@ -146,7 +146,7 @@ class ModuleSectionRoutes
     // The copied changes version may add pending changes to the host.
     HostLock::sync($container->parentModel());
 
-    return ['status' => 'ok'];
+    return ['status' => 'ok', 'id' => $duplicate->id()];
   }
 
   // `$hidden` null leaves the hidden flag of the changes as it is
@@ -216,17 +216,21 @@ class ModuleSectionRoutes
     });
   }
 
-  public static function move(?Page $container, string $childId, array $ids): array
+  public static function move(ModulesField $field, string $childId, array $ids): array
   {
-    $child = self::resolveModule($childId);
+    $child     = self::resolveModule($childId);
+    $container = $field->container();
 
     if ($container && $child->parent()?->is($container)) {
       self::sort($container, $ids);
       return ['status' => 'ok'];
     }
 
-    self::assertSiblingOf($child, $container);
+    self::assertSiblingOf($child, $field->model());
+    self::assertMovable($child, $field->model());
+    $field->ensureRoom();
 
+    $container ??= $field->createContainer();
     $moved = self::moveTo($child, $container);
 
     self::sort($container, array_map(
@@ -247,7 +251,7 @@ class ModuleSectionRoutes
       ->for('medienbaecker.modules', 'move') !== false;
   }
 
-  public static function moveTo(Page $child, Page $container): Page
+  public static function assertMovable(Page $child, Page|Site $targetHost): void
   {
     if (self::canMove($child) === false) {
       throw new PermissionException(
@@ -257,7 +261,12 @@ class ModuleSectionRoutes
     }
 
     self::ensureModuleAndHostUnlocked($child);
-    HostLock::ensureUnlocked($container->parentModel());
+    HostLock::ensureUnlocked($targetHost);
+  }
+
+  public static function moveTo(Page $child, Page $container): Page
+  {
+    self::assertMovable($child, $container->parentModel());
 
     $source = $child->parent();
 

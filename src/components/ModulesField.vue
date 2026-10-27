@@ -49,6 +49,7 @@ const REFRESH_EVENTS = [
   "page.duplicate",
 ];
 
+const fields = new Set();
 const moduleRequests = new Set();
 const pageRequests = new Set();
 let pageRequestsStarted = 0;
@@ -66,6 +67,9 @@ function wrapContentRequest(panel) {
     );
     if (method === "save") return original(method, clean, env);
 
+    if (method === "publish") {
+      for (const field of fields) field.saveMerged();
+    }
     const request = Promise.allSettled(moduleRequests)
       .then(() => original(method, clean, env))
       .finally(() => pageRequests.delete(request));
@@ -151,6 +155,10 @@ export default {
     parent() {
       return this.endpoints.model.replace(/^\//, "");
     },
+    // Nested fields report to their outer field through modules.dirty
+    isViewField() {
+      return this.parent === this.$panel.view.props.api?.replace(/^\//, "");
+    },
     // The view's model (the host page) is locked by another user
     isHostLocked() {
       return this.$panel.view.props.lock?.isLocked === true;
@@ -213,14 +221,16 @@ export default {
     "$panel.language.code"() {
       this.fieldData = {};
       this.changes = {};
+      this._merged = {};
       this.fetch();
     },
   },
   created() {
     wrapContentRequest(this.$panel);
+    fields.add(this);
+    this._merged = {};
 
-    // Field name = container slug; create it on first mount if missing.
-    this.$api.post(this.fieldUrl + "/create-container").then(() => this.fetch());
+    this.fetch();
 
     this._onRefresh = this.$helper.debounce(async () => {
       await Promise.allSettled(pageRequests);
@@ -231,6 +241,9 @@ export default {
       this.$events.on(event, this._onRefresh);
     }
 
+    this._onCreated = ({ id }) => {
+      if (this.pendingInsert && !this.pendingInsert.id) this.pendingInsert.id = id;
+    };
     this._onPublish = () => this.settleChanges("publish");
     this._onDiscard = () => this.settleChanges("discard");
     this._onMoved = (event) => {
@@ -250,6 +263,7 @@ export default {
     this.$events.on("modules.update", this._onRemoteUpdate);
     this.$events.on("modules.merge", this._onRemoteMerge);
     this.$events.on("modules.moved", this._onMoved);
+    this.$events.on("page.create", this._onCreated);
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
     this.$events.on("modules.dirty", this._onDescendantDirty);
@@ -259,12 +273,15 @@ export default {
     document.addEventListener("mousedown", this.onClickOutside);
   },
   unmounted() {
+    this.saveMerged();
+    fields.delete(this);
     for (const event of REFRESH_EVENTS) {
       this.$events.off(event, this._onRefresh);
     }
     this.$events.off("modules.update", this._onRemoteUpdate);
     this.$events.off("modules.merge", this._onRemoteMerge);
     this.$events.off("modules.moved", this._onMoved);
+    this.$events.off("page.create", this._onCreated);
     this.$events.off("content.publish", this._onPublish);
     this.$events.off("content.discard", this._onDiscard);
     this.$events.off("modules.dirty", this._onDescendantDirty);
@@ -276,7 +293,6 @@ export default {
 
     async fetch() {
       try {
-        const previousIds = new Set(this.modules.map((m) => m.id));
         const previousTemplates = new Map(this.modules.map((m) => [m.id, m.template]));
 
         const started = pageRequestsStarted;
@@ -301,7 +317,7 @@ export default {
         const toLoad = this.modules.filter((m) => this.restoreExpandState(m, collapsed));
 
         this.reconcileState();
-        this.positionNewModule(previousIds);
+        this.positionNewModule();
 
         this.loadFieldsBatch(toLoad, true);
       } catch (e) {
@@ -321,7 +337,8 @@ export default {
       }
 
       // Fields must load before k-model-form can render them, so defer the expand.
-      if (module.hasFields && (!this.fieldData[module.id] || module.hasPendingChanges)) {
+      const unknownChanges = module.hasPendingChanges && !this.changes[module.id];
+      if (module.hasFields && (!this.fieldData[module.id] || unknownChanges)) {
         return true;
       }
       this.expanded[module.id] = true;
@@ -355,18 +372,18 @@ export default {
       this.syncDirtyState();
     },
 
-    positionNewModule(previousIds) {
-      if (!this.pendingInsert) return;
-      const { position, focusInput } = this.pendingInsert;
+    positionNewModule() {
+      const { id, position, focusInput } = this.pendingInsert ?? {};
+      const newModule = this.modules.find((m) => m.id === id);
+      if (!newModule) return;
       this.pendingInsert = null;
 
-      const newModule = this.modules.find((m) => !previousIds.has(m.id));
-      if (!newModule) return;
-
-      const others = this.modules.filter((m) => m !== newModule);
-      others.splice(position >= 0 ? position : others.length, 0, newModule);
-      this.modules = others;
-      this.onSort();
+      if (position >= 0 && position !== this.modules.indexOf(newModule)) {
+        const others = this.modules.filter((m) => m !== newModule);
+        others.splice(position, 0, newModule);
+        this.modules = others;
+        this.onSort();
+      }
       this.$nextTick(() => {
         const el = this.$el.querySelector(`[data-module-id="${newModule.id}"]`);
         if (!el) return;
@@ -469,11 +486,10 @@ export default {
             this.$api.post(this.$api.pages.url(module.id, "changes/save"), pending, { silent: true }),
           );
         }
-        await this.$api.post(
+        const { id } = await this.$api.post(
           this.fieldUrl + "/duplicate/" + this.$api.pages.id(module.id),
         );
-        const index = this.modules.findIndex((m) => m.id === module.id);
-        this.pendingInsert = { position: index >= 0 ? index + 1 : -1, focusInput: false };
+        this.pendingInsert = { id, focusInput: false };
         this.fetch();
       } catch (e) {
         this.handleError(e);
@@ -515,7 +531,7 @@ export default {
     },
 
     onMove(event) {
-      return event.toData.accepts(event.draggedData.module.template);
+      return event.from === event.to || event.toData.accepts(event.draggedData.module.template);
     },
 
     accepts(template) {
@@ -553,8 +569,8 @@ export default {
         this.$events.emit("page.sort");
       } catch (e) {
         this.handleError(e);
+        await this.fetch();
       }
-      await this.fetch();
     },
 
     async toggleVisibility(module) {
@@ -563,7 +579,6 @@ export default {
           this.fieldUrl + "/toggle-visibility/" + this.$api.pages.id(module.id),
         );
         this.$events.emit("model.update");
-        await this.fetch();
         this.$nextTick(() => {
           const el = this.$el.querySelector(`[data-module-id="${module.id}"]`);
           if (el) el.scrollIntoView({ block: "nearest" });
@@ -596,6 +611,7 @@ export default {
     // then published/discarded when the parent page is saved/discarded.
     async onInput(module, values, remote = false) {
       if (!remote) this.$events.emit("modules.input", { ...this.eventPayload(module), values });
+      delete this._merged[module.id];
 
       const data = this.fieldData[module.id];
       const isOriginal = (v) => JSON.stringify(v) === data.original;
@@ -623,8 +639,9 @@ export default {
           );
           // Commit local state only after the server accepts; otherwise a
           // 423 leaves the parent dirty with nothing the user can publish.
-          if (!isOriginal(this.drafts[module.id] ?? values)) {
-            this.changes[module.id] = values;
+          const latest = this.drafts[module.id] ?? values;
+          if (!isOriginal(latest)) {
+            this.changes[module.id] = latest;
           }
         } catch (e) {
           settle();
@@ -644,7 +661,17 @@ export default {
         this.changes[module.id] = values;
       }
       if (this.drafts[module.id]) this.drafts[module.id] = values;
+      this._merged[module.id] = values;
       this.syncDirtyState();
+    },
+
+    saveMerged() {
+      for (const [id, values] of Object.entries(this._merged)) {
+        this.queueChanges(id, () =>
+          this.$api.post(this.$api.pages.url(id, "changes/save"), values, { silent: true }),
+        ).catch((e) => this.handleError(e));
+      }
+      this._merged = {};
     },
 
     async settleChanges(action) {
@@ -659,6 +686,7 @@ export default {
       }
       this.serverPendingIds = [];
       this.descendantPendingIds = [];
+      this._merged = {};
       this.syncDirtyState();
 
       await this.fetch();
@@ -687,9 +715,11 @@ export default {
     // Field-scoped key — multiple modules fields dirty independently.
     // Never persisted: wrapContentRequest() strips it.
     dirtyParent() {
+      if (!this.isViewField) return;
       this.$panel.content.merge({ [`_modulesChanged_${this.name}`]: String(Date.now()) });
     },
     undirtyParent() {
+      if (!this.isViewField) return;
       const versions = this.$panel.content.versions();
       delete versions.changes[`_modulesChanged_${this.name}`];
       delete versions.latest[`_modulesChanged_${this.name}`];
