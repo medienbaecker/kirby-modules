@@ -35,7 +35,7 @@ class ModuleSectionRoutes
     }
   }
 
-  // Same 404 as resolveModule() — a permission error would leak whether the
+  // Same 404 as resolveModule(): a permission error would leak whether the
   // ID exists in another container.
   public static function assertChildOf(Page $child, ?Page $container): void
   {
@@ -63,18 +63,21 @@ class ModuleSectionRoutes
     self::assertChildOf($child, $container);
 
     $form    = Form::for($child, 'current');
+    $fields  = $form->fields();
+    // Blueprint values only - stripping passthrough (`hidden`, `uuid`, `lock`)
+    // keeps out-of-band content state from riding back through /changes/save.
+    $values  = fn () => array_diff_key($fields->toFormValues(), $fields->passthrough());
+    $latest  = $values();
     $changes = $child->version('changes');
 
     if ($changes->exists('current')) {
       $form->fill(input: $changes->content('current')->toArray());
     }
 
-    $fields = $form->fields();
-
     return [
-      // Blueprint values only - stripping passthrough (`hidden`, `uuid`, `lock`)
-      // keeps out-of-band content state from riding back through /changes/save.
-      'values' => array_diff_key($fields->toFormValues(), $fields->passthrough()),
+      'values' => $values(),
+      // The published values, which the client compares edits against
+      'original' => $latest,
       // `label` can derive from fields; the client refreshes it from here after
       // a save, sparing a full field refetch.
       'moduleName' => (string) $child->title(),
@@ -329,7 +332,7 @@ class ModuleSectionRoutes
     return tt('modules.visibility.invalid', ['languages' => implode(', ', $names)]);
   }
 
-  // Mirror to _changes too — Version::publish overwrites latest with the
+  // Mirror to _changes too. Version::publish overwrites latest with the
   // changes content, so a pending publish would otherwise undo the toggle.
   private static function writeHidden(Page $child, ?string $value, ?string $language): Page
   {
