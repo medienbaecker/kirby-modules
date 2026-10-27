@@ -55,7 +55,7 @@ let pageRequestsStarted = 0;
 
 // The dirty marker (see dirtyParent) must never reach the server:
 // unknown fields in a save/publish payload pass through into the
-// content file. Publishing and discarding wait for module saves.
+// content file.
 function wrapContentRequest(panel) {
   const content = panel.content;
   if (content.request._wrapped) return;
@@ -690,7 +690,7 @@ export default {
 
       await this.fetch();
       await this.loadFieldsBatch(
-        this.modules.filter((m) => ids.has(m.id) && this.expanded[m.id] && m.hasFields),
+        this.modules.filter((m) => ids.has(m.id) && this.fieldData[m.id]),
       );
     },
 

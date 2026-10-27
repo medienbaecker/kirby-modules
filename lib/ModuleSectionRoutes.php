@@ -76,7 +76,6 @@ class ModuleSectionRoutes
 
     return [
       'values' => $values(),
-      // The published values, which the client compares edits against
       'original' => $latest,
       // `label` can derive from fields; the client refreshes it from here after
       // a save, sparing a full field refetch.
