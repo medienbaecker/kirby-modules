@@ -154,6 +154,7 @@ export default {
         },
         {
           icon: "dots",
+          title: this.$t("more"),
           dropdown: [
             {
               icon: "edit",
