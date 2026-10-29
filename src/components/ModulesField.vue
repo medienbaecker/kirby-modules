@@ -224,6 +224,9 @@ export default {
       this._merged = {};
       this.fetch();
     },
+    "$panel.view.timestamp"() {
+      this.syncDirtyState();
+    },
   },
   created() {
     wrapContentRequest(this.$panel);
