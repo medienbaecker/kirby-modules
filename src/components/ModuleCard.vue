@@ -252,6 +252,7 @@ body:has(.k-module.k-sortable-fallback) * {
 
   container: module / inline-size;
   position: relative;
+  isolation: isolate;
   background: var(--module-color-back);
   box-shadow: var(--shadow);
   border-radius: var(--rounded);
