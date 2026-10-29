@@ -2,6 +2,7 @@
 
 use Kirby\Cms\Page;
 use Kirby\Content\LockedContentException;
+use Kirby\Exception\Exception;
 use Kirby\Exception\PermissionException;
 use Kirby\Http\Response;
 use Kirby\Panel\Panel;
@@ -19,12 +20,20 @@ return [
     [$model, $action] = HostLock::changesRequest($path) ?? [null, null];
     if (!$model || $action === 'unlock') return;
 
-    if ($model instanceof Page && $model->isModule() && $host = HostLock::hostOf($model)) {
-      HostLock::ensureUnlocked($host);
-    }
+    kirby()->setCurrentTranslation(kirby()->user()?->language() ?? kirby()->panelLanguage());
 
-    if ($action === 'publish') {
-      ModuleChangesCascade::validate($model);
+    try {
+      if ($model instanceof Page && $model->isModule() && $host = HostLock::hostOf($model)) {
+        HostLock::ensureUnlocked($host);
+      }
+
+      if ($action === 'publish') {
+        ModuleChangesCascade::validate($model);
+      }
+    } catch (Exception $e) {
+      $response = kirby()->api()->responseForException($e);
+      echo Response::json($response, $response['code']);
+      exit;
     }
   },
 
