@@ -5,7 +5,7 @@ namespace Medienbaecker\Modules;
 use Generator;
 use Kirby\Cms\Page;
 use Kirby\Cms\Site;
-use Kirby\Exception\InvalidArgumentException;
+use Kirby\Exception\FormValidationException;
 use Kirby\Form\Form;
 
 class ModuleChangesCascade
@@ -26,6 +26,7 @@ class ModuleChangesCascade
   public static function validate(Page|Site $model): void
   {
     $invalid = [];
+    $details = [];
 
     foreach (static::descendants($model) as $child) {
       if ($child->guards()->isAvailable('update') === false) continue;
@@ -35,13 +36,21 @@ class ModuleChangesCascade
       $form = Form::for($child, 'current');
       $form->submit(input: $changes->content('current')->toArray());
       if ($form->isInvalid()) {
-        $invalid[] = (string) $child->title();
+        $title = (string) $child->title();
+        $invalid[] = $title;
+        foreach ($form->errors() as $name => $error) {
+          $details[$child->id() . '/' . $name] = [
+            'label'   => $title . ': ' . $error['label'],
+            'message' => $error['message'],
+          ];
+        }
       }
     }
 
     if ($invalid !== []) {
-      throw new InvalidArgumentException(
-        tt('modules.publish.invalid', ['modules' => implode(', ', $invalid)])
+      throw new FormValidationException(
+        message: tt('modules.publish.invalid', ['modules' => implode(', ', $invalid)]),
+        details: $details
       );
     }
   }
