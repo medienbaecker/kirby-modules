@@ -22,10 +22,9 @@
           </button>
         </div>
         <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="currentTab = $event" />
-        <div v-if="tabs.length > 1" ref="tabsSize" class="k-tabs k-drawer-tabs k-module-tabs-size" aria-hidden="true"
-          inert>
+        <div v-if="tabs.length > 1" ref="tabsSize" class="k-tabs k-drawer-tabs k-module-tabs-size">
           <k-button v-for="tab in tabs" :key="tab.name" :icon="tab.icon" variant="dimmed" class="k-tabs-button">
-            {{ tab.label ?? tab.name }}
+            {{ tab.label ?? tab.text ?? tab.name }}
           </k-button>
         </div>
         <button ref="visibility" type="button" class="k-module-visibility" :data-hidden="module.hidden"
@@ -402,7 +401,6 @@ body:has(.k-module.k-sortable-fallback) * {
   position: absolute;
   width: max-content;
   visibility: hidden;
-  pointer-events: none;
 }
 
 .k-module-visibility {
