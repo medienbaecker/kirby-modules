@@ -18,7 +18,7 @@ class PageDeleteDialog extends PageDeleteDialogController
     }
 
     return new RemoveDialog(
-      text: $this->i18nHtml('page.delete.confirm', [
+      text: $this->i18nHtml($this->page->isModule() ? 'modules.delete.confirm' : 'page.delete.confirm', [
         'title' => $this->page->title()->value()
       ])
     );

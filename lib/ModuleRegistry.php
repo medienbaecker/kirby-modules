@@ -243,10 +243,12 @@ class ModuleRegistry
     return $registry;
   }
 
-  // e.g. 'text', 'text-2', 'text-3'
+  // e.g. 'zitat', 'zitat-2', 'zitat-3'
   public static function generateSlug(string $parentId, string $template): ?string
   {
-    return self::uniqueSlug($parentId, Str::slug(str_replace('module.', '', $template)));
+    $shortName = str_replace('module.', '', $template);
+    $title = self::load()['blueprints']['pages/' . $template]['title'] ?? $shortName;
+    return self::uniqueSlug($parentId, Str::slug(I18n::translate($title, $title, kirby()->defaultLanguage()?->code())));
   }
 
   // Base on the source slug so #anchor duplicates as #anchor-2. The trailing

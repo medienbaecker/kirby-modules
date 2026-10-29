@@ -2,6 +2,8 @@
 
 namespace Medienbaecker\Modules;
 
+use Kirby\Exception\DuplicateException;
+
 class ModuleChangeSlugDialog extends ModuleDialog
 {
   public function load(): array
@@ -28,7 +30,11 @@ class ModuleChangeSlugDialog extends ModuleDialog
 
   public function submit(): array
   {
-    $this->module->changeSlug(kirby()->request()->body()->get('slug'));
+    try {
+      $this->module->changeSlug(kirby()->request()->body()->get('slug'));
+    } catch (DuplicateException $e) {
+      throw new DuplicateException(tt('modules.changeAnchor.duplicate', ['anchor' => $e->getData()['slug']]));
+    }
     return ['event' => 'model.update'];
   }
 }

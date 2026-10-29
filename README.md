@@ -453,7 +453,7 @@ $page->createModule([
 ]);
 ```
 
-The container is created when missing and the slug defaults to the type name (`text`, `text-2`, …). Like in the Panel, new modules respect the [`autopublish` option](#config-options), so they are created hidden by default. The method returns the created module.
+The container is created when missing and the slug defaults to the blueprint's `title` (`text`, `text-2`, …). Like in the Panel, new modules respect the [`autopublish` option](#config-options), so they are created hidden by default. The method returns the created module.
 
 The second argument targets a named container:
 
