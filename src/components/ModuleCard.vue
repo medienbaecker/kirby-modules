@@ -22,6 +22,12 @@
           </button>
         </div>
         <k-drawer-tabs class="k-module-tabs" :tab="activeTab" :tabs="tabs" @open="currentTab = $event" />
+        <div v-if="tabs.length > 1" ref="tabsSize" class="k-tabs k-drawer-tabs k-module-tabs-size" aria-hidden="true"
+          inert>
+          <k-button v-for="tab in tabs" :key="tab.name" :icon="tab.icon" variant="dimmed" class="k-tabs-button">
+            {{ tab.label ?? tab.name }}
+          </k-button>
+        </div>
         <button ref="visibility" type="button" class="k-module-visibility" :data-hidden="module.hidden"
           :aria-label="module.hidden ? $t('publish') : $t('modules.unpublish')" :disabled="!permissions.update"
           @click.stop="$emit('toggle-visibility')">
@@ -85,14 +91,16 @@ export default {
     const header = this.$el.querySelector(".k-module-header");
     this.sideObserver = new ResizeObserver(() => {
       const max = Math.max(this.$refs.title.offsetWidth, this.$refs.visibility.offsetWidth);
+      const tabs = this.$refs.tabsSize?.offsetWidth ?? 0;
+      const gap = parseFloat(getComputedStyle(header).columnGap);
       // Fall back to asymmetric (tabs centered between siblings) when the
-      // symmetric layout wouldn't leave reasonable room for tabs.
-      const minTabs = 50;
-      this.sideWidth = (2 * max + minTabs <= header.offsetWidth) ? max : 0;
+      // symmetric layout wouldn't leave room for all tabs.
+      this.sideWidth = (2 * max + tabs + 2 * gap <= header.offsetWidth) ? max : 0;
     });
     this.sideObserver.observe(this.$refs.title);
     this.sideObserver.observe(this.$refs.visibility);
     this.sideObserver.observe(header);
+    if (this.$refs.tabsSize) this.sideObserver.observe(this.$refs.tabsSize);
   },
   beforeUnmount() {
     this.sideObserver?.disconnect();
@@ -387,6 +395,13 @@ body:has(.k-module.k-sortable-fallback) * {
   &.k-tabs {
     justify-content: center;
   }
+}
+
+.k-module-tabs-size {
+  position: absolute;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .k-module-visibility {
