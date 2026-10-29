@@ -25,7 +25,6 @@ class ModuleChangesCascade
 
   public static function validate(Page|Site $model): void
   {
-    $invalid = [];
     $details = [];
 
     foreach (static::descendants($model) as $child) {
@@ -35,21 +34,17 @@ class ModuleChangesCascade
 
       $form = Form::for($child, 'current');
       $form->submit(input: $changes->content('current')->toArray());
-      if ($form->isInvalid()) {
-        $title = (string) $child->title();
-        $invalid[] = $title;
-        foreach ($form->errors() as $name => $error) {
-          $details[$child->id() . '/' . $name] = [
-            'label'   => $title . ': ' . $error['label'],
-            'message' => $error['message'],
-          ];
-        }
+      foreach ($form->errors() as $name => $error) {
+        $details[$child->id() . '/' . $name] = [
+          'label'   => $child->title() . ': ' . $error['label'],
+          'message' => $error['message'],
+        ];
       }
     }
 
-    if ($invalid !== []) {
+    if ($details !== []) {
       throw new FormValidationException(
-        message: tt('modules.publish.invalid', ['modules' => implode(', ', $invalid)]),
+        message: t('modules.publish.invalid'),
         details: $details
       );
     }

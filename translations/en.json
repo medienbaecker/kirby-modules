@@ -42,6 +42,6 @@
   "error.max.singular": "You must not add more than one module to the \"{field}\" field",
   "error.min.plural": "The \"{field}\" field requires at least {min} modules",
   "error.min.singular": "The \"{field}\" field requires at least one module",
-  "publish.invalid": "Fix the errors in these modules before saving: {{ modules }}",
+  "publish.invalid": "Fix the errors in these modules before saving",
   "move.field": "Modules field"
 }
