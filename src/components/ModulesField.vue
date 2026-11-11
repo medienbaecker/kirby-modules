@@ -235,7 +235,8 @@ export default {
 
     this.fetch();
 
-    this._onRefresh = this.$helper.debounce(async () => {
+    this._onRefresh = this.$helper.debounce(async (response) => {
+      if (response?.redirect) return;
       await Promise.allSettled(pageRequests);
       this.fetch();
     }, 0);
