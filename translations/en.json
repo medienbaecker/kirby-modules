@@ -25,7 +25,6 @@
   "deleteAll.confirm": "Do you really want to delete all modules?",
   "delete.confirm": "Do you really want to delete the module <strong>{{ title }}</strong>?",
   "license.info": "Don't have a licence key yet? <a href='{{ url }}' target='_blank'>Buy a licence</a>",
-  "license.licensed": "Licensed",
   "license.activate": "Activate licence",
   "license.demo": "Demo",
   "license.invalid": "Invalid licence",
