@@ -27,7 +27,7 @@ class ModuleCreateDialog extends PageCreateDialogController
   ) {
     parent::__construct(
       parent: $field->container() ?? $field->createContainer(),
-      blueprints: $field->blueprints()
+      blueprints: $field->templates()
     );
   }
 
@@ -183,7 +183,7 @@ class ModuleCreateDialog extends PageCreateDialogController
   // template that isn't one of the field's module types.
   public function template(): string
   {
-    $names    = array_column($this->blueprints, 'name');
+    $names    = $this->blueprints;
     $template = $this->request->get('template', $names[0] ?? null);
 
     if (!in_array($template, $names, true)) {
