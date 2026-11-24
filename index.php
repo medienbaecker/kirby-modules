@@ -25,6 +25,7 @@ Kirby::plugin(
   'medienbaecker/modules',
   license: fn($plugin) => new \Medienbaecker\Modules\ModulesLicense($plugin),
   extends: [
+    'options'      => ['cache' => true],
     'templates'    => $moduleRegistry['templates'],
     'snippets'     => $moduleRegistry['snippets'],
     'pageModels'   => $moduleRegistry['pageModels'],

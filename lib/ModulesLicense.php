@@ -50,9 +50,12 @@ class ModulesLicense extends License
     }
 
     $granted = self::validateKey($key);
-    $cache->set($cacheKey, $granted ? 'granted' : 'invalid', self::CACHE_MINUTES);
 
-    return self::makeStatus($granted ? 'active' : 'invalid');
+    if ($granted !== null) {
+      $cache->set($cacheKey, $granted ? 'granted' : 'invalid', self::CACHE_MINUTES);
+    }
+
+    return self::makeStatus($granted === false ? 'invalid' : 'active');
   }
 
   public static function remove(): void
@@ -63,19 +66,23 @@ class ModulesLicense extends License
 
   public static function activate(string $key): bool
   {
-    if (!self::validateKey($key)) {
+    $granted = self::validateKey($key);
+
+    if ($granted === false) {
       return false;
     }
 
     Json::write(self::licenseFile(), ['key' => $key]);
 
-    $cache = App::instance()->cache('medienbaecker.modules');
-    $cache->set('license.' . md5($key), 'granted', self::CACHE_MINUTES);
+    if ($granted === true) {
+      $cache = App::instance()->cache('medienbaecker.modules');
+      $cache->set('license.' . md5($key), 'granted', self::CACHE_MINUTES);
+    }
 
     return true;
   }
 
-  private static function validateKey(string $key): bool
+  private static function validateKey(string $key): bool|null
   {
     try {
       $response = Remote::post(self::POLAR_API, [
@@ -87,11 +94,14 @@ class ModulesLicense extends License
         ])
       ]);
 
-      return $response->code() === 200
-        && ($response->json()['status'] ?? null) === 'granted';
+      return match ($response->code()) {
+        200     => ($response->json()['status'] ?? null) === 'granted',
+        404     => false,
+        default => null,
+      };
     } catch (\Exception) {
       // API unreachable — treat as valid to avoid blocking
-      return true;
+      return null;
     }
   }
 
@@ -103,7 +113,7 @@ class ModulesLicense extends License
       'active' => new LicenseStatus(
         value: 'active',
         icon: 'check',
-        label: t('modules.license.licensed'),
+        label: t('license.status.active.label'),
         theme: 'positive',
         dialog: self::DIALOG
       ),
