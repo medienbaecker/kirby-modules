@@ -79,6 +79,9 @@ class HostLock
       : ['default'];
 
     foreach ($languages as $code) {
+      if ($host->version('changes')->exists($code) && static::hasPendingModules($host, $code)) {
+        continue;
+      }
       static::sync($host, $code);
     }
   }
