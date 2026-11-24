@@ -245,9 +245,6 @@ export default {
       this.$events.on(event, this._onRefresh);
     }
 
-    this._onCreated = ({ id }) => {
-      if (this.pendingInsert && !this.pendingInsert.id) this.pendingInsert.id = id;
-    };
     this._onPublish = () => this.settleChanges("publish");
     this._onDiscard = () => this.settleChanges("discard");
     this._onMoved = (event) => {
@@ -267,7 +264,6 @@ export default {
     this.$events.on("modules.update", this._onRemoteUpdate);
     this.$events.on("modules.merge", this._onRemoteMerge);
     this.$events.on("modules.moved", this._onMoved);
-    this.$events.on("page.create", this._onCreated);
     this.$events.on("content.publish", this._onPublish);
     this.$events.on("content.discard", this._onDiscard);
     this.$events.on("modules.dirty", this._onDescendantDirty);
@@ -285,7 +281,6 @@ export default {
     this.$events.off("modules.update", this._onRemoteUpdate);
     this.$events.off("modules.merge", this._onRemoteMerge);
     this.$events.off("modules.moved", this._onMoved);
-    this.$events.off("page.create", this._onCreated);
     this.$events.off("content.publish", this._onPublish);
     this.$events.off("content.discard", this._onDiscard);
     this.$events.off("modules.dirty", this._onDescendantDirty);
@@ -377,8 +372,9 @@ export default {
     },
 
     positionNewModule() {
-      const { id, position, focusInput } = this.pendingInsert ?? {};
-      const newModule = this.modules.find((m) => m.id === id);
+      if (!this.pendingInsert) return;
+      const { id, known, position, focusInput } = this.pendingInsert;
+      const newModule = this.modules.find((m) => (id ? m.id === id : !known.has(m.id)));
       if (!newModule) return;
       this.pendingInsert = null;
 
@@ -469,10 +465,11 @@ export default {
       }
     },
 
-    add(position = -1) {
+    async add(position = -1) {
       if (!this.canAdd || this.isLocked) return;
-      this.pendingInsert = { position, focusInput: true };
-      this.$dialog(this.fieldUrl + "/create");
+      this.pendingInsert = { known: new Set(this.modules.map((m) => m.id)), position, focusInput: true };
+      await this.$dialog(this.fieldUrl + "/create");
+      if (!this.$panel.dialog.isOpen) this.fetch();
     },
     addAt(module, offset) {
       const index = this.modules.findIndex((m) => m.id === module.id);
