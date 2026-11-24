@@ -1,6 +1,6 @@
 <template>
   <k-field :id="id" :class="['k-modules-field', $attrs.class]" :help="help" :input="false" :label="label"
-    :name="name" :required="Boolean(min)" :style="$attrs.style" :type="type">
+    :disabled="disabled" :name="name" :required="Boolean(min)" :style="$attrs.style" :type="type">
     <template v-if="buttons.length" #options>
       <k-button-group :buttons="buttons" size="xs" variant="filled" />
     </template>
