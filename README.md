@@ -2,14 +2,14 @@
 
 Modular page building for [Kirby](https://getkirby.com/). Every module is a regular page with its own blueprint and snippet, edited inline on the parent page.
 
-<img width="1132" height="802" alt="Screenshot of the modules section with two modules: a hero module whose card title shows its headline, and a selected text module with its toolbar" src=".github/screenshot.webp" />
+<img width="1132" height="802" alt="Screenshot of the modules field with two modules: a hero module whose card title shows its headline, and a selected text module with its toolbar" src=".github/screenshot.webp" />
 
 - Edit module fields inline on the parent page with a blocks-like UI
 - Signed previews for hidden modules
 - Great performance with large numbers of modules
 - Robust multilanguage behaviour
 - Automatic container page creation, separating modules from regular subpages
-- Multiple modules sections per page
+- Multiple modules fields per page
 - Sensible defaults in module blueprints
 
 ## Installation
@@ -31,12 +31,12 @@ Or download this repository and put it into `site/plugins/modules`.
 
 > Prefer to see everything wired up? The [moduleskit](https://github.com/medienbaecker/moduleskit) is a small, ready-to-run example site.
 
-**1. Add a modules section** to a page blueprint:
+**1. Add a modules field** to a page blueprint:
 
 ```yml
 # site/blueprints/pages/default.yml
 title: Default Page
-sections:
+fields:
   modules:
     type: modules
 ```
@@ -84,7 +84,7 @@ Page
     └── Module B
 ```
 
-The container is created automatically and stays out of the way. Editors only ever see the modules section on the parent page. Because modules are pages, everything you know about pages applies: module blueprints support the full Kirby blueprint layout, including [columns](https://getkirby.com/docs/guide/blueprints/layout#columns) and [sections](https://getkirby.com/docs/guide/blueprints/layout#sections), and modules can have their own files, translations and models.
+The container is created automatically and stays out of the way. Editors only ever see the modules field on the parent page. Because modules are pages, everything you know about pages applies: module blueprints support the full Kirby blueprint layout, including [columns](https://getkirby.com/docs/guide/blueprints/layout#columns) and [sections](https://getkirby.com/docs/guide/blueprints/layout#sections), and modules can have their own files, translations and models.
 
 ### Naming
 
@@ -105,7 +105,7 @@ Each module's visibility can be toggled with a single click on its card. Hidden 
 
 <img width="1132" height="188" alt="Screenshot of two module cards, one marked Visible and one marked Hidden with a striped background" src=".github/visibility.webp" />
 
-New modules are created hidden, so editors can prepare content before it goes live. Set `autopublish: true` to create them visible instead. The setting closest to a module wins, so you can turn it on for a single type or one section even when everything else stays hidden:
+New modules are created hidden, so editors can prepare content before it goes live. Set `autopublish: true` to create them visible instead. The setting closest to a module wins, so you can turn it on for a single type or one field even when everything else stays hidden:
 
 ```yml
 # site/blueprints/modules/hero.yml
@@ -114,7 +114,7 @@ autopublish: true
 
 ```yml
 # site/blueprints/pages/home.yml
-sections:
+fields:
   hero:
     type: modules
     autopublish: true
@@ -235,7 +235,7 @@ Once you have a lot of module types, the picker can get pretty long. Fear not, s
 
 ```yml
 # site/blueprints/pages/default.yml
-sections:
+fields:
   modules:
     type: modules
     templates:
@@ -266,7 +266,7 @@ Module edits are unsaved changes, published with the page's own Save button. Whi
 
 Kirby releases a lock 10 minutes after the last edit. If someone leaves without saving, their changes wait for the next editor, and the page header names who made them, just like on any other page. Saving publishes them, discarding removes them.
 
-## Section Options
+## Field Options
 
 | Option            | Type     | Description                                                                                                    |
 | ----------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
@@ -276,19 +276,19 @@ Kirby releases a lock 10 minutes after the last edit. If someone leaves without 
 | `min`             | `int`    | Minimum number of modules                                                                                      |
 | `max`             | `int`    | Maximum number of modules                                                                                      |
 | `sortable`        | `bool`   | Set to `false` to disable manual sorting                                                                       |
-| `label`           | `string` | Section headline (default: the section name, e.g. "Modules")                                                   |
+| `label`           | `string` | Field label (default: the field name, e.g. "Modules")                                                          |
 | `empty`           | `string` | Empty state text                                                                                               |
-| `autopublish`     | `bool`   | Override the global [`autopublish`](#config-options) for this section (a module's own `autopublish` flag wins) |
+| `autopublish`     | `bool`   | Override the global [`autopublish`](#config-options) for this field (a module's own `autopublish` flag wins)   |
 | `layout`          | `string` | Set a `data-layout` value on the list for [custom layouts](#custom-layouts) styled in Panel CSS                |
 
 Type names work with or without the `module.` prefix.
 
-### Multiple sections
+### Multiple fields
 
-Each section's name (the YAML key) becomes its container's slug, so a page can have several independent module areas:
+Each field's name (the YAML key) becomes its container's slug, so a page can have several independent module areas:
 
 ```yml
-sections:
+fields:
   modules:
     type: modules
     default: text
@@ -300,19 +300,19 @@ sections:
 ```
 
 ```php
-// Default container for the section called `modules`
+// Default container for the field called `modules`
 <?= $page->modules() ?>
 
-// Secondary container for the section called `sidebar`
+// Secondary container for the field called `sidebar`
 <?= $page->modules('sidebar') ?>
 ```
 
 ### Custom layouts
 
-Modules render as cards, but the layout is yours. Set `layout` on a section and the plugin puts that value on a `data-layout` attribute on the list, so you can style it in your [Panel CSS](https://getkirby.com/docs/reference/system/options/panel#custom-panel-css):
+Modules render as cards, but the layout is yours. Set `layout` on a field and the plugin puts that value on a `data-layout` attribute on the list, so you can style it in your [Panel CSS](https://getkirby.com/docs/reference/system/options/panel#custom-panel-css):
 
 ```yml
-sections:
+fields:
   modules:
     type: modules
     layout: grid
@@ -326,7 +326,7 @@ sections:
 }
 ```
 
-<img width="1132" height="188" alt="Screenshot of a modules section laid out in two columns, four collapsed modules in a 2x2 grid" src=".github/layout.webp" />
+<img width="1132" height="188" alt="Screenshot of a modules field laid out in two columns, four collapsed modules in a 2x2 grid" src=".github/layout.webp" />
 
 For smaller tweaks there's `--module-gap` and `--module-row` (the header row height); target any `.k-module` class to go further.
 
@@ -351,7 +351,7 @@ You can combine layouts too: `layout: grid dense` matches both `[data-layout~="g
 
 Inside a snippet, `$module` is the module page and `$page` is the parent page. Variables from [controllers](https://getkirby.com/docs/guide/templates/controllers) are also available.
 
-Modules also work on the site itself: add a modules section to `site.yml` and use `$site->modules()` in your templates.
+Modules also work on the site itself: add a modules field to `site.yml` and use `$site->modules()` in your templates.
 
 The same method works on a page collection: `$pages->modules()` merges the modules of every page into one collection, so `page('blog')->children()->modules()` gets them all at once.
 
@@ -364,7 +364,7 @@ The same method works on a page collection: `$pages->modules()` merges the modul
 | `$pages->modules()`             | Merge modules from every page in a collection                |
 | `$page->renderModules($params)` | Render all modules, optionally passing variables             |
 | `$page->createModule($props)`   | Create a module from code                                    |
-| `$page->hasModules()`           | Page has a modules section                                   |
+| `$page->hasModules()`           | Page has a modules field                                     |
 | `$page->isModule()`             | Page is a module                                             |
 | `$module->isHidden()`           | Module is hidden (always reads the default language)         |
 | `$page->filePool()`             | Files for blueprint queries (host page if module, else self) |
@@ -518,7 +518,7 @@ fields:
 
 What changed:
 
-- Without a `label`, the headline falls back to the section name like any Kirby field (`sidebar` shows "Sidebar"). It is no longer translated to "Modules".
+- Without a `label`, the label falls back to the field name like any Kirby field (`sidebar` shows "Sidebar"). It is no longer translated to "Modules".
 - `$module->ownerSection()` is now `$module->ownerField()` and returns the `Medienbaecker\Modules\ModulesField`. To find the modules fields of a page, use `ModulesField::names($page)` or `ModulesField::for($page, 'modules')`.
 - The Panel component is now `k-modules-field` (formerly `k-modules-section`). Update custom Panel CSS that targets `.k-modules-section`.
 - The create dialog belongs to the field now (`pages/…/fields/{name}/create`) instead of the global `modules/create` dialog.
