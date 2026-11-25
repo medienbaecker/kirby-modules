@@ -465,7 +465,7 @@ $page->createModule($props, 'sidebar');
 
 Other Panel plugins can work with module values through `panel.events`, without overriding any Kirby component. The modules field emits:
 
-- `modules.load` when a module's fields are ready, again after publishing, discarding, changing the language or the type
+- `modules.load` when a module's fields are ready, again after publishing, discarding, reloading the view, changing the language or the type
 - `modules.input` when an editor changes a module's values
 
 Both events carry the field name, the host page and the module:

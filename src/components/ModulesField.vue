@@ -35,9 +35,8 @@
 <script>
 import ModuleCard from "./ModuleCard.vue";
 
-// Fields don't receive a new timestamp when the view reloads, so the
-// list refreshes itself after every action that can change it, like
-// core's pages field.
+// Not every action that changes the list reloads the view, so the list
+// refreshes itself after those that don't, like core's pages field.
 const REFRESH_EVENTS = [
   "model.update",
   "page.changeSlug",
@@ -222,10 +221,11 @@ export default {
       this.fieldData = {};
       this.changes = {};
       this._merged = {};
-      this.fetch();
+      this._onReload();
     },
     "$panel.view.timestamp"() {
       this.syncDirtyState();
+      this._onReload();
     },
   },
   created() {
@@ -236,8 +236,23 @@ export default {
     this.fetch();
 
     this._onRefresh = this.$helper.debounce(async (response) => {
-      if (response?.redirect) return;
+      // A reloading view refreshes the list through its new timestamp.
+      if (response?.redirect || response?.reload) return;
       await Promise.allSettled(pageRequests);
+      this.fetch();
+    }, 0);
+
+    // A view reload can follow writes the field didn't make, like a plugin
+    // saving module pages, so the values of modules without unsaved changes
+    // load again. A language switch reloads the view as well, so both
+    // watchers share one debounced reload.
+    this._onReload = this.$helper.debounce(async () => {
+      await Promise.allSettled(pageRequests);
+      for (const [id, data] of Object.entries(this.fieldData)) {
+        if (!this.changes[id] && !this.drafts[id] && !this._merged[id]) {
+          data.stale = true;
+        }
+      }
       this.fetch();
     }, 0);
 
@@ -251,15 +266,21 @@ export default {
       if (!event?.parent || event.parent === this.parent) this.fetch();
     };
     this._onDescendantDirty = ({ parent, dirty }) => this.handleDescendantDirty(parent, dirty);
-    this._onRemoteUpdate = ({ api, values }) => {
+    // A stale module loads its values first, so the event's values don't
+    // land on the ones from before the view reload.
+    const loadedModule = async (api) => {
       const module = this.moduleByApi(api);
       if (!this.fieldData[module?.id]?.columns) return;
-      this.onInput(module, { ...this.currentValues(module.id), ...values }, true);
+      if (this.fieldData[module.id].stale) await this.loadFieldsBatch([module]);
+      return this.fieldData[module.id]?.columns ? module : undefined;
     };
-    this._onRemoteMerge = ({ api, values }) => {
-      const module = this.moduleByApi(api);
-      if (!this.fieldData[module?.id]?.columns) return;
-      this.mergeValues(module, { ...this.currentValues(module.id), ...values });
+    this._onRemoteUpdate = async ({ api, values }) => {
+      const module = await loadedModule(api);
+      if (module) this.onInput(module, { ...this.currentValues(module.id), ...values }, true);
+    };
+    this._onRemoteMerge = async ({ api, values }) => {
+      const module = await loadedModule(api);
+      if (module) this.mergeValues(module, { ...this.currentValues(module.id), ...values });
     };
     this.$events.on("modules.update", this._onRemoteUpdate);
     this.$events.on("modules.merge", this._onRemoteMerge);
@@ -337,7 +358,7 @@ export default {
 
       // Fields must load before k-model-form can render them, so defer the expand.
       const unknownChanges = module.hasPendingChanges && !this.changes[module.id];
-      if (module.hasFields && (!this.fieldData[module.id] || unknownChanges)) {
+      if (module.hasFields && (this.needsFieldData(module.id) || unknownChanges)) {
         return true;
       }
       this.expanded[module.id] = true;
@@ -739,6 +760,10 @@ export default {
       delete this.changes[moduleId];
     },
 
+    needsFieldData(moduleId) {
+      return !this.fieldData[moduleId] || this.fieldData[moduleId].stale;
+    },
+
     currentValues(moduleId) {
       return this.drafts[moduleId]
         || this.changes[moduleId]
@@ -793,7 +818,7 @@ export default {
     // Collapsed state persists in localStorage per page + field name.
     async toggle(module) {
       const expand = !this.expanded[module.id];
-      if (expand && module.hasFields && !this.fieldData[module.id]) {
+      if (expand && module.hasFields && this.needsFieldData(module.id)) {
         await this.loadFieldsBatch([module]);
       }
       this.expanded[module.id] = expand;
@@ -815,7 +840,7 @@ export default {
     },
     async expandAll() {
       const toLoad = this.modules.filter(
-        (m) => !this.expanded[m.id] && m.hasFields && !this.fieldData[m.id],
+        (m) => !this.expanded[m.id] && m.hasFields && this.needsFieldData(m.id),
       );
       await this.loadFieldsBatch(toLoad);
       for (const m of this.modules) {
