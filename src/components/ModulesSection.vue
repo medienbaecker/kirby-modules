@@ -258,7 +258,7 @@ export default {
         const toLoad = this.modules.filter((m) => this.restoreExpandState(m, collapsed));
 
         this.reconcileState();
-        this.positionNewModule(previousIds);
+        await this.positionNewModule(previousIds);
 
         this.loadFieldsBatch(toLoad, true);
       } catch (e) {
@@ -311,7 +311,7 @@ export default {
       this.syncDirtyState();
     },
 
-    positionNewModule(previousIds) {
+    async positionNewModule(previousIds) {
       if (this.pendingInsertPosition == null) return;
 
       const newModule = this.modules.find((m) => !previousIds.has(m.id));
@@ -327,7 +327,7 @@ export default {
         this.modules = ids.map((id) =>
           this.modules.find((m) => m.id === id),
         );
-        this.onSort();
+        await this.onSort();
         this.$nextTick(() => {
           const el = this.$el.querySelector(`[data-module-id="${newModule.id}"]`);
           if (el) el.focus();
