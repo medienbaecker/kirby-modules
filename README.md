@@ -491,6 +491,12 @@ panel.events.emit("modules.merge", { api: "pages/home+modules+intro", values: { 
 
 Either way the page becomes dirty and its Save button publishes the module. Modules whose fields haven't loaded yet ignore both events.
 
+When a page's changes were published somewhere else, for example by another editor's Panel, tell the modules fields so they drop their unsaved state:
+
+```js
+panel.events.emit("modules.published", { parent: "pages/home" });
+```
+
 ### Config options
 
 ```php

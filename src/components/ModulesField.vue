@@ -261,6 +261,11 @@ export default {
     }
 
     this._onPublish = () => this.settleChanges("publish");
+    this._onPublished = ({ parent }) => {
+      if (parent?.replace(/^\//, "") === this.$panel.view.props.api?.replace(/^\//, "")) {
+        this.settleChanges("publish");
+      }
+    };
     this._onDiscard = () => this.settleChanges("discard");
     this._onMoved = (event) => {
       if (!event?.parent || event.parent === this.parent) this.fetch();
@@ -286,6 +291,7 @@ export default {
     this.$events.on("modules.merge", this._onRemoteMerge);
     this.$events.on("modules.moved", this._onMoved);
     this.$events.on("content.publish", this._onPublish);
+    this.$events.on("modules.published", this._onPublished);
     this.$events.on("content.discard", this._onDiscard);
     this.$events.on("modules.dirty", this._onDescendantDirty);
     this.$events.on("page.delete", this.notifyPreview);
@@ -303,6 +309,7 @@ export default {
     this.$events.off("modules.merge", this._onRemoteMerge);
     this.$events.off("modules.moved", this._onMoved);
     this.$events.off("content.publish", this._onPublish);
+    this.$events.off("modules.published", this._onPublished);
     this.$events.off("content.discard", this._onDiscard);
     this.$events.off("modules.dirty", this._onDescendantDirty);
     this.$events.off("page.delete", this.notifyPreview);
