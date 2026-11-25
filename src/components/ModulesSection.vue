@@ -158,7 +158,13 @@ export default {
   },
 
   watch: {
+    // A view reload can follow writes the section didn't make, like a plugin
+    // saving module pages, so the values of modules without unsaved changes
+    // load again.
     timestamp() {
+      for (const [id, data] of Object.entries(this.fieldData)) {
+        if (!this.changes[id]) data.stale = true;
+      }
       this.fetch();
     },
   },
@@ -271,7 +277,7 @@ export default {
       }
 
       // Fields must load before k-sections can render them, so defer the expand.
-      if (module.hasFields && (!this.fieldData[module.id] || module.hasPendingChanges)) {
+      if (module.hasFields && (this.needsFieldData(module.id) || module.hasPendingChanges)) {
         return true;
       }
       this.$set(this.expanded, module.id, true);
@@ -665,6 +671,10 @@ export default {
       }
     },
 
+    needsFieldData(moduleId) {
+      return !this.fieldData[moduleId] || this.fieldData[moduleId].stale;
+    },
+
     currentValues(moduleId) {
       return this.changes[moduleId]
         || this.fieldData[moduleId]?.values
@@ -718,7 +728,7 @@ export default {
         this.saveCollapsedState();
         return;
       }
-      if (module.hasFields && !this.fieldData[module.id]) {
+      if (module.hasFields && this.needsFieldData(module.id)) {
         await this.loadFieldsBatch([module]);
       }
       this.$set(this.expanded, module.id, true);
@@ -742,7 +752,7 @@ export default {
     },
     async expandAll() {
       const toLoad = this.modules.filter(
-        (m) => !this.expanded[m.id] && m.hasFields && !this.fieldData[m.id],
+        (m) => !this.expanded[m.id] && m.hasFields && this.needsFieldData(m.id),
       );
       await this.loadFieldsBatch(toLoad);
       for (const m of this.modules) {
