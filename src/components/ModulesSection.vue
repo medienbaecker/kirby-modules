@@ -392,7 +392,7 @@ export default {
           }
           this.$set(this.fieldData, module.id, {
             values: entry.values,
-            original: JSON.stringify(entry.values),
+            original: JSON.stringify(entry.original),
           });
           if (entry.moduleName !== undefined) module.moduleName = entry.moduleName;
         }

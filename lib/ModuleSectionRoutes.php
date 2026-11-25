@@ -141,16 +141,19 @@ class ModuleSectionRoutes
     self::assertChildOf($child, $container);
 
     $language = kirby()->language()?->code() ?? 'default';
-    $form = $child->version('changes')->exists($language)
-      ? Form::for($child, ['values' => $child->version('changes')->content($language)->toArray()])
-      : Form::for($child);
-
-    $fields = $form->fields();
+    // Blueprint values only - stripping passthrough (`hidden`, `uuid`, `lock`)
+    // keeps out-of-band content state from riding back through /changes/save.
+    $values = function (Form $form): array {
+      $fields = $form->fields();
+      return array_diff_key($fields->toFormValues(), $fields->passthrough());
+    };
+    $latest = $values(Form::for($child));
 
     return [
-      // Blueprint values only - stripping passthrough (`hidden`, `uuid`, `lock`)
-      // keeps out-of-band content state from riding back through /changes/save.
-      'values' => array_diff_key($fields->toFormValues(), $fields->passthrough()),
+      'values' => $child->version('changes')->exists($language)
+        ? $values(Form::for($child, ['values' => $child->version('changes')->content($language)->toArray()]))
+        : $latest,
+      'original' => $latest,
       // `label` can derive from fields; the client refreshes it from here after
       // a save, sparing a full section refetch.
       'moduleName' => (string) $child->title(),
